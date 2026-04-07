@@ -1,0 +1,148 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  USER
+  ADMIN
+}
+
+enum UserStatus {
+  ACTIVE
+  BANNED
+  DISABLED
+}
+
+enum ItemStatus {
+  DISPONIBILE
+  PRENOTATO
+  COMPRATO
+}
+
+model User {
+  id                 String     @id @default(cuid())
+  email              String     @unique
+  emailVerified      Boolean    @default(false)
+  givenName          String?
+  familyName         String?
+  birthdate          String?    // YYYY-MM-DD
+  birthdateConfirmed Boolean    @default(false)
+  role               UserRole   @default(USER)
+  status             UserStatus @default(ACTIVE)
+  bannedAt           DateTime?
+  bannedReason       String?
+  createdAt          DateTime   @default(now())
+  updatedAt          DateTime   @updatedAt
+
+  identities       UserIdentity[]
+  groupMemberships GroupMember[]
+  ownedGroups      Group[]             @relation("GroupOwner")
+  wishlistItems    WishlistItem[]
+  statusesSet      WishlistItemStatus[]
+  auditActorOf     AdminAction[]       @relation("AdminActor")
+  auditTargetOf    AdminAction[]       @relation("AdminTarget")
+
+  @@index([email])
+  @@index([status])
+}
+
+model UserIdentity {
+  id          String   @id @default(cuid())
+  userId      String
+  provider    String   // google | github | microsoft
+  providerSub String   // provider's user ID
+  createdAt   DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@unique([provider, providerSub])
+  @@index([userId])
+}
+
+model Group {
+  id          String    @id @default(cuid())
+  name        String
+  description String?
+  ownerId     String
+  deletedAt   DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  owner   User          @relation("GroupOwner", fields: [ownerId], references: [id])
+  members GroupMember[]
+
+  @@index([ownerId])
+  @@index([deletedAt])
+}
+
+model GroupMember {
+  id        String    @id @default(cuid())
+  groupId   String
+  userId    String
+  joinedAt  DateTime  @default(now())
+  removedAt DateTime?
+
+  group Group @relation(fields: [groupId], references: [id])
+  user  User  @relation(fields: [userId], references: [id])
+
+  @@unique([groupId, userId])
+  @@index([userId])
+  @@index([groupId])
+  @@index([removedAt])
+}
+
+model WishlistItem {
+  id          String    @id @default(cuid())
+  ownerId     String
+  title       String
+  description String?
+  url         String?
+  imageUrl    String?
+  priority    Int       @default(0)
+  deletedAt   DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  owner  User                @relation(fields: [ownerId], references: [id])
+  status WishlistItemStatus?
+
+  @@index([ownerId])
+  @@index([deletedAt])
+}
+
+model WishlistItemStatus {
+  id            String     @id @default(cuid())
+  itemId        String     @unique
+  status        ItemStatus @default(DISPONIBILE)
+  statusGroupId String?
+  setByUserId   String?
+  updatedAt     DateTime   @updatedAt
+  version       Int        @default(0)
+
+  item      WishlistItem @relation(fields: [itemId], references: [id])
+  setByUser User?        @relation(fields: [setByUserId], references: [id])
+
+  @@index([itemId])
+  @@index([statusGroupId])
+}
+
+model AdminAction {
+  id           String   @id @default(cuid())
+  actorId      String
+  targetUserId String?
+  action       String
+  details      Json?
+  createdAt    DateTime @default(now())
+
+  actor      User  @relation("AdminActor", fields: [actorId], references: [id])
+  targetUser User? @relation("AdminTarget", fields: [targetUserId], references: [id])
+
+  @@index([actorId])
+  @@index([targetUserId])
+  @@index([createdAt])
+}
