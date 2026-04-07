@@ -89,10 +89,22 @@ cd frontend && npm run build
 
 ### Frontend → GitHub Pages
 
-1. Set `VITE_API_URL` and `VITE_BASE_URL` (e.g. `/wishlist/`) as **repository variables** (Settings → Variables → Actions) so CI picks them up automatically.
-2. Run `npm run build` — output is in `frontend/dist/`.
-3. Deploy `frontend/dist/` to the `gh-pages` branch.  
-   The included `public/404.html` handles deep-link routing on GitHub Pages.
+Deployment is fully automated via [`.github/workflows/deploy.yml`](.github/workflows/deploy.yml).  
+It triggers on every push to `main`, builds the frontend, and publishes `frontend/dist/` using the official GitHub Pages actions.
+
+#### Required repository settings (one-time)
+
+1. **Pages source** — go to *Settings → Pages* and set **Source** to **GitHub Actions**.
+2. **Repository variables** — go to *Settings → Variables → Actions* and add:
+
+   | Variable | Example value |
+   |---|---|
+   | `VITE_API_URL` | `https://your-backend.vercel.app` |
+   | `VITE_BASE_URL` | `/wishlist/` |
+
+   These are not secrets — they are baked into the static bundle at build time.
+
+The `public/404.html` included in the build handles deep-link routing on GitHub Pages.
 
 #### OAuth redirect URIs for GitHub Pages
 
@@ -106,12 +118,16 @@ and set `FRONTEND_URL=https://<username>.github.io/wishlist` in the backend env.
 
 ---
 
-## CI
+## CI / CD
 
-GitHub Actions runs on every push and pull request:
+**CI** runs on every push and pull request ([`.github/workflows/ci.yml`](.github/workflows/ci.yml)):
 
 - **Backend**: `npm ci` → `prisma generate` → `tsc --noEmit`
 - **Frontend**: `npm ci` → `vue-tsc --noEmit` → `eslint` → `vite build`
 
-See [`.github/workflows/ci.yml`](.github/workflows/ci.yml).
+**Deploy** runs automatically on every push to `main` ([`.github/workflows/deploy.yml`](.github/workflows/deploy.yml)):
+
+- Builds `frontend/` with `VITE_API_URL` and `VITE_BASE_URL` from repository variables
+- Publishes `frontend/dist/` to GitHub Pages via `actions/deploy-pages`
+
 
