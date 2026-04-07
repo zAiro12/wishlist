@@ -45,7 +45,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
           },
         });
 
-        authedRes.status(201).json(item);
+        // Match GET response shape: owner never sees status on their own items
+        authedRes.status(201).json({ ...item, status: null });
       } catch (err) {
         if (err instanceof ZodError) {
           authedRes.status(400).json({ error: 'Validation failed', issues: err.errors });

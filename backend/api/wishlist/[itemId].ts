@@ -46,7 +46,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
           data: updateData,
         });
 
-        authedRes.status(200).json(updated);
+        // Match GET response shape: owner never sees status on their own items
+        authedRes.status(200).json({ ...updated, status: null });
         return;
       }
 

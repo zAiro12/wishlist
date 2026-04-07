@@ -7,7 +7,29 @@ import { verifyState } from '../../lib/oauth-state';
 
 const FRONTEND_URL = process.env.FRONTEND_URL ?? 'http://localhost:5173';
 
+/** Parse the Cookie header into a key→value map. */
+function parseCookies(header: string): Record<string, string> {
+  const cookies: Record<string, string> = {};
+  for (const part of header.split(';')) {
+    const eqIdx = part.indexOf('=');
+    if (eqIdx === -1) continue;
+    const key = part.slice(0, eqIdx).trim();
+    const val = part.slice(eqIdx + 1).trim();
+    if (key) cookies[key] = decodeURIComponent(val);
+  }
+  return cookies;
+}
+
+/** Clear the oauth_nonce cookie (used after verification or on error). */
+function clearNonceCookie(res: VercelResponse): void {
+  res.setHeader(
+    'Set-Cookie',
+    'oauth_nonce=; HttpOnly; SameSite=Lax; Path=/api/auth/callback; Max-Age=0',
+  );
+}
+
 function redirectError(res: VercelResponse, error: string): void {
+  clearNonceCookie(res);
   res.redirect(302, `${FRONTEND_URL}/auth/callback?error=${encodeURIComponent(error)}`);
 }
 
@@ -37,17 +59,23 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
     return;
   }
 
-  // Validate HMAC-signed state to prevent CSRF
+  // Validate HMAC-signed state and session-bound nonce to prevent login-CSRF
   if (typeof state !== 'string') {
     redirectError(res, 'invalid_state');
     return;
   }
 
-  const stateResult = verifyState(state, provider);
+  const cookies = parseCookies(req.headers.cookie ?? '');
+  const cookieNonce = cookies['oauth_nonce'] ?? '';
+
+  const stateResult = verifyState(state, provider, cookieNonce);
   if (!stateResult.ok) {
     redirectError(res, stateResult.reason);
     return;
   }
+
+  // Nonce consumed — clear the cookie before proceeding
+  clearNonceCookie(res);
 
   try {
     const userInfo = await exchangeCode(provider, code);
@@ -76,15 +104,20 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
         },
       });
     } else {
-      // Update info from provider if fields were empty
-      const updates: Record<string, unknown> = { emailVerified: userInfo.emailVerified };
+      // Update info from provider if fields were empty.
+      // emailVerified is only ever upgraded (true → true), never downgraded,
+      // because transient provider API issues may report false even for verified accounts.
+      const updates: Record<string, unknown> = {};
+      if (!user.emailVerified && userInfo.emailVerified) updates['emailVerified'] = true;
       if (!user.givenName && userInfo.givenName) updates['givenName'] = userInfo.givenName;
       if (!user.familyName && userInfo.familyName) updates['familyName'] = userInfo.familyName;
       if (!user.birthdate && userInfo.birthdate) {
         updates['birthdate'] = userInfo.birthdate;
         updates['birthdateConfirmed'] = true;
       }
-      user = await prisma.user.update({ where: { id: user.id }, data: updates });
+      if (Object.keys(updates).length > 0) {
+        user = await prisma.user.update({ where: { id: user.id }, data: updates });
+      }
     }
 
     // Check if banned

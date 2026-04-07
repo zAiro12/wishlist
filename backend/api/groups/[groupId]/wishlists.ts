@@ -6,7 +6,7 @@ import { assertGroupMember, AppError } from '../../../lib/authz';
 
 // GET /api/groups/[groupId]/wishlists
 // Returns all wishlist items from all members of this group.
-// - Items of the requesting user: status is hidden (returned as DISPONIBILE)
+// - Items of the requesting user: status is hidden (returned as null)
 // - Deleted items are excluded
 export default async function handler(req: VercelRequest, res: VercelResponse): Promise<void> {
   if (setCors(req, res)) return;

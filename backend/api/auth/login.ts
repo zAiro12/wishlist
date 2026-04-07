@@ -18,8 +18,16 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
     return;
   }
 
-  // State is HMAC-signed with a random nonce to prevent CSRF
-  const state = createState(provider);
+  // State is HMAC-signed with a random nonce to prevent CSRF.
+  // The nonce is also stored in an HttpOnly SameSite=Lax cookie so the callback
+  // can verify the request came from the same browser session (login-CSRF protection).
+  const { state, nonce } = createState(provider);
+
+  // HttpOnly + SameSite=Lax binds the nonce to this browser session
+  res.setHeader(
+    'Set-Cookie',
+    `oauth_nonce=${nonce}; HttpOnly; SameSite=Lax; Path=/api/auth/callback; Max-Age=600`,
+  );
 
   try {
     const url = getAuthorizationUrl(provider, state);

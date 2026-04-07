@@ -55,7 +55,12 @@ onMounted(async () => {
     return;
   }
 
-  await auth.setTokenAndFetch(token);
+  try {
+    await auth.setTokenAndFetch(token);
+  } catch {
+    errorMsg.value = 'Failed to complete sign-in. Please try again.';
+    return;
+  }
   if (needsBirthdate || auth.needsBirthdate) {
     await router.replace('/complete-profile');
   } else {
