@@ -89,7 +89,7 @@ cd frontend && npm run build
 
 ### Frontend → GitHub Pages
 
-1. Set `VITE_API_URL` and `VITE_BASE_URL` (e.g. `/wishlist/`) in your CI secrets.
+1. Set `VITE_API_URL` and `VITE_BASE_URL` (e.g. `/wishlist/`) as **repository variables** (Settings → Variables → Actions) so CI picks them up automatically.
 2. Run `npm run build` — output is in `frontend/dist/`.
 3. Deploy `frontend/dist/` to the `gh-pages` branch.  
    The included `public/404.html` handles deep-link routing on GitHub Pages.
