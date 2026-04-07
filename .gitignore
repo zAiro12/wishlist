@@ -1,0 +1,37 @@
+# Dependencies
+node_modules/
+
+# Build outputs
+dist/
+build/
+.output/
+
+# Environment variables
+.env
+.env.*
+!.env.example
+
+# Vercel
+.vercel/
+
+# Prisma generated client
+backend/node_modules/
+
+# Coverage
+coverage/
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+
+# TypeScript
+*.tsbuildinfo

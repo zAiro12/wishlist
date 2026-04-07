@@ -26,13 +26,8 @@ body {
   line-height: 1.5;
 }
 
-a {
-  color: var(--color-primary);
-  text-decoration: none;
-}
-a:hover {
-  text-decoration: underline;
-}
+a { color: var(--color-primary); text-decoration: none; }
+a:hover { text-decoration: underline; }
 
 button {
   cursor: pointer;
@@ -44,23 +39,10 @@ button {
   transition: background-color 0.15s;
 }
 
-.btn-primary {
-  background-color: var(--color-primary);
-  color: white;
-}
-.btn-primary:hover {
-  background-color: var(--color-primary-dark);
-}
-
-.btn-danger {
-  background-color: var(--color-danger);
-  color: white;
-}
-
-.btn-secondary {
-  background-color: var(--color-border);
-  color: var(--color-text);
-}
+.btn-primary { background-color: var(--color-primary); color: white; }
+.btn-primary:hover { background-color: var(--color-primary-dark); }
+.btn-danger { background-color: var(--color-danger); color: white; }
+.btn-secondary { background-color: var(--color-border); color: var(--color-text); }
 
 .card {
   background: var(--color-card);
@@ -76,11 +58,7 @@ button {
   padding: 2rem 1rem;
 }
 
-.error-message {
-  color: var(--color-danger);
-  font-size: 0.875rem;
-  margin-top: 0.5rem;
-}
+.error-message { color: var(--color-danger); font-size: 0.875rem; margin-top: 0.5rem; }
 
 .badge {
   display: inline-block;
@@ -107,16 +85,8 @@ input:focus, textarea:focus, select:focus {
   outline-offset: 1px;
 }
 
-label {
-  display: block;
-  font-size: 0.875rem;
-  font-weight: 500;
-  margin-bottom: 0.25rem;
-}
-
-.form-group {
-  margin-bottom: 1rem;
-}
+label { display: block; font-size: 0.875rem; font-weight: 500; margin-bottom: 0.25rem; }
+.form-group { margin-bottom: 1rem; }
 
 nav {
   background: white;
@@ -127,12 +97,7 @@ nav {
   justify-content: space-between;
   gap: 1rem;
 }
-
-nav .nav-links {
-  display: flex;
-  gap: 1rem;
-  align-items: center;
-}
+nav .nav-links { display: flex; gap: 1rem; align-items: center; }
 
 h1 { font-size: 1.875rem; font-weight: 700; margin-bottom: 1rem; }
 h2 { font-size: 1.5rem;   font-weight: 600; margin-bottom: 0.75rem; }
@@ -147,26 +112,9 @@ h3 { font-size: 1.125rem; font-weight: 600; margin-bottom: 0.5rem; }
   border-radius: 50%;
   animation: spin 0.6s linear infinite;
 }
+@keyframes spin { to { transform: rotate(360deg); } }
 
-@keyframes spin {
-  to { transform: rotate(360deg); }
-}
-
-table {
-  width: 100%;
-  border-collapse: collapse;
-}
-th, td {
-  text-align: left;
-  padding: 0.625rem 0.75rem;
-  border-bottom: 1px solid var(--color-border);
-  font-size: 0.875rem;
-}
-th {
-  font-weight: 600;
-  color: var(--color-text-muted);
-  background: var(--color-bg);
-}
-tr:hover td {
-  background: #f3f4f6;
-}
+table { width: 100%; border-collapse: collapse; }
+th, td { text-align: left; padding: 0.625rem 0.75rem; border-bottom: 1px solid var(--color-border); font-size: 0.875rem; }
+th { font-weight: 600; color: var(--color-text-muted); background: var(--color-bg); }
+tr:hover td { background: #f3f4f6; }
