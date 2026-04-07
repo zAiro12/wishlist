@@ -22,10 +22,19 @@ function parseCookies(header: string): Record<string, string> {
 
 /** Clear the oauth_nonce cookie (used after verification or on error). */
 function clearNonceCookie(res: VercelResponse): void {
-  res.setHeader(
-    'Set-Cookie',
-    'oauth_nonce=; HttpOnly; SameSite=Lax; Path=/api/auth/callback; Max-Age=0',
-  );
+  const cookieParts = [
+    'oauth_nonce=',
+    'HttpOnly',
+    'SameSite=Lax',
+    'Path=/api/auth/callback',
+    'Max-Age=0',
+  ];
+
+  if (process.env.NODE_ENV === 'production') {
+    cookieParts.push('Secure');
+  }
+
+  res.setHeader('Set-Cookie', cookieParts.join('; '));
 }
 
 function redirectError(res: VercelResponse, error: string): void {

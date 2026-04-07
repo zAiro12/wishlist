@@ -23,11 +23,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
   // can verify the request came from the same browser session (login-CSRF protection).
   const { state, nonce } = createState(provider);
 
-  // HttpOnly + SameSite=Lax binds the nonce to this browser session
-  res.setHeader(
-    'Set-Cookie',
-    `oauth_nonce=${nonce}; HttpOnly; SameSite=Lax; Path=/api/auth/callback; Max-Age=600`,
-  );
+  // HttpOnly + SameSite=Lax binds the nonce to this browser session.
+  // Mark the cookie Secure in production so it is only sent over HTTPS.
+  const cookie =
+    `oauth_nonce=${nonce}; HttpOnly; SameSite=Lax; Path=/api/auth/callback; Max-Age=600` +
+    (process.env.NODE_ENV === 'production' ? '; Secure' : '');
+  res.setHeader('Set-Cookie', cookie);
 
   try {
     const url = getAuthorizationUrl(provider, state);

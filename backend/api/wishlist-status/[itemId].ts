@@ -55,6 +55,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
 
         // Verify requester is member of the specified group
         await assertGroupMember(userId, groupId);
+        // Verify the item owner is also a member of the specified group so statusGroupId
+        // cannot be set to an unrelated group that only the requester belongs to
+        await assertGroupMember(item.ownerId, groupId);
 
         const currentStatus = item.status;
 
