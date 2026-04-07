@@ -3,6 +3,7 @@ import { exchangeCode, isValidProvider } from '../../lib/oauth';
 import { prisma } from '../../lib/db';
 import { signToken } from '../../lib/jwt';
 import { setCors } from '../../lib/cors';
+import { verifyState } from '../../lib/oauth-state';
 
 const FRONTEND_URL = process.env.FRONTEND_URL ?? 'http://localhost:5173';
 
@@ -36,28 +37,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
     return;
   }
 
-  // Validate state
+  // Validate HMAC-signed state to prevent CSRF
   if (typeof state !== 'string') {
     redirectError(res, 'invalid_state');
     return;
   }
 
-  try {
-    const stateData = JSON.parse(Buffer.from(state, 'base64url').toString('utf8')) as {
-      provider: string;
-      ts: number;
-    };
-    if (stateData.provider !== provider) {
-      redirectError(res, 'state_mismatch');
-      return;
-    }
-    // State is valid for 10 minutes
-    if (Date.now() - stateData.ts > 10 * 60 * 1000) {
-      redirectError(res, 'state_expired');
-      return;
-    }
-  } catch {
-    redirectError(res, 'invalid_state');
+  const stateResult = verifyState(state, provider);
+  if (!stateResult.ok) {
+    redirectError(res, stateResult.reason);
     return;
   }
 
@@ -124,7 +112,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
     if (isFirstLogin) params.set('firstLogin', 'true');
     if (needsBirthdate) params.set('needsBirthdate', 'true');
 
-    res.redirect(302, `${FRONTEND_URL}/auth/callback?${params.toString()}`);
+    // Deliver token via URL fragment to keep it out of server logs and Referer headers
+    res.redirect(302, `${FRONTEND_URL}/auth/callback#${params.toString()}`);
   } catch (err) {
     console.error('OAuth callback error:', err);
     redirectError(res, 'server_error');

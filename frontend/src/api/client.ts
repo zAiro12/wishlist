@@ -19,10 +19,16 @@ async function request<T>(
   options: RequestInit = {}
 ): Promise<T> {
   const token = getToken();
+  const hasBody = options.body !== undefined && options.body !== null;
+
   const headers: Record<string, string> = {
-    'Content-Type': 'application/json',
     ...(options.headers as Record<string, string> ?? {}),
   };
+
+  // Only set Content-Type when actually sending a JSON body
+  if (hasBody) {
+    headers['Content-Type'] = 'application/json';
+  }
 
   if (token) {
     headers['Authorization'] = `Bearer ${token}`;

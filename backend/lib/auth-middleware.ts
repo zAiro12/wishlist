@@ -48,7 +48,8 @@ export async function requireAdmin(
   handler: Handler
 ): Promise<void> {
   await requireAuth(req, res, async (authedReq, authedRes) => {
-    if (authedReq.user.role !== 'ADMIN') {
+    // Check the DB role (not the JWT claim) so demoted admins lose access immediately
+    if (authedReq.user.dbUser.role !== 'ADMIN') {
       authedRes.status(403).json({ error: 'Admin access required' });
       return;
     }

@@ -75,9 +75,15 @@ function doSearch() { page.value = 1; load(); }
 
 async function doAction(userId: string, action: 'ban' | 'unban' | 'disable' | 'enable') {
   const reason = action === 'ban' ? (prompt('Reason for ban (optional):') ?? undefined) : undefined;
+  const actionLabels: Record<typeof action, string> = {
+    ban: 'banned',
+    unban: 'unbanned',
+    disable: 'disabled',
+    enable: 'enabled',
+  };
   try {
     await adminApi.users.update(userId, { action, reason });
-    actionMsg.value = `User ${action}ned successfully.`;
+    actionMsg.value = `User ${actionLabels[action]} successfully.`;
     await load();
   } catch (err) {
     actionMsg.value = err instanceof ApiError ? err.message : 'Failed';

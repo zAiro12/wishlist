@@ -8,11 +8,11 @@ import {
   ForbiddenError,
   NotFoundError,
   ConflictError,
-  BadRequestError,
   assertGroupMember,
   shareAtLeastOneGroup,
 } from '../../lib/authz';
 import { ZodError } from 'zod';
+import { Prisma } from '@prisma/client';
 
 // PUT    /api/wishlist-status/[itemId]  → set status (PRENOTATO | COMPRATO)
 // DELETE /api/wishlist-status/[itemId]  → clear status (back to DISPONIBILE)
@@ -71,17 +71,27 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
 
         // Atomic update with optimistic locking
         if (!currentStatus) {
-          // Create status record
-          const created = await prisma.wishlistItemStatus.create({
-            data: {
-              itemId,
-              status,
-              statusGroupId: groupId,
-              setByUserId: userId,
-              version: 1,
-            },
-          });
-          authedRes.status(200).json(created);
+          // Create the status record; handle a concurrent create as a 409 conflict
+          try {
+            const created = await prisma.wishlistItemStatus.create({
+              data: {
+                itemId,
+                status,
+                statusGroupId: groupId,
+                setByUserId: userId,
+                version: 1,
+              },
+            });
+            authedRes.status(200).json(created);
+          } catch (createErr) {
+            if (
+              createErr instanceof Prisma.PrismaClientKnownRequestError &&
+              createErr.code === 'P2002'
+            ) {
+              throw new ConflictError('Item status was modified concurrently. Please refresh and try again.');
+            }
+            throw createErr;
+          }
         } else {
           if (currentStatus.version !== version) {
             throw new ConflictError('Item status was modified concurrently. Please refresh and try again.');
@@ -116,8 +126,29 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
         const { groupId, version } = parsed;
 
         const currentStatus = item.status;
-        if (!currentStatus || currentStatus.status === 'DISPONIBILE') {
-          authedRes.status(200).json({ message: 'Status already cleared' });
+
+        // If no status row exists yet, return a real WishlistItemStatus row for a consistent
+        // response shape. We use upsert (rather than create) to handle the race where a
+        // concurrent PUT created the row between our earlier findUnique and this point.
+        if (!currentStatus) {
+          const clearedStatus = await prisma.wishlistItemStatus.upsert({
+            where: { itemId },
+            update: {}, // no-op if a concurrent request already created it
+            create: {
+              itemId,
+              status: 'DISPONIBILE',
+              statusGroupId: null,
+              setByUserId: null,
+              version: 0,
+            },
+          });
+          authedRes.status(200).json(clearedStatus);
+          return;
+        }
+
+        // Already cleared – return the existing record for a consistent response shape
+        if (currentStatus.status === 'DISPONIBILE') {
+          authedRes.status(200).json(currentStatus);
           return;
         }
 

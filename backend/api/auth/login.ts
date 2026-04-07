@@ -1,6 +1,7 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { getAuthorizationUrl, isValidProvider } from '../../lib/oauth';
 import { setCors } from '../../lib/cors';
+import { createState } from '../../lib/oauth-state';
 
 // GET /api/auth/login?provider=google|github|microsoft
 export default async function handler(req: VercelRequest, res: VercelResponse): Promise<void> {
@@ -17,7 +18,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
     return;
   }
 
-  const state = Buffer.from(JSON.stringify({ provider, ts: Date.now() })).toString('base64url');
+  // State is HMAC-signed with a random nonce to prevent CSRF
+  const state = createState(provider);
 
   try {
     const url = getAuthorizationUrl(provider, state);

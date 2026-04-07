@@ -35,9 +35,15 @@ const ERROR_MESSAGES: Record<string, string> = {
 };
 
 onMounted(async () => {
-  const token = route.query['token'] as string | undefined;
+  // Token is delivered via URL fragment (#token=...) to keep it out of server logs
+  const fragment = window.location.hash.slice(1);
+  const fragParams = new URLSearchParams(fragment);
+
+  const token = fragParams.get('token') ?? undefined;
+  const needsBirthdate = fragParams.get('needsBirthdate') === 'true';
+
+  // Errors are still delivered via query string (they are not sensitive)
   const err = route.query['error'] as string | undefined;
-  const needsBirthdate = route.query['needsBirthdate'] === 'true';
 
   if (err) {
     errorMsg.value = ERROR_MESSAGES[err] ?? `Authentication error: ${err}`;
