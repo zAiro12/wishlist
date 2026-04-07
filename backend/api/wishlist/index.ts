@@ -20,12 +20,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
         orderBy: [{ priority: 'desc' }, { createdAt: 'asc' }],
       });
 
-      // Owner never sees real status on their own items
+      // Owner never sees status on their own items (null hides all metadata)
       const maskedItems = items.map((item) => ({
         ...item,
-        status: item.status
-          ? { ...item.status, status: 'DISPONIBILE', statusGroupId: null, setByUserId: null }
-          : null,
+        status: null,
       }));
 
       authedRes.status(200).json(maskedItems);

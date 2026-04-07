@@ -10,7 +10,7 @@
           <tr v-for="g in groups" :key="g.id">
             <td>{{ g.name }}</td>
             <td>{{ g.owner?.email ?? g.ownerId }}</td>
-            <td>{{ (g as any)._count?.members ?? '?' }}</td>
+            <td>{{ g._count?.members ?? '?' }}</td>
             <td>
               <span v-if="g.deletedAt" class="badge badge-comprato">Deleted</span>
               <span v-else class="badge badge-disponibile">Active</span>

@@ -84,9 +84,11 @@ async function doAction(userId: string, action: 'ban' | 'unban' | 'disable' | 'e
   try {
     await adminApi.users.update(userId, { action, reason });
     actionMsg.value = `User ${actionLabels[action]} successfully.`;
+    error.value = null;
     await load();
   } catch (err) {
-    actionMsg.value = err instanceof ApiError ? err.message : 'Failed';
+    error.value = err instanceof ApiError ? err.message : 'Failed';
+    actionMsg.value = null;
   }
 }
 </script>

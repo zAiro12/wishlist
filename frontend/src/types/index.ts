@@ -30,6 +30,8 @@ export interface Group {
   members?: GroupMember[];
   memberCount?: number;
   joinedAt?: string;
+  /** Prisma aggregate included by the admin API */
+  _count?: { members: number };
 }
 
 export interface GroupMember {

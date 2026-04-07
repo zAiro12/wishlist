@@ -3,7 +3,6 @@ import { requireAuth, type AuthedRequest } from '../../../lib/auth-middleware';
 import { setCors } from '../../../lib/cors';
 import { prisma } from '../../../lib/db';
 import { assertGroupMember, AppError } from '../../../lib/authz';
-import type { ItemStatus } from '@prisma/client';
 
 // GET /api/groups/[groupId]/wishlists
 // Returns all wishlist items from all members of this group.
@@ -52,15 +51,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
         orderBy: [{ ownerId: 'asc' }, { priority: 'desc' }, { createdAt: 'asc' }],
       });
 
-      // Mask status for own items
+      // Mask status for own items: return null to fully hide reservation metadata
       const maskedItems = items.map((item) => {
         if (item.ownerId === userId) {
-          return {
-            ...item,
-            status: item.status
-              ? { ...item.status, status: 'DISPONIBILE' as ItemStatus, statusGroupId: null, setByUserId: null }
-              : null,
-          };
+          return { ...item, status: null };
         }
         return item;
       });

@@ -12,9 +12,7 @@
           <p v-if="group.description" style="color:var(--color-text-muted);">{{ group.description }}</p>
           <p style="font-size:0.8rem;color:var(--color-text-muted);">ID: <code>{{ group.id }}</code></p>
         </div>
-        <RouterLink :to="`/groups/${groupId}/wishlists`">
-          <button class="btn-primary">View Wishlists</button>
-        </RouterLink>
+        <RouterLink :to="`/groups/${groupId}/wishlists`" class="btn-primary">View Wishlists</RouterLink>
       </div>
 
       <div v-if="nextCelebrated.daysUntil !== null && nextCelebrated.users.length > 0" class="card birthday-banner">
@@ -29,6 +27,7 @@
       </div>
 
       <p v-if="actionMsg" style="color:var(--color-primary);margin-bottom:1rem;">{{ actionMsg }}</p>
+      <p v-if="actionError" class="error-message" style="margin-bottom:1rem;">{{ actionError }}</p>
 
       <div class="card" style="margin-bottom:1.5rem;">
         <h3>Members ({{ activeMembers.length }})</h3>
@@ -95,6 +94,7 @@ const nextCelebrated = ref<{ users: User[]; daysUntil: number | null }>({ users:
 const loading = ref(true);
 const error = ref<string | null>(null);
 const actionMsg = ref<string | null>(null);
+const actionError = ref<string | null>(null);
 const transferUserId = ref('');
 
 const isOwner = computed(() => group.value?.ownerId === authStore.user?.id);
@@ -122,7 +122,7 @@ async function handleLeave() {
     await groupsApi.members.leave(groupId);
     await router.replace('/groups');
   } catch (err) {
-    actionMsg.value = err instanceof ApiError ? err.message : 'Failed to leave group';
+    actionError.value = err instanceof ApiError ? err.message : 'Failed to leave group';
   }
 }
 
@@ -134,7 +134,7 @@ async function handleRemove(member: GroupMember) {
       group.value.members = group.value.members.filter((m) => m.userId !== member.userId);
     }
   } catch (err) {
-    actionMsg.value = err instanceof ApiError ? err.message : 'Failed to remove member';
+    actionError.value = err instanceof ApiError ? err.message : 'Failed to remove member';
   }
 }
 
@@ -145,8 +145,10 @@ async function handleTransfer() {
     if (group.value) group.value.ownerId = updated.ownerId;
     transferUserId.value = '';
     actionMsg.value = 'Ownership transferred successfully.';
+    actionError.value = null;
   } catch (err) {
-    actionMsg.value = err instanceof ApiError ? err.message : 'Failed to transfer ownership';
+    actionError.value = err instanceof ApiError ? err.message : 'Failed to transfer ownership';
+    actionMsg.value = null;
   }
 }
 
@@ -156,7 +158,7 @@ async function handleDeleteGroup() {
     await groupsApi.delete(groupId);
     await router.replace('/groups');
   } catch (err) {
-    actionMsg.value = err instanceof ApiError ? err.message : 'Failed to delete group';
+    actionError.value = err instanceof ApiError ? err.message : 'Failed to delete group';
   }
 }
 </script>
