@@ -7,7 +7,7 @@ OAuth-only auth (Google / GitHub / Microsoft) · Vue 3 frontend (GitHub Pages) �
 
 ## Repository layout
 
-```
+```text
 wishlist/
 ├── backend/    Vercel serverless functions (Node, Prisma, PostgreSQL)
 └── frontend/   Vue 3 + Vite SPA (static, deployable to GitHub Pages)
@@ -112,7 +112,7 @@ Configure OAuth apps to point to the backend callback endpoint (the app authenti
 against the provider and the provider must redirect back to the backend). Use these exact
 redirect URIs (replace `<YOUR_BACKEND_URL>` with your Vercel or local backend URL):
 
-```
+```text
 <YOUR_BACKEND_URL>/api/auth/callback?provider=google
 <YOUR_BACKEND_URL>/api/auth/callback?provider=github
 <YOUR_BACKEND_URL>/api/auth/callback?provider=microsoft
@@ -164,7 +164,7 @@ In your Vercel project for the backend, set the same environment variables that 
 
 For production, register this exact redirect URI in each OAuth provider configuration:
 
-```
+```text
 https://wishlist.vercel.app/api/auth/callback
 ```
 
@@ -172,7 +172,7 @@ https://wishlist.vercel.app/api/auth/callback
 
 Use the pooled connection string from Neon (host contains `-pooler`) for production, example:
 
-```
+```text
 postgresql://user:password@host-pooler.neon.tech/wishlist?sslmode=require
 ```
 
