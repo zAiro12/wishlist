@@ -108,13 +108,41 @@ The `public/404.html` included in the build handles deep-link routing on GitHub 
 
 #### OAuth redirect URIs for GitHub Pages
 
-Configure each OAuth provider to redirect to:
+Configure OAuth apps to point to the backend callback endpoint (the app authenticates
+against the provider and the provider must redirect back to the backend). Use these exact
+redirect URIs (replace `<YOUR_BACKEND_URL>` with your Vercel or local backend URL):
 
 ```
-https://<username>.github.io/wishlist/auth/callback?provider=<google|github|microsoft>
+<YOUR_BACKEND_URL>/api/auth/callback?provider=google
+<YOUR_BACKEND_URL>/api/auth/callback?provider=github
+<YOUR_BACKEND_URL>/api/auth/callback?provider=microsoft
 ```
 
-and set `FRONTEND_URL=https://<username>.github.io/wishlist` in the backend env.
+Notes:
+- `FRONTEND_URL` (e.g. `https://<username>.github.io/wishlist` or `http://localhost:5173`) must be set in the backend environment — the backend will redirect users to the frontend after sign-in.
+- For Google OAuth, add the redirect URI in the Google Cloud Console under OAuth 2.0 Client IDs → Authorized redirect URIs.
+- For GitHub, add the redirect URI in the OAuth App settings → Authorization callback URL.
+- For Microsoft (Azure AD), add the redirect URI in the app's Authentication settings.
+
+### Getting a Neon `DATABASE_URL`
+
+1. Create a project in Neon and a Postgres branch (or use the default branch).
+2. In the Neon dashboard, go to **Connection** and copy the standard `postgres://...` connection string.
+3. Paste that value into `backend/.env` as `DATABASE_URL` (or set it in Vercel dashboard for production).
+
+### GitHub Variables (build-time)
+
+Set repository-level Variables (Settings → Variables → Actions) used during the static frontend build:
+
+- `VITE_API_URL` — full backend URL (e.g. `https://my-backend.vercel.app`). This is embedded into the static bundle during build.
+- `VITE_BASE_URL` — base path for the site (use `/wishlist/` when publishing to `https://<username>.github.io/wishlist/`).
+
+These are not secrets — they are used at build time so the produced static assets know where to call the API.
+
+### Vercel environment variables
+
+In your Vercel project for the backend, set the same environment variables that you use locally (see `backend/.env.example`): `DATABASE_URL`, `JWT_SECRET`, `FRONTEND_URL`, OAuth client IDs/secrets and `ALLOWED_ORIGINS`.
+
 
 ---
 
@@ -129,5 +157,77 @@ and set `FRONTEND_URL=https://<username>.github.io/wishlist` in the backend env.
 
 - Builds `frontend/` with `VITE_API_URL` and `VITE_BASE_URL` from repository variables
 - Publishes `frontend/dist/` to GitHub Pages via `actions/deploy-pages`
+
+---
+
+### Production OAuth redirect URI (exact)
+
+For production, register this exact redirect URI in each OAuth provider configuration:
+
+```
+https://wishlist.vercel.app/api/auth/callback
+```
+
+### Neon (pooled) connection string
+
+Use the pooled connection string from Neon (host contains `-pooler`) for production, example:
+
+```
+postgresql://user:password@host-pooler.neon.tech/wishlist?sslmode=require
+```
+
+### GitHub Actions Variables (set at repository level)
+
+Set these Variables under *Settings → Variables → Actions* so the static build embeds them:
+
+- `VITE_API_URL` — `https://wishlist.vercel.app`
+- `VITE_BASE_URL` — `/wishlist/`
+
+### Vercel environment variables
+
+Set the following env vars in your Vercel project for the backend (Production):
+
+- `DATABASE_URL` — Neon pooled connection string
+- `JWT_SECRET` — random secret (generate with: `node -e "console.log(require('crypto').randomBytes(64).toString('base64'))"`)
+- `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET`
+- `GITHUB_CLIENT_ID` / `GITHUB_CLIENT_SECRET`
+- `MICROSOFT_CLIENT_ID` / `MICROSOFT_CLIENT_SECRET`
+- `ALLOWED_ORIGINS` — e.g. `https://zairo12.github.io/wishlist/,https://zairo12.github.io`
+- `FRONTEND_URL` — `https://zairo12.github.io/wishlist/`
+- `NODE_ENV` — `production`
+
+### Make a user an admin (SQL)
+
+Run this SQL against your database to promote an existing user to admin:
+
+```sql
+UPDATE "User" SET role='ADMIN' WHERE email='your-admin-email@example.com';
+```
+
+### Local dev quick commands
+
+Frontend:
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+Backend:
+```bash
+cd backend
+npm install
+npx prisma generate
+npx vercel dev
+```
+
+### Deploy
+
+Push to `main` to trigger CI and deploy:
+
+```bash
+git push origin main
+```
+
 
 

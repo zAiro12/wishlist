@@ -50,16 +50,21 @@ onMounted(async () => {
     return;
   }
 
-  if (!token) {
-    errorMsg.value = 'No authentication token received.';
-    return;
-  }
-
-  try {
-    await auth.setTokenAndFetch(token);
-  } catch {
-    errorMsg.value = 'Failed to complete sign-in. Please try again.';
-    return;
+  if (token) {
+    try {
+      await auth.setTokenAndFetch(token);
+    } catch {
+      errorMsg.value = 'Failed to complete sign-in. Please try again.';
+      return;
+    }
+  } else {
+    // No token in fragment: try cookie-based session (server-set HttpOnly cookie)
+    try {
+      await auth.refreshUser();
+    } catch {
+      errorMsg.value = 'No authentication token received.';
+      return;
+    }
   }
   if (needsBirthdate || auth.needsBirthdate) {
     await router.replace('/complete-profile');

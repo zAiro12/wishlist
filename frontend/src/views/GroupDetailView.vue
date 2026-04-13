@@ -15,14 +15,13 @@
         <RouterLink :to="`/groups/${groupId}/wishlists`" class="btn-primary">View Wishlists</RouterLink>
       </div>
 
-      <div v-if="nextCelebrated.daysUntil !== null && nextCelebrated.users.length > 0" class="card birthday-banner">
+      <div v-if="nextCelebrated.users.length > 0" class="card birthday-banner">
         <p style="font-weight:600;">
-          🎂 Next Birthday:
-          <span v-if="nextCelebrated.daysUntil === 0">today!</span>
-          <span v-else>in {{ nextCelebrated.daysUntil }} day{{ nextCelebrated.daysUntil !== 1 ? 's' : '' }}</span>
+          <span v-if="nextCelebrated.daysUntil === 0">🎂 Oggi è il compleanno di {{ nextCelebrated.users[0].givenName }}! 🎉</span>
+          <span v-else>🎂 Prossimo compleanno: {{ nextCelebrated.users[0].givenName }} {{ nextCelebrated.users[0].familyName }} tra {{ nextCelebrated.daysUntil }} giorno{{ nextCelebrated.daysUntil !== 1 ? 'i' : '' }}</span>
         </p>
-        <p v-for="u in nextCelebrated.users" :key="u.id" style="color:var(--color-text-muted);font-size:0.875rem;">
-          {{ u.givenName }} {{ u.familyName }} ({{ u.email }})
+        <p v-if="nextCelebrated.users.length > 1" style="color:var(--color-text-muted);font-size:0.875rem;">
+          Altri festeggiati: <span v-for="(u, idx) in nextCelebrated.users.slice(1)" :key="u.id">{{ u.givenName }} {{ u.familyName }}<span v-if="idx < nextCelebrated.users.slice(1).length - 1">, </span></span>
         </p>
       </div>
 
@@ -103,14 +102,20 @@ const activeMembers = computed(() => group.value?.members?.filter((m) => m.remov
 onMounted(async () => {
   loading.value = true;
   try {
-    const [g, nc] = await Promise.all([
-      groupsApi.get(groupId),
-      groupsApi.nextCelebrated(groupId),
-    ]);
-    group.value = g;
-    nextCelebrated.value = { users: nc.nextCelebrated, daysUntil: nc.daysUntil };
+    group.value = await groupsApi.get(groupId);
   } catch (err) {
     error.value = err instanceof ApiError ? err.message : 'Failed to load group';
+    loading.value = false;
+    return;
+  }
+
+  // Fetch next-celebrated separately and fail silently if it errors
+  try {
+    const nc = await groupsApi.nextCelebrated(groupId);
+    nextCelebrated.value = { users: nc.nextCelebrated, daysUntil: nc.daysUntil };
+  } catch (err) {
+    // silent fail: leave nextCelebrated empty
+    nextCelebrated.value = { users: [], daysUntil: null };
   } finally {
     loading.value = false;
   }

@@ -1,0 +1,9 @@
+{
+  "version": 2,
+  "functions": {
+    "backend/api/**/*.ts": { "runtime": "@vercel/node@3" }
+  },
+  "routes": [
+    { "src": "/api/(.*)", "dest": "/backend/api/$1" }
+  ]
+}
