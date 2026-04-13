@@ -1,13 +1,11 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { requireAuth, type AuthedRequest } from '../../backend/lib/auth-middleware';
-import { setCors } from '../../backend/lib/cors';
-import { prisma } from '../../backend/lib/prisma';
-import { TransferOwnershipSchema } from '../../backend/lib/validators';
-import { assertGroupOwner, AppError } from '../../backend/lib/authz';
+import { requireAuth, type AuthedRequest } from '../../lib/auth-middleware';
+import { setCors } from '../../lib/cors';
+import { prisma } from '../../lib/prisma';
+import { TransferOwnershipSchema } from '../../lib/validators';
+import { assertGroupOwner, AppError } from '../../lib/authz';
 import { ZodError } from 'zod';
 
-// POST /api/groups/[groupId]/transfer
-// Body: { newOwnerId: string }
 export default async function handler(req: VercelRequest, res: VercelResponse): Promise<void> {
   if (setCors(req, res)) return;
 
@@ -34,20 +32,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
         return;
       }
 
-      // Verify new owner is an active member
-      const membership = await prisma.groupMember.findUnique({
-        where: { groupId_userId: { groupId, userId: newOwnerId } },
-      });
+      const membership = await prisma.groupMember.findUnique({ where: { groupId_userId: { groupId, userId: newOwnerId } } });
 
       if (!membership || membership.removedAt !== null) {
         authedRes.status(400).json({ error: 'New owner must be an active member of the group' });
         return;
       }
 
-      const updated = await prisma.group.update({
-        where: { id: groupId },
-        data: { ownerId: newOwnerId },
-      });
+      const updated = await prisma.group.update({ where: { id: groupId }, data: { ownerId: newOwnerId } });
 
       authedRes.status(200).json(updated);
     } catch (err) {
@@ -63,4 +55,3 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
     }
   });
 }
-

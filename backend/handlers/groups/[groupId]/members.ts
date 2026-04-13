@@ -1,17 +1,14 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { requireAuth, type AuthedRequest } from '../../backend/lib/auth-middleware';
-import { setCors } from '../../backend/lib/cors';
-import { prisma } from '../../backend/lib/prisma';
+import { requireAuth, type AuthedRequest } from '../../lib/auth-middleware';
+import { setCors } from '../../lib/cors';
+import { prisma } from '../../lib/prisma';
 import {
   assertGroupMember,
   assertGroupOwner,
   assertHasConfirmedBirthdate,
   AppError,
-} from '../../backend/lib/authz';
+} from '../../lib/authz';
 
-// GET    /api/groups/[groupId]/members  → list active members
-// POST   /api/groups/[groupId]/members  → join group
-// DELETE /api/groups/[groupId]/members?userId=  → leave (self) or remove (owner)
 export default async function handler(req: VercelRequest, res: VercelResponse): Promise<void> {
   if (setCors(req, res)) return;
 
@@ -30,11 +27,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
 
         const members = await prisma.groupMember.findMany({
           where: { groupId, removedAt: null },
-          include: {
-            user: {
-              select: { id: true, givenName: true, familyName: true, email: true, birthdate: true },
-            },
-          },
+          include: { user: { select: { id: true, givenName: true, familyName: true, email: true, birthdate: true } } },
           orderBy: { joinedAt: 'asc' },
         });
 
@@ -43,7 +36,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
       }
 
       if (authedReq.method === 'POST') {
-        // Join group
         assertHasConfirmedBirthdate(authedReq.user.dbUser);
 
         const group = await prisma.group.findUnique({ where: { id: groupId } });
@@ -52,10 +44,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
           return;
         }
 
-        // Check if already a member
-        const existing = await prisma.groupMember.findUnique({
-          where: { groupId_userId: { groupId, userId } },
-        });
+        const existing = await prisma.groupMember.findUnique({ where: { groupId_userId: { groupId, userId } } });
 
         if (existing && existing.removedAt === null) {
           authedRes.status(409).json({ error: 'Already a member of this group' });
@@ -63,23 +52,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
         }
 
         if (existing) {
-          // Rejoin
-          const updated = await prisma.groupMember.update({
-            where: { id: existing.id },
-            data: { removedAt: null, joinedAt: new Date() },
-          });
-          await prisma.adminAction.create({
-            data: { actorId: userId, action: 'GROUP_JOINED', details: { groupId, userId } },
-          });
+          const updated = await prisma.groupMember.update({ where: { id: existing.id }, data: { removedAt: null, joinedAt: new Date() } });
+          await prisma.adminAction.create({ data: { actorId: userId, action: 'GROUP_JOINED', details: { groupId, userId } } });
           authedRes.status(200).json(updated);
         } else {
-          const membership = await prisma.groupMember.create({
-            data: { groupId, userId },
-          });
-          await prisma.adminAction.create({
-            data: { actorId: userId, action: 'GROUP_JOINED', details: { groupId, userId } },
-          });
-
+          const membership = await prisma.groupMember.create({ data: { groupId, userId } });
+          await prisma.adminAction.create({ data: { actorId: userId, action: 'GROUP_JOINED', details: { groupId, userId } } });
           authedRes.status(201).json(membership);
         }
         return;
@@ -90,16 +68,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
         const isSelf = targetUserId === userId;
 
         if (!isSelf) {
-          // Only owner can remove others
           await assertGroupOwner(userId, groupId);
         } else {
-          // Self-leave: must be current member
           await assertGroupMember(userId, groupId);
         }
 
-        const targetMembership = await prisma.groupMember.findUnique({
-          where: { groupId_userId: { groupId, userId: targetUserId } },
-        });
+        const targetMembership = await prisma.groupMember.findUnique({ where: { groupId_userId: { groupId, userId: targetUserId } } });
 
         if (!targetMembership || targetMembership.removedAt !== null) {
           authedRes.status(404).json({ error: 'Member not found' });
@@ -107,39 +81,19 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
         }
 
         await prisma.$transaction(async (tx) => {
-          // Remove the member
-          await tx.groupMember.update({
-            where: { id: targetMembership.id },
-            data: { removedAt: new Date() },
-          });
+          await tx.groupMember.update({ where: { id: targetMembership.id }, data: { removedAt: new Date() } });
 
-          // Check remaining active members
-          const remaining = await tx.groupMember.findMany({
-            where: { groupId, removedAt: null, userId: { not: targetUserId } },
-            orderBy: { joinedAt: 'asc' },
-          });
+          const remaining = await tx.groupMember.findMany({ where: { groupId, removedAt: null, userId: { not: targetUserId } }, orderBy: { joinedAt: 'asc' } });
 
           if (remaining.length === 0) {
-            // Last member: soft delete group
             await tx.group.update({ where: { id: groupId }, data: { deletedAt: new Date() } });
           } else {
-            // If owner is leaving, transfer ownership to earliest remaining member
             const group = await tx.group.findUnique({ where: { id: groupId } });
             if (group && group.ownerId === targetUserId) {
-              await tx.group.update({
-                where: { id: groupId },
-                data: { ownerId: remaining[0].userId },
-              });
+              await tx.group.update({ where: { id: groupId }, data: { ownerId: remaining[0].userId } });
             }
           }
-          await tx.adminAction.create({
-            data: {
-              actorId: userId,
-              targetUserId: targetUserId,
-              action: 'GROUP_LEFT',
-              details: { groupId, removedByOwner: !isSelf },
-            },
-          });
+          await tx.adminAction.create({ data: { actorId: userId, targetUserId: targetUserId, action: 'GROUP_LEFT', details: { groupId, removedByOwner: !isSelf } } });
         });
 
         authedRes.status(200).json({ message: 'Member removed' });
@@ -156,4 +110,3 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
     }
   });
 }
-

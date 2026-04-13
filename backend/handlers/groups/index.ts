@@ -1,13 +1,11 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { requireAuth, type AuthedRequest } from '../backend/lib/auth-middleware';
-import { setCors } from '../backend/lib/cors';
-import { prisma } from '../backend/lib/prisma';
-import { CreateGroupSchema, UpdateGroupSchema } from '../backend/lib/validators';
-import { assertHasConfirmedBirthdate } from '../backend/lib/authz';
+import { requireAuth, type AuthedRequest } from '../lib/auth-middleware';
+import { setCors } from '../lib/cors';
+import { prisma } from '../lib/prisma';
+import { CreateGroupSchema, UpdateGroupSchema } from '../lib/validators';
+import { assertHasConfirmedBirthdate } from '../lib/authz';
 import { ZodError } from 'zod';
 
-// GET  /api/groups  → list groups current user belongs to
-// POST /api/groups  → create a new group
 export default async function handler(req: VercelRequest, res: VercelResponse): Promise<void> {
   if (setCors(req, res)) return;
 
@@ -54,9 +52,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
             },
           });
 
-          await tx.groupMember.create({
-            data: { groupId: g.id, userId },
-          });
+          await tx.groupMember.create({ data: { groupId: g.id, userId } });
 
           await tx.adminAction.create({
             data: {
@@ -87,4 +83,3 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
     authedRes.status(405).json({ error: 'Method not allowed' });
   });
 }
-

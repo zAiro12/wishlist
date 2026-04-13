@@ -1,13 +1,11 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { requireAuth, type AuthedRequest } from '../backend/lib/auth-middleware';
-import { setCors } from '../backend/lib/cors';
-import { prisma } from '../backend/lib/prisma';
-import { UpdateWishlistItemSchema } from '../backend/lib/validators';
-import { AppError, ForbiddenError, NotFoundError } from '../backend/lib/authz';
+import { requireAuth, type AuthedRequest } from '../lib/auth-middleware';
+import { setCors } from '../lib/cors';
+import { prisma } from '../lib/prisma';
+import { UpdateWishlistItemSchema } from '../lib/validators';
+import { AppError, ForbiddenError, NotFoundError } from '../lib/authz';
 import { ZodError } from 'zod';
 
-// PATCH  /api/wishlist/[itemId]  → update item (owner only)
-// DELETE /api/wishlist/[itemId]  → soft delete (owner only)
 export default async function handler(req: VercelRequest, res: VercelResponse): Promise<void> {
   if (setCors(req, res)) return;
 
@@ -41,34 +39,23 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
         if (parsed.imageUrl !== undefined) updateData['imageUrl'] = parsed.imageUrl || null;
         if (parsed.priority !== undefined) updateData['priority'] = parsed.priority;
 
-        const updated = await prisma.wishlistItem.update({
-          where: { id: itemId },
-          data: updateData,
-        });
+        const updated = await prisma.wishlistItem.update({ where: { id: itemId }, data: updateData });
 
         try {
-          await prisma.adminAction.create({
-            data: { actorId: userId, action: 'ITEM_UPDATED', details: { itemId } },
-          });
+          await prisma.adminAction.create({ data: { actorId: userId, action: 'ITEM_UPDATED', details: { itemId } } });
         } catch (e) {
           console.error('Failed to write audit for ITEM_UPDATED', e);
         }
 
-        // Match GET response shape: owner never sees status on their own items
         authedRes.status(200).json({ ...updated, status: null });
         return;
       }
 
       if (authedReq.method === 'DELETE') {
-        await prisma.wishlistItem.update({
-          where: { id: itemId },
-          data: { deletedAt: new Date() },
-        });
+        await prisma.wishlistItem.update({ where: { id: itemId }, data: { deletedAt: new Date() } });
 
         try {
-          await prisma.adminAction.create({
-            data: { actorId: userId, action: 'ITEM_DELETED', details: { itemId } },
-          });
+          await prisma.adminAction.create({ data: { actorId: userId, action: 'ITEM_DELETED', details: { itemId } } });
         } catch (e) {
           console.error('Failed to write audit for ITEM_DELETED', e);
         }
@@ -91,4 +78,3 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
     }
   });
 }
-

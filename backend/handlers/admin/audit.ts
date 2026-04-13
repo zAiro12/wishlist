@@ -1,11 +1,10 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { requireAdmin, type AuthedRequest } from '../backend/lib/auth-middleware';
-import { setCors } from '../backend/lib/cors';
-import { prisma } from '../backend/lib/prisma';
-import { PaginationSchema } from '../backend/lib/validators';
+import { requireAdmin, type AuthedRequest } from '../lib/auth-middleware';
+import { setCors } from '../lib/cors';
+import { prisma } from '../lib/prisma';
+import { PaginationSchema } from '../lib/validators';
 import { ZodError } from 'zod';
 
-// GET /api/admin/audit → list admin audit log
 export default async function handler(req: VercelRequest, res: VercelResponse): Promise<void> {
   if (setCors(req, res)) return;
 
@@ -42,4 +41,3 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
     }
   });
 }
-

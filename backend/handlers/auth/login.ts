@@ -1,7 +1,7 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { getAuthorizationUrl, isValidProvider } from '../backend/lib/oauth';
-import { setCors } from '../backend/lib/cors';
-import { createState } from '../backend/lib/oauth-state';
+import { getAuthorizationUrl, isValidProvider } from '../lib/oauth';
+import { setCors } from '../lib/cors';
+import { createState } from '../lib/oauth-state';
 
 // GET /api/auth/login?provider=google|github|microsoft
 export default async function handler(req: VercelRequest, res: VercelResponse): Promise<void> {
@@ -18,13 +18,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
     return;
   }
 
-  // State is HMAC-signed with a random nonce to prevent CSRF.
-  // The nonce is also stored in an HttpOnly SameSite=Lax cookie so the callback
-  // can verify the request came from the same browser session (login-CSRF protection).
   const { state, nonce } = createState(provider);
 
-  // HttpOnly + SameSite=Lax binds the nonce to this browser session.
-  // Mark the cookie Secure in production so it is only sent over HTTPS.
   const cookie =
     `oauth_nonce=${nonce}; HttpOnly; SameSite=Lax; Path=/api/auth/callback; Max-Age=600` +
     (process.env.NODE_ENV === 'production' ? '; Secure' : '');
@@ -38,4 +33,3 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
     res.status(500).json({ error: `Failed to build authorization URL: ${message}` });
   }
 }
-

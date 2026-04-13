@@ -1,11 +1,10 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { requireAdmin, type AuthedRequest } from '../backend/lib/auth-middleware';
-import { setCors } from '../backend/lib/cors';
-import { prisma } from '../backend/lib/prisma';
-import { PaginationSchema } from '../backend/lib/validators';
+import { requireAdmin, type AuthedRequest } from '../lib/auth-middleware';
+import { setCors } from '../lib/cors';
+import { prisma } from '../lib/prisma';
+import { PaginationSchema } from '../lib/validators';
 import { ZodError } from 'zod';
 
-// GET /api/admin/groups → list all groups
 export default async function handler(req: VercelRequest, res: VercelResponse): Promise<void> {
   if (setCors(req, res)) return;
 
@@ -20,24 +19,24 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
       const skip = (page - 1) * limit;
 
       const where = search
-        ? { name: { contains: search, mode: 'insensitive' as const } }
+        ? { title: { contains: search, mode: 'insensitive' as const } }
         : {};
 
-      const [groups, total] = await Promise.all([
-        prisma.group.findMany({
+      const [items, total] = await Promise.all([
+        prisma.wishlistItem.findMany({
           where,
           skip,
           take: limit,
           orderBy: { createdAt: 'desc' },
           include: {
             owner: { select: { id: true, email: true, givenName: true, familyName: true } },
-            _count: { select: { members: { where: { removedAt: null } } } },
+            status: true,
           },
         }),
-        prisma.group.count({ where }),
+        prisma.wishlistItem.count({ where }),
       ]);
 
-      authedRes.status(200).json({ groups, total, page, limit });
+      authedRes.status(200).json({ items, total, page, limit });
     } catch (err) {
       if (err instanceof ZodError) {
         authedRes.status(400).json({ error: 'Validation failed', issues: err.errors });
@@ -47,4 +46,3 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
     }
   });
 }
-

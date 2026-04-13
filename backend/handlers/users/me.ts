@@ -1,8 +1,8 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { requireAuth, type AuthedRequest } from '../backend/lib/auth-middleware';
-import { setCors } from '../backend/lib/cors';
-import { prisma } from '../backend/lib/prisma';
-import { UpdateProfileSchema } from '../backend/lib/validators';
+import { requireAuth, type AuthedRequest } from '../lib/auth-middleware';
+import { setCors } from '../lib/cors';
+import { prisma } from '../lib/prisma';
+import { UpdateProfileSchema } from '../lib/validators';
 import { ZodError } from 'zod';
 
 function safeUser(user: {
@@ -33,8 +33,6 @@ function safeUser(user: {
   };
 }
 
-// GET  /api/users/me  → current user profile
-// PATCH /api/users/me → update profile
 export default async function handler(req: VercelRequest, res: VercelResponse): Promise<void> {
   if (setCors(req, res)) return;
 
@@ -61,10 +59,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
           updateData['birthdateConfirmed'] = true;
         }
 
-        const updated = await prisma.user.update({
-          where: { id: authedReq.user.userId },
-          data: updateData,
-        });
+        const updated = await prisma.user.update({ where: { id: authedReq.user.userId }, data: updateData });
 
         authedRes.status(200).json(safeUser(updated));
       } catch (err) {
@@ -80,4 +75,3 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
     authedRes.status(405).json({ error: 'Method not allowed' });
   });
 }
-

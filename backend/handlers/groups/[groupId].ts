@@ -1,14 +1,11 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { requireAuth, type AuthedRequest } from '../backend/lib/auth-middleware';
-import { setCors } from '../backend/lib/cors';
-import { prisma } from '../backend/lib/prisma';
-import { UpdateGroupSchema } from '../backend/lib/validators';
-import { assertGroupMember, assertGroupOwner, AppError } from '../backend/lib/authz';
+import { requireAuth, type AuthedRequest } from '../lib/auth-middleware';
+import { setCors } from '../lib/cors';
+import { prisma } from '../lib/prisma';
+import { UpdateGroupSchema } from '../lib/validators';
+import { assertGroupMember, assertGroupOwner, AppError } from '../lib/authz';
 import { ZodError } from 'zod';
 
-// GET    /api/groups/[groupId] → group detail
-// PATCH  /api/groups/[groupId] → update (owner only)
-// DELETE /api/groups/[groupId] → soft delete (owner only)
 export default async function handler(req: VercelRequest, res: VercelResponse): Promise<void> {
   if (setCors(req, res)) return;
 
@@ -31,9 +28,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
             owner: { select: { id: true, givenName: true, familyName: true, email: true } },
             members: {
               where: { removedAt: null },
-              include: {
-                user: { select: { id: true, givenName: true, familyName: true, email: true, birthdate: true } },
-              },
+              include: { user: { select: { id: true, givenName: true, familyName: true, email: true, birthdate: true } } },
               orderBy: { joinedAt: 'asc' },
             },
           },
@@ -52,10 +47,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
         await assertGroupOwner(userId, groupId);
         const parsed = UpdateGroupSchema.parse(authedReq.body);
 
-        const updated = await prisma.group.update({
-          where: { id: groupId },
-          data: parsed,
-        });
+        const updated = await prisma.group.update({ where: { id: groupId }, data: parsed });
 
         authedRes.status(200).json(updated);
         return;
@@ -66,13 +58,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
 
         const [updated] = await prisma.$transaction([
           prisma.group.update({ where: { id: groupId }, data: { deletedAt: new Date() } }),
-          prisma.adminAction.create({
-            data: {
-              actorId: userId,
-              action: 'GROUP_DELETED',
-              details: { groupId },
-            },
-          }),
+          prisma.adminAction.create({ data: { actorId: userId, action: 'GROUP_DELETED', details: { groupId } } }),
         ]);
 
         authedRes.status(200).json({ message: 'Group deleted', group: updated });
@@ -93,4 +79,3 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
     }
   });
 }
-

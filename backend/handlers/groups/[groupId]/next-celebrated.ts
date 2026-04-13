@@ -1,11 +1,9 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { requireAuth, type AuthedRequest } from '../../backend/lib/auth-middleware';
-import { setCors } from '../../backend/lib/cors';
-import { prisma } from '../../backend/lib/prisma';
-import { assertGroupMember, daysUntilNextBirthday, AppError } from '../../backend/lib/authz';
+import { requireAuth, type AuthedRequest } from '../../lib/auth-middleware';
+import { setCors } from '../../lib/cors';
+import { prisma } from '../../lib/prisma';
+import { assertGroupMember, daysUntilNextBirthday, AppError } from '../../lib/authz';
 
-// GET /api/groups/[groupId]/next-celebrated
-// Returns the member(s) with the nearest upcoming birthday
 export default async function handler(req: VercelRequest, res: VercelResponse): Promise<void> {
   if (setCors(req, res)) return;
 
@@ -26,21 +24,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
     try {
       await assertGroupMember(userId, groupId);
 
-      const members = await prisma.groupMember.findMany({
-        where: { groupId, removedAt: null },
-        include: {
-          user: {
-            select: { id: true, givenName: true, familyName: true, email: true, birthdate: true },
-          },
-        },
-      });
+      const members = await prisma.groupMember.findMany({ where: { groupId, removedAt: null }, include: { user: { select: { id: true, givenName: true, familyName: true, email: true, birthdate: true } } } });
 
       const withBirthdate = members
         .filter((m) => m.user.birthdate !== null)
-        .map((m) => ({
-          user: m.user,
-          daysUntil: daysUntilNextBirthday(m.user.birthdate!),
-        }));
+        .map((m) => ({ user: m.user, daysUntil: daysUntilNextBirthday(m.user.birthdate!) }));
 
       if (withBirthdate.length === 0) {
         authedRes.status(200).json({ nextCelebrated: [], daysUntil: null });
@@ -50,10 +38,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
       const minDays = Math.min(...withBirthdate.map((m) => m.daysUntil));
       const nextCelebrated = withBirthdate.filter((m) => m.daysUntil === minDays);
 
-      authedRes.status(200).json({
-        nextCelebrated: nextCelebrated.map((m) => m.user),
-        daysUntil: minDays,
-      });
+      authedRes.status(200).json({ nextCelebrated: nextCelebrated.map((m) => m.user), daysUntil: minDays });
     } catch (err) {
       if (err instanceof AppError) {
         authedRes.status(err.statusCode).json({ error: err.message });
@@ -63,4 +48,3 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
     }
   });
 }
-

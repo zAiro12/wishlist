@@ -1,13 +1,12 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { exchangeCode, isValidProvider } from '../backend/lib/oauth';
-import { prisma } from '../backend/lib/prisma';
-import { signToken } from '../backend/lib/jwt';
-import { setCors } from '../backend/lib/cors';
-import { verifyState } from '../backend/lib/oauth-state';
+import { exchangeCode, isValidProvider } from '../lib/oauth';
+import { prisma } from '../lib/prisma';
+import { signToken } from '../lib/jwt';
+import { setCors } from '../lib/cors';
+import { verifyState } from '../lib/oauth-state';
 
 const FRONTEND_URL = process.env.FRONTEND_URL ?? 'http://localhost:5173';
 
-/** Parse the Cookie header into a key→value map. */
 function parseCookies(header: string): Record<string, string> {
   const cookies: Record<string, string> = {};
   for (const part of header.split(';')) {
@@ -20,7 +19,6 @@ function parseCookies(header: string): Record<string, string> {
   return cookies;
 }
 
-/** Clear the oauth_nonce cookie (used after verification or on error). */
 function clearNonceCookie(res: VercelResponse): void {
   const cookieParts = [
     'oauth_nonce=',
@@ -42,7 +40,6 @@ function redirectError(res: VercelResponse, error: string): void {
   res.redirect(302, `${FRONTEND_URL}/auth/callback?error=${encodeURIComponent(error)}`);
 }
 
-// GET /api/auth/callback?provider=...&code=...&state=...
 export default async function handler(req: VercelRequest, res: VercelResponse): Promise<void> {
   if (setCors(req, res)) return;
 
@@ -68,7 +65,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
     return;
   }
 
-  // Validate HMAC-signed state and session-bound nonce to prevent login-CSRF
   if (typeof state !== 'string') {
     redirectError(res, 'invalid_state');
     return;
@@ -83,7 +79,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
     return;
   }
 
-  // Nonce consumed — clear the cookie before proceeding
   clearNonceCookie(res);
 
   try {
@@ -96,7 +91,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
 
     const email = userInfo.email.toLowerCase().trim();
 
-    // Find or create user by email (account linking by email)
     let user = await prisma.user.findUnique({ where: { email } });
     let isFirstLogin = false;
 
@@ -113,9 +107,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
         },
       });
     } else {
-      // Update info from provider if fields were empty.
-      // emailVerified is only ever upgraded (true → true), never downgraded,
-      // because transient provider API issues may report false even for verified accounts.
       const updates: Record<string, unknown> = {};
       if (!user.emailVerified && userInfo.emailVerified) updates['emailVerified'] = true;
       if (!user.givenName && userInfo.givenName) updates['givenName'] = userInfo.givenName;
@@ -129,7 +120,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
       }
     }
 
-    // Check if banned
     if (user.status === 'BANNED') {
       redirectError(res, 'account_banned');
       return;
@@ -139,14 +129,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
       return;
     }
 
-    // Link provider identity
     await prisma.userIdentity.upsert({
       where: { provider_providerSub: { provider, providerSub: userInfo.sub } },
       create: { userId: user.id, provider, providerSub: userInfo.sub },
       update: { userId: user.id },
     });
 
-    // Audit: record user login
     try {
       await prisma.adminAction.create({
         data: {
@@ -163,7 +151,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
 
     const needsBirthdate = !user.birthdate || !user.birthdateConfirmed;
 
-    // Set HttpOnly auth cookie (15m as per JWT expiry). Keep SameSite=Lax and Path=/.
     const cookieParts = [
       `auth_token=${encodeURIComponent(token)}`,
       'HttpOnly',
@@ -174,7 +161,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
     if (process.env.NODE_ENV === 'production') cookieParts.push('Secure');
     res.setHeader('Set-Cookie', cookieParts.join('; '));
 
-    // Redirect user to frontend. Use fragment only for UI flags (not the token).
     const target = needsBirthdate ? `${FRONTEND_URL}/#needsBirthdate=true` : `${FRONTEND_URL}/`;
     res.redirect(302, target);
   } catch (err) {
@@ -182,4 +168,3 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
     redirectError(res, 'server_error');
   }
 }
-
