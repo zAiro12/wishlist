@@ -4,6 +4,7 @@
   "private": true,
   "scripts": {
     "start": "npx vercel dev",
+    "typecheck": "tsc --noEmit",
     "build": "tsc --noEmit",
     "db:generate": "prisma generate",
     "db:migrate": "prisma migrate deploy",
