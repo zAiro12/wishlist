@@ -1,8 +1,6 @@
 {
   "version": 2,
-  "buildCommand": "cd backend && npm ci && npx prisma generate && npm run build",
-  "outputDirectory": "backend/dist",
   "rewrites": [
-    { "source": "/api/(.*)", "destination": "/api/$1" }
+    { "source": "/api/(.*)", "destination": "/backend/api/$1" }
   ]
 }

@@ -5,7 +5,7 @@
   "scripts": {
     "start": "npx vercel dev",
     "typecheck": "tsc --noEmit",
-    "build": "tsc --noEmit",
+    "build": "tsc",
     "db:generate": "prisma generate",
     "db:migrate": "prisma migrate deploy",
     "db:push": "prisma db push",
