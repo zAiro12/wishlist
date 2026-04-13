@@ -1,9 +1,13 @@
 {
   "version": 2,
+  "buildCommand": "cd backend && npm ci && npx prisma generate && npm run build",
+  "outputDirectory": "backend/dist",
   "functions": {
-    "backend/api/**/*.ts": { "runtime": "@vercel/node@3" }
+    "backend/api/**/*.ts": {
+      "runtime": "nodejs20.x"
+    }
   },
-  "routes": [
-    { "src": "/api/(.*)", "dest": "/backend/api/$1" }
+  "rewrites": [
+    { "source": "/api/(.*)", "destination": "/backend/api/$1" }
   ]
 }
