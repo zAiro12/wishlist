@@ -1,8 +1,8 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { requireAuth, type AuthedRequest } from '../../../lib/auth-middleware';
-import { setCors } from '../../../lib/cors';
-import { prisma } from '../../../lib/prisma';
-import { assertGroupMember, AppError } from '../../../lib/authz';
+import { requireAuth, type AuthedRequest } from '../../backend/lib/auth-middleware';
+import { setCors } from '../../backend/lib/cors';
+import { prisma } from '../../backend/lib/prisma';
+import { assertGroupMember, AppError } from '../../backend/lib/authz';
 
 // GET /api/groups/[groupId]/wishlists
 // Returns all wishlist items from all members of this group.
@@ -69,3 +69,4 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
     }
   });
 }
+

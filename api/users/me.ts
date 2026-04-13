@@ -1,8 +1,8 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { requireAuth, type AuthedRequest } from '../../lib/auth-middleware';
-import { setCors } from '../../lib/cors';
-import { prisma } from '../../lib/prisma';
-import { UpdateProfileSchema } from '../../lib/validators';
+import { requireAuth, type AuthedRequest } from '../backend/lib/auth-middleware';
+import { setCors } from '../backend/lib/cors';
+import { prisma } from '../backend/lib/prisma';
+import { UpdateProfileSchema } from '../backend/lib/validators';
 import { ZodError } from 'zod';
 
 function safeUser(user: {
@@ -80,3 +80,4 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
     authedRes.status(405).json({ error: 'Method not allowed' });
   });
 }
+

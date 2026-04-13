@@ -1,5 +1,5 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { setCors } from '../../lib/cors';
+import { setCors } from '../backend/lib/cors';
 
 // POST /api/auth/logout
 // Stateless: client discards the JWT. Server-side only for CORS/audit purposes.
@@ -23,3 +23,4 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
 
   res.status(200).json({ message: 'Logged out successfully' });
 }
+

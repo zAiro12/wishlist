@@ -1,7 +1,7 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { getAuthorizationUrl, isValidProvider } from '../../lib/oauth';
-import { setCors } from '../../lib/cors';
-import { createState } from '../../lib/oauth-state';
+import { getAuthorizationUrl, isValidProvider } from '../backend/lib/oauth';
+import { setCors } from '../backend/lib/cors';
+import { createState } from '../backend/lib/oauth-state';
 
 // GET /api/auth/login?provider=google|github|microsoft
 export default async function handler(req: VercelRequest, res: VercelResponse): Promise<void> {
@@ -38,3 +38,4 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
     res.status(500).json({ error: `Failed to build authorization URL: ${message}` });
   }
 }
+

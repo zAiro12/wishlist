@@ -1,8 +1,8 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { requireAuth, type AuthedRequest } from '../../lib/auth-middleware';
-import { setCors } from '../../lib/cors';
-import { prisma } from '../../lib/prisma';
-import { SetStatusSchema, ClearStatusSchema } from '../../lib/validators';
+import { requireAuth, type AuthedRequest } from '../backend/lib/auth-middleware';
+import { setCors } from '../backend/lib/cors';
+import { prisma } from '../backend/lib/prisma';
+import { SetStatusSchema, ClearStatusSchema } from '../backend/lib/validators';
 import {
   AppError,
   ForbiddenError,
@@ -10,7 +10,7 @@ import {
   ConflictError,
   assertGroupMember,
   shareAtLeastOneGroup,
-} from '../../lib/authz';
+} from '../backend/lib/authz';
 import { ZodError } from 'zod';
 import { Prisma } from '@prisma/client';
 
@@ -226,3 +226,4 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
     }
   });
 }
+

@@ -1,9 +1,9 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { requireAuth, type AuthedRequest } from '../../lib/auth-middleware';
-import { setCors } from '../../lib/cors';
-import { prisma } from '../../lib/prisma';
-import { UpdateGroupSchema } from '../../lib/validators';
-import { assertGroupMember, assertGroupOwner, AppError } from '../../lib/authz';
+import { requireAuth, type AuthedRequest } from '../backend/lib/auth-middleware';
+import { setCors } from '../backend/lib/cors';
+import { prisma } from '../backend/lib/prisma';
+import { UpdateGroupSchema } from '../backend/lib/validators';
+import { assertGroupMember, assertGroupOwner, AppError } from '../backend/lib/authz';
 import { ZodError } from 'zod';
 
 // GET    /api/groups/[groupId] → group detail
@@ -93,3 +93,4 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
     }
   });
 }
+

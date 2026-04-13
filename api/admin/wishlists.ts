@@ -1,11 +1,11 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { requireAdmin, type AuthedRequest } from '../../lib/auth-middleware';
-import { setCors } from '../../lib/cors';
-import { prisma } from '../../lib/prisma';
-import { PaginationSchema } from '../../lib/validators';
+import { requireAdmin, type AuthedRequest } from '../backend/lib/auth-middleware';
+import { setCors } from '../backend/lib/cors';
+import { prisma } from '../backend/lib/prisma';
+import { PaginationSchema } from '../backend/lib/validators';
 import { ZodError } from 'zod';
 
-// GET /api/admin/audit → list admin audit log
+// GET /api/admin/wishlists → list all wishlist items
 export default async function handler(req: VercelRequest, res: VercelResponse): Promise<void> {
   if (setCors(req, res)) return;
 
@@ -16,23 +16,28 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
     }
 
     try {
-      const { page, limit } = PaginationSchema.parse(authedReq.query);
+      const { page, limit, search } = PaginationSchema.parse(authedReq.query);
       const skip = (page - 1) * limit;
 
-      const [actions, total] = await Promise.all([
-        prisma.adminAction.findMany({
+      const where = search
+        ? { title: { contains: search, mode: 'insensitive' as const } }
+        : {};
+
+      const [items, total] = await Promise.all([
+        prisma.wishlistItem.findMany({
+          where,
           skip,
           take: limit,
           orderBy: { createdAt: 'desc' },
           include: {
-            actor: { select: { id: true, email: true, givenName: true, familyName: true } },
-            targetUser: { select: { id: true, email: true, givenName: true, familyName: true } },
+            owner: { select: { id: true, email: true, givenName: true, familyName: true } },
+            status: true,
           },
         }),
-        prisma.adminAction.count(),
+        prisma.wishlistItem.count({ where }),
       ]);
 
-      authedRes.status(200).json({ actions, total, page, limit });
+      authedRes.status(200).json({ items, total, page, limit });
     } catch (err) {
       if (err instanceof ZodError) {
         authedRes.status(400).json({ error: 'Validation failed', issues: err.errors });
@@ -42,3 +47,4 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
     }
   });
 }
+

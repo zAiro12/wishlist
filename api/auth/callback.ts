@@ -1,9 +1,9 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { exchangeCode, isValidProvider } from '../../lib/oauth';
-import { prisma } from '../../lib/prisma';
-import { signToken } from '../../lib/jwt';
-import { setCors } from '../../lib/cors';
-import { verifyState } from '../../lib/oauth-state';
+import { exchangeCode, isValidProvider } from '../backend/lib/oauth';
+import { prisma } from '../backend/lib/prisma';
+import { signToken } from '../backend/lib/jwt';
+import { setCors } from '../backend/lib/cors';
+import { verifyState } from '../backend/lib/oauth-state';
 
 const FRONTEND_URL = process.env.FRONTEND_URL ?? 'http://localhost:5173';
 
@@ -182,3 +182,4 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
     redirectError(res, 'server_error');
   }
 }
+

@@ -1,8 +1,8 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { requireAdmin, type AuthedRequest } from '../../lib/auth-middleware';
-import { setCors } from '../../lib/cors';
-import { prisma } from '../../lib/prisma';
-import { AdminUpdateUserSchema, PaginationSchema } from '../../lib/validators';
+import { requireAdmin, type AuthedRequest } from '../backend/lib/auth-middleware';
+import { setCors } from '../backend/lib/cors';
+import { prisma } from '../backend/lib/prisma';
+import { AdminUpdateUserSchema, PaginationSchema } from '../backend/lib/validators';
 import { ZodError } from 'zod';
 
 // GET   /api/admin/users        → list users with search/pagination
@@ -128,3 +128,4 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
     authedRes.status(405).json({ error: 'Method not allowed' });
   });
 }
+

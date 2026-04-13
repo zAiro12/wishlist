@@ -1,9 +1,9 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { requireAuth, type AuthedRequest } from '../../lib/auth-middleware';
-import { setCors } from '../../lib/cors';
-import { prisma } from '../../lib/prisma';
-import { UpdateWishlistItemSchema } from '../../lib/validators';
-import { AppError, ForbiddenError, NotFoundError } from '../../lib/authz';
+import { requireAuth, type AuthedRequest } from '../backend/lib/auth-middleware';
+import { setCors } from '../backend/lib/cors';
+import { prisma } from '../backend/lib/prisma';
+import { UpdateWishlistItemSchema } from '../backend/lib/validators';
+import { AppError, ForbiddenError, NotFoundError } from '../backend/lib/authz';
 import { ZodError } from 'zod';
 
 // PATCH  /api/wishlist/[itemId]  → update item (owner only)
@@ -91,3 +91,4 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
     }
   });
 }
+
