@@ -1,7 +1,7 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { requireAuth, type AuthedRequest } from '../../lib/auth-middleware';
 import { setCors } from '../../lib/cors';
-import { prisma } from '../../lib/db';
+import { prisma } from '../../lib/prisma';
 import { UpdateWishlistItemSchema } from '../../lib/validators';
 import { AppError, ForbiddenError, NotFoundError } from '../../lib/authz';
 import { ZodError } from 'zod';
@@ -12,7 +12,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
   if (setCors(req, res)) return;
 
   await requireAuth(req, res, async (authedReq: AuthedRequest, authedRes: VercelResponse) => {
-    const userId = authedReq.user.sub;
+    const userId = authedReq.user.userId;
     const itemId = authedReq.query['itemId'] as string;
 
     if (!itemId) {
@@ -46,6 +46,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
           data: updateData,
         });
 
+        try {
+          await prisma.adminAction.create({
+            data: { actorId: userId, action: 'ITEM_UPDATED', details: { itemId } },
+          });
+        } catch (e) {
+          console.error('Failed to write audit for ITEM_UPDATED', e);
+        }
+
         // Match GET response shape: owner never sees status on their own items
         authedRes.status(200).json({ ...updated, status: null });
         return;
@@ -56,6 +64,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
           where: { id: itemId },
           data: { deletedAt: new Date() },
         });
+
+        try {
+          await prisma.adminAction.create({
+            data: { actorId: userId, action: 'ITEM_DELETED', details: { itemId } },
+          });
+        } catch (e) {
+          console.error('Failed to write audit for ITEM_DELETED', e);
+        }
 
         authedRes.status(200).json({ message: 'Item deleted' });
         return;

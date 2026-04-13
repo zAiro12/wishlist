@@ -1,7 +1,7 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { requireAdmin, type AuthedRequest } from '../../lib/auth-middleware';
 import { setCors } from '../../lib/cors';
-import { prisma } from '../../lib/db';
+import { prisma } from '../../lib/prisma';
 import { PaginationSchema } from '../../lib/validators';
 import { ZodError } from 'zod';
 

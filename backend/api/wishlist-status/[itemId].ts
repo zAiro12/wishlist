@@ -1,7 +1,7 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { requireAuth, type AuthedRequest } from '../../lib/auth-middleware';
 import { setCors } from '../../lib/cors';
-import { prisma } from '../../lib/db';
+import { prisma } from '../../lib/prisma';
 import { SetStatusSchema, ClearStatusSchema } from '../../lib/validators';
 import {
   AppError,
@@ -20,7 +20,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
   if (setCors(req, res)) return;
 
   await requireAuth(req, res, async (authedReq: AuthedRequest, authedRes: VercelResponse) => {
-    const userId = authedReq.user.sub;
+    const userId = authedReq.user.userId;
     const itemId = authedReq.query['itemId'] as string;
 
     if (!itemId) {
@@ -58,9 +58,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
         // Verify the item owner is also a member of the specified group so statusGroupId
         // cannot be set to an unrelated group that only the requester belongs to
         await assertGroupMember(item.ownerId, groupId);
-        // Verify the item owner is also a member of the specified group so statusGroupId
-        // cannot be set to an unrelated group that only the requester belongs to
-        await assertGroupMember(item.ownerId, groupId);
 
         const currentStatus = item.status;
 
@@ -88,6 +85,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
                 version: 1,
               },
             });
+            try {
+              await prisma.adminAction.create({
+                data: { actorId: userId, action: 'STATUS_CHANGED', details: { itemId, status, groupId } },
+              });
+            } catch (e) {
+              console.error('Failed to write audit for STATUS_CHANGED (create)', e);
+            }
             authedRes.status(200).json(created);
           } catch (createErr) {
             if (
@@ -121,6 +125,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
 
             return tx.wishlistItemStatus.findUnique({ where: { itemId } });
           });
+          try {
+            await prisma.adminAction.create({
+              data: { actorId: userId, action: 'STATUS_CHANGED', details: { itemId, status, groupId } },
+            });
+          } catch (e) {
+            console.error('Failed to write audit for STATUS_CHANGED (update)', e);
+          }
 
           authedRes.status(200).json(updated);
         }
@@ -188,6 +199,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
 
           return tx.wishlistItemStatus.findUnique({ where: { itemId } });
         });
+
+        try {
+          await prisma.adminAction.create({
+            data: { actorId: userId, action: 'STATUS_CHANGED', details: { itemId, status: 'DISPONIBILE', groupId } },
+          });
+        } catch (e) {
+          console.error('Failed to write audit for STATUS_CHANGED (clear)', e);
+        }
 
         authedRes.status(200).json(updated);
         return;

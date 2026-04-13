@@ -1,7 +1,7 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { requireAuth, type AuthedRequest } from '../../lib/auth-middleware';
 import { setCors } from '../../lib/cors';
-import { prisma } from '../../lib/db';
+import { prisma } from '../../lib/prisma';
 import { UpdateGroupSchema } from '../../lib/validators';
 import { assertGroupMember, assertGroupOwner, AppError } from '../../lib/authz';
 import { ZodError } from 'zod';
@@ -13,7 +13,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
   if (setCors(req, res)) return;
 
   await requireAuth(req, res, async (authedReq: AuthedRequest, authedRes: VercelResponse) => {
-    const userId = authedReq.user.sub;
+    const userId = authedReq.user.userId;
     const groupId = authedReq.query['groupId'] as string;
 
     if (!groupId) {
@@ -64,12 +64,18 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
       if (authedReq.method === 'DELETE') {
         await assertGroupOwner(userId, groupId);
 
-        await prisma.group.update({
-          where: { id: groupId },
-          data: { deletedAt: new Date() },
-        });
+        const [updated] = await prisma.$transaction([
+          prisma.group.update({ where: { id: groupId }, data: { deletedAt: new Date() } }),
+          prisma.adminAction.create({
+            data: {
+              actorId: userId,
+              action: 'GROUP_DELETED',
+              details: { groupId },
+            },
+          }),
+        ]);
 
-        authedRes.status(200).json({ message: 'Group deleted' });
+        authedRes.status(200).json({ message: 'Group deleted', group: updated });
         return;
       }
 

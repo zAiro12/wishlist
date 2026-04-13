@@ -1,7 +1,7 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { requireAuth, type AuthedRequest } from '../../lib/auth-middleware';
 import { setCors } from '../../lib/cors';
-import { prisma } from '../../lib/db';
+import { prisma } from '../../lib/prisma';
 import { CreateGroupSchema, UpdateGroupSchema } from '../../lib/validators';
 import { assertHasConfirmedBirthdate } from '../../lib/authz';
 import { ZodError } from 'zod';
@@ -12,7 +12,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
   if (setCors(req, res)) return;
 
   await requireAuth(req, res, async (authedReq: AuthedRequest, authedRes: VercelResponse) => {
-    const userId = authedReq.user.sub;
+    const userId = authedReq.user.userId;
 
     if (authedReq.method === 'GET') {
       const memberships = await prisma.groupMember.findMany({
@@ -56,6 +56,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
 
           await tx.groupMember.create({
             data: { groupId: g.id, userId },
+          });
+
+          await tx.adminAction.create({
+            data: {
+              actorId: userId,
+              action: 'GROUP_CREATED',
+              details: { groupId: g.id, name: g.name },
+            },
           });
 
           return g;

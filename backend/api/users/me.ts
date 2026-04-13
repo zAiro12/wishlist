@@ -1,7 +1,7 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { requireAuth, type AuthedRequest } from '../../lib/auth-middleware';
 import { setCors } from '../../lib/cors';
-import { prisma } from '../../lib/db';
+import { prisma } from '../../lib/prisma';
 import { UpdateProfileSchema } from '../../lib/validators';
 import { ZodError } from 'zod';
 
@@ -40,7 +40,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
 
   await requireAuth(req, res, async (authedReq: AuthedRequest, authedRes: VercelResponse) => {
     if (authedReq.method === 'GET') {
-      const user = await prisma.user.findUnique({ where: { id: authedReq.user.sub } });
+      const user = await prisma.user.findUnique({ where: { id: authedReq.user.userId } });
       if (!user) {
         authedRes.status(404).json({ error: 'User not found' });
         return;
@@ -62,7 +62,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
         }
 
         const updated = await prisma.user.update({
-          where: { id: authedReq.user.sub },
+          where: { id: authedReq.user.userId },
           data: updateData,
         });
 

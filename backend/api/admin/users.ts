@@ -1,7 +1,7 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { requireAdmin, type AuthedRequest } from '../../lib/auth-middleware';
 import { setCors } from '../../lib/cors';
-import { prisma } from '../../lib/db';
+import { prisma } from '../../lib/prisma';
 import { AdminUpdateUserSchema, PaginationSchema } from '../../lib/validators';
 import { ZodError } from 'zod';
 
@@ -79,7 +79,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
         }
 
         // Prevent admin from banning themselves
-        if (targetId === authedReq.user.sub) {
+        if (targetId === authedReq.user.userId) {
           authedRes.status(400).json({ error: 'You cannot modify your own account status' });
           return;
         }
@@ -95,13 +95,20 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
           updateData = { status: 'ACTIVE' };
         }
 
+        const mappedAction =
+          action === 'ban'
+            ? 'USER_BANNED'
+            : action === 'unban'
+            ? 'USER_UNBANNED'
+            : 'ADMIN_ACTION';
+
         const [updated] = await prisma.$transaction([
           prisma.user.update({ where: { id: targetId }, data: updateData }),
           prisma.adminAction.create({
             data: {
-              actorId: authedReq.user.sub,
+              actorId: authedReq.user.userId,
               targetUserId: targetId,
-              action,
+              action: mappedAction,
               details: { reason },
             },
           }),

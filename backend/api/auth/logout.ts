@@ -11,5 +11,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
     return;
   }
 
+  const cookieParts = [
+    'auth_token=',
+    'HttpOnly',
+    'SameSite=Lax',
+    'Path=/',
+    'Max-Age=0',
+  ];
+  if (process.env.NODE_ENV === 'production') cookieParts.push('Secure');
+  res.setHeader('Set-Cookie', cookieParts.join('; '));
+
   res.status(200).json({ message: 'Logged out successfully' });
 }

@@ -1,4 +1,5 @@
 import jwt from 'jsonwebtoken';
+import { UnauthorizedError } from './errors';
 
 const SECRET = process.env.JWT_SECRET;
 if (!SECRET) {
@@ -6,17 +7,29 @@ if (!SECRET) {
 }
 
 export interface JwtPayload {
-  sub: string;
-  email: string;
+  userId: string;
   role: string;
   iat?: number;
   exp?: number;
 }
 
-export function signToken(payload: Omit<JwtPayload, 'iat' | 'exp'>): string {
-  return jwt.sign(payload, SECRET as string, { expiresIn: '7d' });
+// Sign a short-lived JWT (15 minutes) for auth_cookie usage
+export function signJwt(payload: { userId: string; role: string }): string {
+  return jwt.sign({ userId: payload.userId, role: payload.role }, SECRET as string, {
+    algorithm: 'HS256',
+    expiresIn: '15m',
+  });
 }
 
-export function verifyToken(token: string): JwtPayload {
-  return jwt.verify(token, SECRET as string) as JwtPayload;
+// Verify JWT and return payload or throw UnauthorizedError
+export function verifyJwt(token: string): JwtPayload {
+  try {
+    return jwt.verify(token, SECRET as string) as JwtPayload;
+  } catch (err) {
+    throw new UnauthorizedError('Invalid or expired token');
+  }
 }
+
+// Backwards-compatible aliases
+export const signToken = (p: { userId: string; role: string }) => signJwt(p);
+export const verifyToken = (t: string) => verifyJwt(t);

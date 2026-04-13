@@ -1,7 +1,7 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { requireAuth, type AuthedRequest } from '../../../lib/auth-middleware';
 import { setCors } from '../../../lib/cors';
-import { prisma } from '../../../lib/db';
+import { prisma } from '../../../lib/prisma';
 import {
   assertGroupMember,
   assertGroupOwner,
@@ -16,7 +16,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
   if (setCors(req, res)) return;
 
   await requireAuth(req, res, async (authedReq: AuthedRequest, authedRes: VercelResponse) => {
-    const userId = authedReq.user.sub;
+    const userId = authedReq.user.userId;
     const groupId = authedReq.query['groupId'] as string;
 
     if (!groupId) {
@@ -68,11 +68,18 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
             where: { id: existing.id },
             data: { removedAt: null, joinedAt: new Date() },
           });
+          await prisma.adminAction.create({
+            data: { actorId: userId, action: 'GROUP_JOINED', details: { groupId, userId } },
+          });
           authedRes.status(200).json(updated);
         } else {
           const membership = await prisma.groupMember.create({
             data: { groupId, userId },
           });
+          await prisma.adminAction.create({
+            data: { actorId: userId, action: 'GROUP_JOINED', details: { groupId, userId } },
+          });
+
           authedRes.status(201).json(membership);
         }
         return;
@@ -114,10 +121,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
 
           if (remaining.length === 0) {
             // Last member: soft delete group
-            await tx.group.update({
-              where: { id: groupId },
-              data: { deletedAt: new Date() },
-            });
+            await tx.group.update({ where: { id: groupId }, data: { deletedAt: new Date() } });
           } else {
             // If owner is leaving, transfer ownership to earliest remaining member
             const group = await tx.group.findUnique({ where: { id: groupId } });
@@ -128,6 +132,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
               });
             }
           }
+          await tx.adminAction.create({
+            data: {
+              actorId: userId,
+              targetUserId: targetUserId,
+              action: 'GROUP_LEFT',
+              details: { groupId, removedByOwner: !isSelf },
+            },
+          });
         });
 
         authedRes.status(200).json({ message: 'Member removed' });

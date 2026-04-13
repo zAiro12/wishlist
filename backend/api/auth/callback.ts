@@ -1,6 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { exchangeCode, isValidProvider } from '../../lib/oauth';
-import { prisma } from '../../lib/db';
+import { prisma } from '../../lib/prisma';
 import { signToken } from '../../lib/jwt';
 import { setCors } from '../../lib/cors';
 import { verifyState } from '../../lib/oauth-state';
@@ -146,16 +146,37 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
       update: { userId: user.id },
     });
 
-    const token = signToken({ sub: user.id, email: user.email, role: user.role });
+    // Audit: record user login
+    try {
+      await prisma.adminAction.create({
+        data: {
+          actorId: user.id,
+          action: 'USER_LOGIN',
+          details: { provider },
+        },
+      });
+    } catch (auditErr) {
+      console.error('Failed to write adminAction audit for login:', auditErr);
+    }
+
+    const token = signToken({ userId: user.id, role: user.role });
 
     const needsBirthdate = !user.birthdate || !user.birthdateConfirmed;
 
-    const params = new URLSearchParams({ token });
-    if (isFirstLogin) params.set('firstLogin', 'true');
-    if (needsBirthdate) params.set('needsBirthdate', 'true');
+    // Set HttpOnly auth cookie (15m as per JWT expiry). Keep SameSite=Lax and Path=/.
+    const cookieParts = [
+      `auth_token=${encodeURIComponent(token)}`,
+      'HttpOnly',
+      'SameSite=Lax',
+      'Path=/',
+      `Max-Age=${15 * 60}`,
+    ];
+    if (process.env.NODE_ENV === 'production') cookieParts.push('Secure');
+    res.setHeader('Set-Cookie', cookieParts.join('; '));
 
-    // Deliver token via URL fragment to keep it out of server logs and Referer headers
-    res.redirect(302, `${FRONTEND_URL}/auth/callback#${params.toString()}`);
+    // Redirect user to frontend. Use fragment only for UI flags (not the token).
+    const target = needsBirthdate ? `${FRONTEND_URL}/#needsBirthdate=true` : `${FRONTEND_URL}/`;
+    res.redirect(302, target);
   } catch (err) {
     console.error('OAuth callback error:', err);
     redirectError(res, 'server_error');

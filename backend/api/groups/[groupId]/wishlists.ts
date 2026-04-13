@@ -1,7 +1,7 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { requireAuth, type AuthedRequest } from '../../../lib/auth-middleware';
 import { setCors } from '../../../lib/cors';
-import { prisma } from '../../../lib/db';
+import { prisma } from '../../../lib/prisma';
 import { assertGroupMember, AppError } from '../../../lib/authz';
 
 // GET /api/groups/[groupId]/wishlists
@@ -12,7 +12,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
   if (setCors(req, res)) return;
 
   await requireAuth(req, res, async (authedReq: AuthedRequest, authedRes: VercelResponse) => {
-    const userId = authedReq.user.sub;
+    const userId = authedReq.user.userId;
     const groupId = authedReq.query['groupId'] as string;
 
     if (!groupId) {

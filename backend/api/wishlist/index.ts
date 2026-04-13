@@ -1,7 +1,7 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { requireAuth, type AuthedRequest } from '../../lib/auth-middleware';
 import { setCors } from '../../lib/cors';
-import { prisma } from '../../lib/db';
+import { prisma } from '../../lib/prisma';
 import { CreateWishlistItemSchema } from '../../lib/validators';
 import { ZodError } from 'zod';
 
@@ -11,7 +11,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
   if (setCors(req, res)) return;
 
   await requireAuth(req, res, async (authedReq: AuthedRequest, authedRes: VercelResponse) => {
-    const userId = authedReq.user.sub;
+    const userId = authedReq.user.userId;
 
     if (authedReq.method === 'GET') {
       const items = await prisma.wishlistItem.findMany({
@@ -44,6 +44,18 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
             priority: parsed.priority,
           },
         });
+
+        try {
+          await prisma.adminAction.create({
+            data: {
+              actorId: userId,
+              action: 'ITEM_CREATED',
+              details: { itemId: item.id, title: item.title },
+            },
+          });
+        } catch (e) {
+          console.error('Failed to write audit for ITEM_CREATED', e);
+        }
 
         // Match GET response shape: owner never sees status on their own items
         authedRes.status(201).json({ ...item, status: null });
