@@ -10,7 +10,7 @@ const CALLBACK_REQUIRED = ['JWT_SECRET', 'FRONTEND_URL']
 const callbackMissing = CALLBACK_REQUIRED.filter((k) => !process.env[k])
 if (callbackMissing.length) console.warn('auth/callback missing ENV:', callbackMissing.join(','))
 
-const FRONTEND_URL = process.env.FRONTEND_URL ?? 'http://localhost:5173';
+const FRONTEND_URL = (process.env.FRONTEND_URL ?? 'http://localhost:5173').replace(/\/$/, '')
 
 function parseCookies(header: string): Record<string, string> {
   const cookies: Record<string, string> = {};
