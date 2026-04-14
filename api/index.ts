@@ -104,12 +104,34 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 			res.status(200).send(JSON.stringify(spec))
 			return
 		}
-		if (path === '/api-docs' || path.startsWith('/api-docs')) {
+				if (path === '/api-docs' || path.startsWith('/api-docs')) {
 			const spec = getOpenApiSpec()
 			const html = swaggerUi.generateHTML(spec as any, { swaggerJsUrl: '' })
 			res.status(200).send(html)
 			return
 		}
+
+				// API root welcome page (also handle /api and /api/)
+				if ((path === '/' || path === '/api' || path === '/api/') && req.method === 'GET') {
+						const now = new Date().toISOString()
+						const html = `<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Wishlist API</title></head>
+<body style="font-family:system-ui,Segoe UI,Roboto,Helvetica,Arial,sans-serif;margin:40px;">
+	<h1>Wishlist API</h1>
+	<p><strong>Status:</strong> online</p>
+	<p><strong>Server time:</strong> ${now}</p>
+	<h2>Endpoints</h2>
+	<ul>
+		<li><a href="/api-docs">/api-docs</a></li>
+		<li><a href="/api/openapi.json">/api/openapi.json</a></li>
+	</ul>
+</body>
+</html>`
+						res.setHeader('Content-Type', 'text/html; charset=utf-8')
+						res.status(200).send(html)
+						return
+				}
 
 		const url = path
 		for (const r of routes) {
