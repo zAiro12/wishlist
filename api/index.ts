@@ -59,6 +59,7 @@ const routes: { pattern: string; handler: Handler }[] = [
 ]
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
+    console.log('api/index.ts HIT')
 	const url = (req.url || '').split('?')[0] || '/'
 	for (const r of routes) {
 		const params = match(url, r.pattern)
