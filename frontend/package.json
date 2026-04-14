@@ -4,13 +4,14 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "vite",
+    "start": "vite",
     "build": "vue-tsc --noEmit && vite build",
     "typecheck": "vue-tsc --noEmit",
     "preview": "vite preview",
     "lint": "eslint src --ext ts,vue --report-unused-disable-directives --max-warnings 0"
   },
   "dependencies": {
+    "@vercel/speed-insights": "^2.0.0",
     "pinia": "^2.1.7",
     "vue": "^3.4.15",
     "vue-router": "^4.3.0"
