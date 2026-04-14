@@ -1,9 +1,9 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { requireAuth, type AuthedRequest } from '../../lib/auth-middleware';
-import { setCors } from '../../lib/cors';
-import { prisma } from '../../lib/prisma';
-import { TransferOwnershipSchema } from '../../lib/validators';
-import { assertGroupOwner, AppError } from '../../lib/authz';
+import { requireAuth, type AuthedRequest } from '../../../lib/auth-middleware';
+import { setCors } from '../../../lib/cors';
+import { prisma } from '../../../lib/prisma';
+import { TransferOwnershipSchema } from '../../../lib/validators';
+import { assertGroupOwner, AppError } from '../../../lib/authz';
 import { ZodError } from 'zod';
 
 export default async function handler(req: VercelRequest, res: VercelResponse): Promise<void> {
