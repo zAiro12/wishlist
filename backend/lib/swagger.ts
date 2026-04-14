@@ -1,7 +1,7 @@
 import { OpenAPIV3 } from 'openapi-types'
 
 const FRONTEND_URL = process.env.FRONTEND_URL ?? 'http://localhost:5173'
-const BASE_URL = process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : process.env.API_BASE_URL ?? 'https://wishlist.vercel.app'
+const BASE_URL = process.env.API_URL ?? 'http://localhost:3000'
 
 export const openApiSpec: OpenAPIV3.Document = {
   openapi: '3.0.3',
@@ -11,8 +11,7 @@ export const openApiSpec: OpenAPIV3.Document = {
     description: 'API for the Wishlist application',
   },
   servers: [
-    { url: BASE_URL, description: 'Production' },
-    { url: 'http://localhost:3000', description: 'Local (dev)' },
+    { url: process.env.API_URL ?? 'http://localhost:3000', description: process.env.API_URL ? 'Production' : 'Local (dev)' },
   ],
   components: {
     securitySchemes: {
