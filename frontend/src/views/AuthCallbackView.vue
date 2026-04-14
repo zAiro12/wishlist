@@ -42,7 +42,9 @@ onMounted(async () => {
   const fragParams = new URLSearchParams(fragment);
 
   const token = fragParams.get('token') ?? undefined;
-  let needsBirthdate = fragParams.get('needsBirthdate') === 'true';
+  // Prefer needsBirthdate delivered as a query param from backend redirect
+  const needsBirthdateQuery = route.query['needsBirthdate'] === 'true';
+  let needsBirthdate = needsBirthdateQuery || fragParams.get('needsBirthdate') === 'true';
 
   // Also handle cases where the redirect was provided as a query param (e.g. /login?redirect=/#needsBirthdate=true)
   if (!needsBirthdate && route.query && route.query.redirect) {
