@@ -4,6 +4,7 @@ import { prisma } from '../../lib/prisma';
 import { signToken } from '../../lib/jwt';
 import { setCors } from '../../lib/cors';
 import { verifyState } from '../../lib/oauth-state';
+import type { StateVerifyResult } from '../../lib/oauth-state';
 
 const CALLBACK_REQUIRED = ['JWT_SECRET', 'FRONTEND_URL']
 const callbackMissing = CALLBACK_REQUIRED.filter((k) => !process.env[k])
@@ -77,9 +78,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
   const cookies = parseCookies(req.headers.cookie ?? '');
   const cookieNonce = cookies['oauth_nonce'] ?? '';
 
-  const stateResult = verifyState(state, provider, cookieNonce);
+  const stateResult: StateVerifyResult = verifyState(state, provider, cookieNonce);
   if (!stateResult.ok) {
-    redirectError(res, stateResult.reason);
+    // Narrowing across module boundaries can sometimes be finicky; use a safe cast to access `reason`.
+    const reason = (stateResult as { reason?: string }).reason ?? 'invalid_state';
+    redirectError(res, reason);
     return;
   }
 

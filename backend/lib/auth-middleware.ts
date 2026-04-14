@@ -1,11 +1,13 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { verifyJwt, type JwtPayload } from './jwt';
 import { prisma } from './prisma';
-import type { User } from '@prisma/client';
+import { Prisma } from '@prisma/client';
 import { ForbiddenError, UnauthorizedError } from './errors';
 
+type DbUser = Prisma.UserGetPayload<{}>;
+
 export interface AuthedRequest extends VercelRequest {
-  user: JwtPayload & { dbUser: User };
+  user: JwtPayload & { dbUser: DbUser };
 }
 
 type Handler = (req: AuthedRequest, res: VercelResponse) => Promise<void>;
