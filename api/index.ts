@@ -2,7 +2,7 @@ import type { VercelRequest, VercelResponse } from '@vercel/node'
 
 // Defensive check: log any missing required environment variables (names only)
 const REQUIRED_ENV = [
-	'DATABASE_URL',
+	'DATABASE_URL', 
 	'JWT_SECRET',
 	'GOOGLE_CLIENT_ID',
 	'GOOGLE_CLIENT_SECRET',
@@ -10,7 +10,7 @@ const REQUIRED_ENV = [
 	'GITHUB_CLIENT_SECRET',
 	'MICROSOFT_CLIENT_ID',
 	'MICROSOFT_CLIENT_SECRET',
-	'ALLOWED_ORIGINS',
+	'ALLOWED_ORIGINS', 
 	'FRONTEND_URL',
 	'NODE_ENV',
 ]
@@ -37,8 +37,20 @@ import adminUsersHandler from '../backend/handlers/admin/users'
 import adminGroupsHandler from '../backend/handlers/admin/groups'
 import adminAuditHandler from '../backend/handlers/admin/audit'
 import adminWishlistsHandler from '../backend/handlers/admin/wishlists'
+import { getOpenApiSpec } from '../backend/lib/swagger'
+import swaggerUi from 'swagger-ui-express'
 
 type Handler = (req: VercelRequest, res: VercelResponse) => void | Promise<void>
+
+function logRequest(req: VercelRequest) {
+	try {
+		const method = req.method || 'GET'
+		const rawUrl = req.url || ''
+		console.info(`[api] ${method} ${rawUrl}`)
+	} catch (e) {
+		// best-effort logging, never throw
+	}
+}
 
 function match(url: string, pattern: string): Record<string,string> | null {
 	const urlParts = url.split('/').filter(Boolean)
@@ -80,21 +92,48 @@ const routes: { pattern: string; handler: Handler }[] = [
 ]
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
-    console.log('api/index.ts HIT')
-	const url = (req.url || '').split('?')[0] || '/'
-	for (const r of routes) {
-		const params = match(url, r.pattern)
-		if (params) {
-			// attach params to req for handlers that expect them
-			;(req as any).params = params
-			try {
-				await r.handler(req, res)
-			} catch (err) {
-				console.error('Handler error for', r.pattern, err)
-				res.status(500).json({ error: 'Internal server error' })
-			}
+	logRequest(req)
+	try {
+		console.log('api/index.ts HIT')
+		// Expose OpenAPI JSON and Swagger UI (renamed to /api-docs)
+		const rawUrl = req.url || ''
+		const path = rawUrl.split('?')[0] || '/'
+		if (path === '/api/openapi.json' || path.startsWith('/api/openapi.json')) {
+			const spec = getOpenApiSpec()
+			res.setHeader('Content-Type', 'application/json')
+			res.status(200).send(JSON.stringify(spec))
 			return
 		}
+		if (path === '/api-docs' || path.startsWith('/api-docs')) {
+			const spec = getOpenApiSpec()
+			const html = swaggerUi.generateHTML(spec as any, { swaggerJsUrl: '' })
+			res.status(200).send(html)
+			return
+		}
+
+		const url = path
+		for (const r of routes) {
+			const params = match(url, r.pattern)
+			if (params) {
+				;(req as any).params = params
+				try {
+					await r.handler(req, res)
+				} catch (err) {
+					console.error('Handler error for', r.pattern, { message: (err as Error)?.message })
+					if (!res.headersSent) {
+						res.status(500).json({ error: 'Internal server error' })
+					}
+				}
+				return
+			}
+		}
+		if (!res.headersSent) {
+			res.status(404).json({ error: 'Not found' })
+		}
+	} catch (err) {
+		console.error('Top-level handler error', { message: (err as Error)?.message })
+		if (!res.headersSent) {
+			res.status(500).json({ error: 'Internal server error' })
+		}
 	}
-	res.status(404).json({ error: 'Not found' })
 }
