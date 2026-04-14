@@ -5,6 +5,7 @@ const routes = [
   // Public
   { path: '/login', component: () => import('../views/LoginView.vue'), meta: { public: true } },
   { path: '/auth/callback', component: () => import('../views/AuthCallbackView.vue'), meta: { public: true } },
+  { path: '/setup-birthdate', component: () => import('../views/SetupBirthdateView.vue'), meta: { requiresAuth: true } },
   { path: '/forbidden', component: () => import('../views/ForbiddenView.vue'), meta: { public: true } },
 
   // Protected – birthdate bypass
@@ -45,8 +46,8 @@ router.beforeEach(async (to) => {
     return { path: '/login', query: { redirect: to.fullPath } };
   }
 
-  if (auth.isAuthenticated && to.path !== '/complete-profile' && auth.needsBirthdate) {
-    return { path: '/complete-profile' };
+  if (auth.isAuthenticated && to.path !== '/setup-birthdate' && auth.needsBirthdate) {
+    return { path: '/setup-birthdate' };
   }
 
   if (to.meta['requiresAdmin'] && !auth.isAdmin) {

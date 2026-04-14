@@ -67,7 +67,7 @@ onMounted(async () => {
     }
   }
   if (needsBirthdate || auth.needsBirthdate) {
-    await router.replace('/complete-profile');
+    await router.replace('/setup-birthdate');
   } else {
     await router.replace('/');
   }
