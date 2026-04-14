@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "buildCommand": "npm --prefix backend run db:generate && npm --prefix backend run build",
+  "buildCommand": "cd backend && npx prisma generate && npx tsc -p tsconfig.json",
   "builds": [
     { "src": "api/index.ts", "use": "@vercel/node" }
   ],
