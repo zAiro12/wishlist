@@ -36,11 +36,24 @@ const ERROR_MESSAGES: Record<string, string> = {
 
 onMounted(async () => {
   // Token is delivered via URL fragment (#token=...) to keep it out of server logs
-  const fragment = window.location.hash.slice(1);
+  // Prefer the router-provided hash when available, and fallback to window.location.hash.
+  const rawHash = (route.hash && route.hash.length) ? route.hash : window.location.hash || '';
+  const fragment = rawHash.startsWith('#') ? rawHash.slice(1) : rawHash;
   const fragParams = new URLSearchParams(fragment);
 
   const token = fragParams.get('token') ?? undefined;
-  const needsBirthdate = fragParams.get('needsBirthdate') === 'true';
+  let needsBirthdate = fragParams.get('needsBirthdate') === 'true';
+
+  // Also handle cases where the redirect was provided as a query param (e.g. /login?redirect=/#needsBirthdate=true)
+  if (!needsBirthdate && route.query && route.query.redirect) {
+    try {
+      const redirectStr = String(route.query.redirect);
+      const decoded = decodeURIComponent(redirectStr);
+      if (decoded.includes('#needsBirthdate=true')) needsBirthdate = true;
+    } catch (e) {
+      // ignore decode errors
+    }
+  }
 
   // Errors are still delivered via query string (they are not sensitive)
   const err = route.query['error'] as string | undefined;
