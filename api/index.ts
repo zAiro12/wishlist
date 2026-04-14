@@ -112,9 +112,17 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 	}
 	try {
 		console.log('api/index.ts HIT')
-		// Expose OpenAPI JSON and Swagger UI (renamed to /api-docs)
-		const rawUrl = req.url || ''
-		const path = rawUrl.split('?')[0] || '/'
+				// Expose OpenAPI JSON and Swagger UI (renamed to /api-docs)
+				const rawUrl = req.url || ''
+				const path = rawUrl.split('?')[0] || '/'
+				// Parse pathname for debugging — Vercel may include the `/api` prefix
+				let parsedPathname = '/'
+				try {
+					parsedPathname = new URL(rawUrl, 'http://localhost').pathname
+				} catch (e) {
+					// keep fallback
+				}
+				console.info('[api] parsed pathname:', parsedPathname)
 		if (path === '/api/openapi.json' || path.startsWith('/api/openapi.json')) {
 			const spec = getOpenApiSpec()
 			res.setHeader('Content-Type', 'application/json')
@@ -130,7 +138,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 				}
 
 				// API root welcome page (also handle /api and /api/)
-				if ((path === '/' || path === '/api' || path === '/api/') && req.method === 'GET') {
+                if ((path === '/' || path === '/api' || path === '/api/') && req.method === 'GET') {
 						const now = new Date().toISOString()
 						const html = `<!doctype html>
 <html lang="en">
@@ -138,7 +146,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 <body style="font-family:system-ui,Segoe UI,Roboto,Helvetica,Arial,sans-serif;margin:40px;">
 	<h1>Wishlist API</h1>
 	<p><strong>Status:</strong> online</p>
-	<p><strong>Server time:</strong> ${now}</p>
+    	<p><strong>Server time:</strong> ${now}</p>
+    	<p><strong>Request pathname:</strong> ${parsedPathname}</p>
 	<h2>Endpoints</h2>
 	<ul>
 		<li><a href="/api-docs">/api-docs</a></li>
