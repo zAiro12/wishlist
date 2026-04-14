@@ -26,7 +26,7 @@ export const openApiSpec: OpenAPIV3.Document = {
     schemas: {},
   },
   paths: {
-    '/api/auth/me': {
+    '/api/users/me': {
       get: {
         summary: 'Get current user profile',
         security: [{ cookieAuth: [] }],

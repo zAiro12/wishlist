@@ -178,13 +178,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 			}
 		}
 		if (!res.headersSent) {
-			// Debug: include the stripped and original pathname plus available routes
-			res.status(404).json({
-				error: 'Not found',
-				pathname: pathname,
-				originalPathname: parsedPathname,
-				availableRoutes: routes.map(r => r.pattern),
-			})
+			res.status(404).json({ error: 'Not found' })
 		}
 	} catch (err) {
 		console.error('Top-level handler error', { message: (err as Error)?.message })
