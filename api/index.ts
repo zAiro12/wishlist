@@ -1,4 +1,25 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
+
+// Defensive check: log any missing required environment variables (names only)
+const REQUIRED_ENV = [
+	'DATABASE_URL',
+	'JWT_SECRET',
+	'GOOGLE_CLIENT_ID',
+	'GOOGLE_CLIENT_SECRET',
+	'GITHUB_CLIENT_ID',
+	'GITHUB_CLIENT_SECRET',
+	'MICROSOFT_CLIENT_ID',
+	'MICROSOFT_CLIENT_SECRET',
+	'ALLOWED_ORIGINS',
+	'FRONTEND_URL',
+	'NODE_ENV',
+]
+const missingEnv = REQUIRED_ENV.filter((k) => !process.env[k])
+if (missingEnv.length) {
+	// don't print values
+	// use warn so it appears in function logs
+	console.warn('Missing ENV VARS:', missingEnv.join(','))
+}
 import loginHandler from '../backend/handlers/auth/login'
 import logoutHandler from '../backend/handlers/auth/logout'
 import callbackHandler from '../backend/handlers/auth/callback'

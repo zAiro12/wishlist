@@ -3,6 +3,10 @@ import { requireAuth, type AuthedRequest } from '../../lib/auth-middleware';
 import { setCors } from '../../lib/cors';
 import { prisma } from '../../lib/prisma';
 import { UpdateProfileSchema } from '../../lib/validators';
+
+const USER_REQUIRED = ['JWT_SECRET']
+const userMissing = USER_REQUIRED.filter((k) => !process.env[k])
+if (userMissing.length) console.warn('users/me missing ENV:', userMissing.join(','))
 import { ZodError } from 'zod';
 
 function safeUser(user: {

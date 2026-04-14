@@ -3,6 +3,10 @@ import { getAuthorizationUrl, isValidProvider } from '../../lib/oauth';
 import { setCors } from '../../lib/cors';
 import { createState } from '../../lib/oauth-state';
 
+const AUTH_REQUIRED = ['FRONTEND_URL', 'GOOGLE_CLIENT_ID', 'GITHUB_CLIENT_ID', 'MICROSOFT_CLIENT_ID']
+const authMissing = AUTH_REQUIRED.filter((k) => !process.env[k])
+if (authMissing.length) console.warn('auth/login missing ENV:', authMissing.join(','))
+
 // GET /api/auth/login?provider=google|github|microsoft
 export default async function handler(req: VercelRequest, res: VercelResponse): Promise<void> {
   if (setCors(req, res)) return;
