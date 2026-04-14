@@ -80,3 +80,37 @@ export const openApiSpec: OpenAPIV3.Document = {
 export function getOpenApiSpec() {
   return openApiSpec
 }
+
+export function getSwaggerHtml(specUrl = '/api/openapi.json') {
+  // Use CDN-hosted assets to avoid serving local static files on Vercel
+  const css = 'https://unpkg.com/swagger-ui-dist/swagger-ui.css'
+  const bundle = 'https://unpkg.com/swagger-ui-dist/swagger-ui-bundle.js'
+  const preset = 'https://unpkg.com/swagger-ui-dist/swagger-ui-standalone-preset.js'
+
+  return `<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Wishlist API — Swagger UI</title>
+    <link rel="stylesheet" href="${css}" />
+  </head>
+  <body>
+    <div id="swagger-ui"></div>
+    <script src="${bundle}"></script>
+    <script src="${preset}"></script>
+    <script>
+      window.onload = function() {
+        const ui = SwaggerUIBundle({
+          url: '${specUrl}',
+          dom_id: '#swagger-ui',
+          deepLinking: true,
+          presets: [SwaggerUIBundle.presets.apis, SwaggerUIStandalonePreset],
+          layout: 'BaseLayout'
+        });
+        window.ui = ui;
+      };
+    </script>
+  </body>
+</html>`
+}

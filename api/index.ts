@@ -37,7 +37,7 @@ import adminUsersHandler from '../backend/handlers/admin/users'
 import adminGroupsHandler from '../backend/handlers/admin/groups'
 import adminAuditHandler from '../backend/handlers/admin/audit'
 import adminWishlistsHandler from '../backend/handlers/admin/wishlists'
-import { getOpenApiSpec } from '../backend/lib/swagger'
+import { getOpenApiSpec, getSwaggerHtml } from '../backend/lib/swagger'
 import swaggerUi from 'swagger-ui-express'
 
 type Handler = (req: VercelRequest, res: VercelResponse) => void | Promise<void>
@@ -105,11 +105,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 			return
 		}
 				if (path === '/api-docs' || path.startsWith('/api-docs')) {
-			const spec = getOpenApiSpec()
-			const html = swaggerUi.generateHTML(spec as any, { swaggerJsUrl: '' })
-			res.status(200).send(html)
-			return
-		}
+					// Serve Swagger UI HTML that loads assets from CDN (unpkg)
+					const spec = getOpenApiSpec()
+					const html = getSwaggerHtml('/api/openapi.json')
+					res.status(200).send(html)
+					return
+				}
 
 				// API root welcome page (also handle /api and /api/)
 				if ((path === '/' || path === '/api' || path === '/api/') && req.method === 'GET') {
