@@ -93,6 +93,23 @@ const routes: { pattern: string; handler: Handler }[] = [
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
 	logRequest(req)
+
+	function setCorsHeaders() {
+		// Keep values minimal and non-sensitive
+		res.setHeader('Access-Control-Allow-Origin', '*')
+		res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PATCH, OPTIONS')
+		res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization')
+	}
+
+	// Always set CORS headers for every response
+	setCorsHeaders()
+
+	// Handle preflight OPTIONS requests centrally
+	if ((req.method || 'GET').toUpperCase() === 'OPTIONS') {
+		// respond with no content; headers already set
+		res.status(204).send('')
+		return
+	}
 	try {
 		console.log('api/index.ts HIT')
 		// Expose OpenAPI JSON and Swagger UI (renamed to /api-docs)
