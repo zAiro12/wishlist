@@ -11,7 +11,8 @@ export const openApiSpec: OpenAPIV3.Document = {
     description: 'API for the Wishlist application',
   },
   servers: [
-    { url: 'https://wishlist-ten-sigma.vercel.app', description: 'Production' }
+    { url: 'https://wishlist-ten-sigma.vercel.app', description: 'Production' },
+    { url: 'http://localhost:3000', description: 'Local development' }
   ],
   components: {
     securitySchemes: {
