@@ -68,27 +68,27 @@ function match(url: string, pattern: string): Record<string,string> | null {
 }
 
 const routes: { pattern: string; handler: Handler }[] = [
-	{ pattern: '/api/auth/login',                        handler: loginHandler },
-	{ pattern: '/api/auth/logout',                       handler: logoutHandler },
-	{ pattern: '/api/auth/callback',                     handler: callbackHandler },
+	{ pattern: '/auth/login',                        handler: loginHandler },
+	{ pattern: '/auth/logout',                       handler: logoutHandler },
+	{ pattern: '/auth/callback',                     handler: callbackHandler },
 
-	{ pattern: '/api/users/me',                          handler: meHandler },
+	{ pattern: '/users/me',                          handler: meHandler },
 
-	{ pattern: '/api/groups',                            handler: groupsHandler },
-	{ pattern: '/api/groups/:groupId',                   handler: groupHandler },
-	{ pattern: '/api/groups/:groupId/members',           handler: membersHandler },
-	{ pattern: '/api/groups/:groupId/next-celebrated',   handler: nextCelebratedHandler },
-	{ pattern: '/api/groups/:groupId/transfer',          handler: transferHandler },
-	{ pattern: '/api/groups/:groupId/wishlists',         handler: wishlistsInGroupHandler },
+	{ pattern: '/groups',                            handler: groupsHandler },
+	{ pattern: '/groups/:groupId',                   handler: groupHandler },
+	{ pattern: '/groups/:groupId/members',           handler: membersHandler },
+	{ pattern: '/groups/:groupId/next-celebrated',   handler: nextCelebratedHandler },
+	{ pattern: '/groups/:groupId/transfer',          handler: transferHandler },
+	{ pattern: '/groups/:groupId/wishlists',         handler: wishlistsInGroupHandler },
 
-	{ pattern: '/api/wishlist',                          handler: wishlistHandler },
-	{ pattern: '/api/wishlist/:itemId',                  handler: wishlistItemHandler },
-	{ pattern: '/api/wishlist-status/:itemId',           handler: wishlistStatusHandler },
+	{ pattern: '/wishlist',                          handler: wishlistHandler },
+	{ pattern: '/wishlist/:itemId',                  handler: wishlistItemHandler },
+	{ pattern: '/wishlist-status/:itemId',           handler: wishlistStatusHandler },
 
-	{ pattern: '/api/admin/users',                       handler: adminUsersHandler },
-	{ pattern: '/api/admin/groups',                      handler: adminGroupsHandler },
-	{ pattern: '/api/admin/audit',                       handler: adminAuditHandler },
-	{ pattern: '/api/admin/wishlists',                   handler: adminWishlistsHandler }
+	{ pattern: '/admin/users',                       handler: adminUsersHandler },
+	{ pattern: '/admin/groups',                      handler: adminGroupsHandler },
+	{ pattern: '/admin/audit',                       handler: adminAuditHandler },
+	{ pattern: '/admin/wishlists',                   handler: adminWishlistsHandler }
 ]
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
@@ -115,14 +115,17 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 				// Expose OpenAPI JSON and Swagger UI (renamed to /api-docs)
 				const rawUrl = req.url || ''
 				const path = rawUrl.split('?')[0] || '/'
-				// Parse pathname for debugging — Vercel may include the `/api` prefix
+				// Parse pathname — Vercel may include the `/api` prefix
 				let parsedPathname = '/'
 				try {
 					parsedPathname = new URL(rawUrl, 'http://localhost').pathname
 				} catch (e) {
 					// keep fallback
 				}
-				console.info('[api] parsed pathname:', parsedPathname)
+				// Strip leading `/api/` when present so internal route patterns don't need the prefix
+				const pathname = parsedPathname.startsWith('/api/')
+					? parsedPathname.slice(4) // "/api/auth/me" -> "/auth/me"
+					: parsedPathname
 		if (path === '/api/openapi.json' || path.startsWith('/api/openapi.json')) {
 			const spec = getOpenApiSpec()
 			res.setHeader('Content-Type', 'application/json')
@@ -138,16 +141,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 				}
 
 				// API root welcome page (also handle /api and /api/)
-                if ((path === '/' || path === '/api' || path === '/api/') && req.method === 'GET') {
+				if ((pathname === '/' || pathname === '/api' || pathname === '/api/') && req.method === 'GET') {
 						const now = new Date().toISOString()
-						const html = `<!doctype html>
+					const html = `<!doctype html>
 <html lang="en">
 <head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Wishlist API</title></head>
 <body style="font-family:system-ui,Segoe UI,Roboto,Helvetica,Arial,sans-serif;margin:40px;">
 	<h1>Wishlist API</h1>
 	<p><strong>Status:</strong> online</p>
-    	<p><strong>Server time:</strong> ${now}</p>
-    	<p><strong>Request pathname:</strong> ${parsedPathname}</p>
+			<p><strong>Server time:</strong> ${now}</p>
 	<h2>Endpoints</h2>
 	<ul>
 		<li><a href="/api-docs">/api-docs</a></li>
@@ -159,8 +161,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 						res.status(200).send(html)
 						return
 				}
-
-		const url = path
+			const url = pathname
 		for (const r of routes) {
 			const params = match(url, r.pattern)
 			if (params) {
