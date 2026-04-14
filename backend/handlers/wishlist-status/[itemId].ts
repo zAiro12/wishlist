@@ -12,7 +12,7 @@ import {
   shareAtLeastOneGroup,
 } from '../lib/authz';
 import { ZodError } from 'zod';
-import { Prisma } from '@prisma/client';
+import { PrismaClientKnownRequestError } from '@prisma/client/runtime/library';
 
 export default async function handler(req: VercelRequest, res: VercelResponse): Promise<void> {
   if (setCors(req, res)) return;
@@ -65,7 +65,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
             }
             authedRes.status(200).json(created);
           } catch (createErr) {
-            if (createErr instanceof Prisma.PrismaClientKnownRequestError && createErr.code === 'P2002') {
+            if (createErr instanceof PrismaClientKnownRequestError && createErr.code === 'P2002') {
               throw new ConflictError('Item status was modified concurrently. Please refresh and try again.');
             }
             throw createErr;
