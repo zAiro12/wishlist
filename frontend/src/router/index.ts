@@ -1,4 +1,4 @@
-import { createRouter, createWebHistory } from 'vue-router';
+import { createRouter, createWebHashHistory } from 'vue-router';
 import { useAuthStore } from '../stores/auth';
 
 const routes = [
@@ -26,7 +26,7 @@ const routes = [
 ];
 
 export const router = createRouter({
-  history: createWebHistory(import.meta.env.BASE_URL),
+  history: createWebHashHistory(import.meta.env.BASE_URL),
   routes,
 });
 
@@ -40,10 +40,12 @@ router.beforeEach(async (to) => {
     authInitialized = true;
   }
 
-  const isPublic = to.meta['public'] === true;
+  const requiresAuth = to.meta['requiresAuth'] === true;
 
-  if (!isPublic && !auth.isAuthenticated) {
-    return { path: '/login', query: { redirect: to.fullPath } };
+  if (requiresAuth) {
+    if (!auth.isAuthenticated) {
+      return { path: '/login', query: { redirect: to.fullPath } };
+    }
   }
 
   if (auth.isAuthenticated && to.path !== '/setup-birthdate' && auth.needsBirthdate) {

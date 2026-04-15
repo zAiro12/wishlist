@@ -169,8 +169,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
     res.setHeader('Set-Cookie', cookieParts.join('; '));
 
     const target = needsBirthdate
-      ? `${FRONTEND_URL}/auth/callback?needsBirthdate=true`
-      : `${FRONTEND_URL}/`;
+      ? `${FRONTEND_URL}/#/auth/callback?needsBirthdate=true`
+      : `${FRONTEND_URL}/#`;
     res.redirect(302, target);
   } catch (err) {
     console.error('OAuth callback error:', err);
