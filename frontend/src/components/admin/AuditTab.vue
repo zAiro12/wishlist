@@ -11,7 +11,7 @@
             <td><code style="font-size:0.8rem;">{{ a.action }}</code></td>
             <td>{{ a.actor?.email ?? a.actorId }}</td>
             <td>{{ a.targetUser?.email ?? a.targetUserId ?? '—' }}</td>
-            <td>{{ new Date(a.createdAt).toLocaleString() }}</td>
+                  <td>{{ formatDate(a.createdAt) }}</td>
           </tr>
         </tbody>
       </table>
@@ -28,6 +28,7 @@
 import { ref, onMounted } from 'vue';
 import { admin as adminApi, ApiError } from '../../api/client';
 import type { AdminAction } from '../../types';
+import { formatDate } from '../../utils/formatDate';
 
 const actions = ref<AdminAction[]>([]);
 const total = ref(0);

@@ -15,7 +15,7 @@
               <span v-if="g.deletedAt" class="badge badge-comprato">Deleted</span>
               <span v-else class="badge badge-disponibile">Active</span>
             </td>
-            <td>{{ new Date(g.createdAt).toLocaleDateString() }}</td>
+            <td>{{ formatDate(g.createdAt) }}</td>
           </tr>
         </tbody>
       </table>
@@ -32,6 +32,7 @@
 import { ref, onMounted } from 'vue';
 import { admin as adminApi, ApiError } from '../../api/client';
 import type { Group } from '../../types';
+import { formatDate } from '../../utils/formatDate';
 
 const groups = ref<Group[]>([]);
 const total = ref(0);

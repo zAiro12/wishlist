@@ -11,7 +11,7 @@
             <td>{{ item.title }}</td>
             <td>{{ item.owner?.email ?? item.ownerId }}</td>
             <td>{{ item.status?.status ?? 'DISPONIBILE' }}</td>
-            <td>{{ new Date(item.createdAt).toLocaleDateString() }}</td>
+            <td>{{ formatDate(item.createdAt) }}</td>
           </tr>
         </tbody>
       </table>
@@ -28,6 +28,7 @@
 import { ref, onMounted } from 'vue';
 import { admin as adminApi, ApiError } from '../../api/client';
 import type { WishlistItem } from '../../types';
+import { formatDate } from '../../utils/formatDate';
 
 const items = ref<WishlistItem[]>([]);
 const total = ref(0);
