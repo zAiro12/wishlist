@@ -5,7 +5,7 @@ const routes = [
   // Public
   { path: '/login', component: () => import('../views/LoginView.vue'), meta: { public: true } },
   { path: '/auth/callback', component: () => import('../views/AuthCallbackView.vue'), meta: { public: true } },
-  { path: '/setup-birthdate', component: () => import('../views/SetupBirthdateView.vue'), meta: { public: true } },
+  { path: '/setup-birthdate', component: () => import('../views/SetupBirthdateView.vue'), meta: { requiresAuth: true } },
   { path: '/forbidden', component: () => import('../views/ForbiddenView.vue'), meta: { public: true } },
 
   // Protected – birthdate bypass
