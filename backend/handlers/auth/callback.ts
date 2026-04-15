@@ -42,7 +42,7 @@ function clearNonceCookie(res: VercelResponse): void {
 
 function redirectError(res: VercelResponse, error: string): void {
   clearNonceCookie(res);
-  res.redirect(302, `${FRONTEND_URL}/auth/callback?error=${encodeURIComponent(error)}`);
+  res.redirect(302, `${FRONTEND_URL}/#/auth/callback?error=${encodeURIComponent(error)}`);
 }
 
 export default async function handler(req: VercelRequest, res: VercelResponse): Promise<void> {
