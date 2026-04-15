@@ -34,10 +34,17 @@ async function request<T>(
     headers['Authorization'] = `Bearer ${token}`;
   }
 
-  const res = await fetch(`${API_BASE}${path}`, {
+  // If no token in local storage, assume server-set HttpOnly cookie session
+  // and send credentials so the cookie is included in the request.
+  const fetchOptions: RequestInit = {
     ...options,
     headers,
-  });
+  };
+  if (!token) {
+    fetchOptions.credentials = 'include';
+  }
+
+  const res = await fetch(`${API_BASE}${path}`, fetchOptions);
 
   if (!res.ok) {
     let data: { error: string; issues?: unknown[] };
