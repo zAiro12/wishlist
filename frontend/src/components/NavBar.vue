@@ -10,7 +10,20 @@
       <span style="color: var(--color-text-muted); font-size: 0.875rem;">
         {{ auth.user?.givenName ?? auth.user?.email }}
       </span>
-      <button class="btn-secondary" style="font-size: 0.8rem; padding: 0.3rem 0.75rem;" @click="auth.logout()">
+      <button
+        v-if="!auth.user"
+        class="btn-primary"
+        style="font-size: 0.8rem; padding: 0.3rem 0.75rem;"
+        @click="$router.push('/login')"
+      >
+        Login
+      </button>
+      <button
+        v-else
+        class="btn-secondary"
+        style="font-size: 0.8rem; padding: 0.3rem 0.75rem;"
+        @click="auth.logout()"
+      >
         Logout
       </button>
     </div>

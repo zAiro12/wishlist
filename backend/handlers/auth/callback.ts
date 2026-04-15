@@ -42,7 +42,7 @@ function clearNonceCookie(res: VercelResponse): void {
 
 function redirectError(res: VercelResponse, error: string): void {
   clearNonceCookie(res);
-  res.redirect(302, `${FRONTEND_URL}/#/auth/callback?error=${encodeURIComponent(error)}`);
+  res.redirect(302, `${FRONTEND_URL}/auth/callback?error=${encodeURIComponent(error)}`);
 }
 
 export default async function handler(req: VercelRequest, res: VercelResponse): Promise<void> {
@@ -169,8 +169,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
     res.setHeader('Set-Cookie', cookieParts.join('; '));
 
     const target = needsBirthdate
-      ? `${FRONTEND_URL}/#/auth/callback?needsBirthdate=true`
-      : `${FRONTEND_URL}/#`;
+      ? `${FRONTEND_URL}/auth/callback?needsBirthdate=true`
+      : `${FRONTEND_URL}/`;
     res.redirect(302, target);
   } catch (err) {
     console.error('OAuth callback error:', err);
