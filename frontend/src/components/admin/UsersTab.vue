@@ -19,7 +19,7 @@
             <td>{{ u.givenName }} {{ u.familyName }}</td>
             <td>{{ u.role }}</td>
             <td><span :class="`badge ${u.status === 'ACTIVE' ? 'badge-disponibile' : 'badge-comprato'}`">{{ u.status }}</span></td>
-            <td>{{ u.birthdate ?? '—' }}</td>
+            <td>{{ u.birthdate ? formatDate(u.birthdate) : '—' }}</td>
             <td>
               <div style="display:flex;gap:0.3rem;">
                 <template v-if="u.status === 'ACTIVE'">
@@ -46,6 +46,7 @@
 import { ref, onMounted } from 'vue';
 import { admin as adminApi, ApiError } from '../../api/client';
 import type { User } from '../../types';
+import { formatDate } from '@/utils/formatDate';
 
 const users = ref<User[]>([]);
 const total = ref(0);

@@ -49,7 +49,7 @@ import { ref } from 'vue';
 import { useRouter } from 'vue-router';
 import { useAuthStore } from '../stores/auth';
 import { users as usersApi, ApiError } from '../api/client';
-import { formatDate } from '../utils/formatDate';
+import { formatDate } from '@/utils/formatDate';
 
 const router = useRouter();
 const auth = useAuthStore();

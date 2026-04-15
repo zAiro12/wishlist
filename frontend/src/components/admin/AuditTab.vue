@@ -28,7 +28,7 @@
 import { ref, onMounted } from 'vue';
 import { admin as adminApi, ApiError } from '../../api/client';
 import type { AdminAction } from '../../types';
-import { formatDate } from '../../utils/formatDate';
+import { formatDate } from '@/utils/formatDate';
 
 const actions = ref<AdminAction[]>([]);
 const total = ref(0);
