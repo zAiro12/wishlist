@@ -40,9 +40,8 @@ async function request<T>(
     ...options,
     headers,
   };
-  if (!token) {
-    fetchOptions.credentials = 'include';
-  }
+  // Always include credentials so server-set HttpOnly cookies are sent
+  fetchOptions.credentials = 'include';
 
   const res = await fetch(`${API_BASE}${path}`, fetchOptions);
 
