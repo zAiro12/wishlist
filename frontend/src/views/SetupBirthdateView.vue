@@ -53,14 +53,14 @@ const saving = ref(false);
 const error = ref<string | null>(null);
 
 async function handleSubmit() {
-  if (!birthdate.value) {
+  if (!composedIso.value) {
     error.value = 'Birthdate is required.';
     return;
   }
   saving.value = true;
   error.value = null;
   try {
-    await usersApi.updateProfile({ birthdate: birthdate.value });
+    await usersApi.updateProfile({ birthdate: composedIso.value });
     await auth.refreshUser();
     await router.replace('/');
   } catch (err) {
