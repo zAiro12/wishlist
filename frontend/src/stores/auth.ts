@@ -11,6 +11,11 @@ export const useAuthStore = defineStore('auth', () => {
   const loading = ref(false);
   const initialized = ref(false);
 
+  function readToken(): string | null {
+    try { return localStorage.getItem('token') ?? sessionStorage.getItem('token'); }
+    catch { return null; }
+  }
+
   const isAuthenticated = computed(() => user.value !== null);
   const isAdmin = computed(() => user.value?.role === 'ADMIN');
   const needsBirthdate = computed(
@@ -21,11 +26,6 @@ export const useAuthStore = defineStore('auth', () => {
     if (initialized.value && !force) return;
     try {
       const apiBase = import.meta.env.VITE_API_URL ?? 'http://localhost:3000';
-      // Read token from storage and include Authorization header if present
-      function readToken(): string | null {
-        try { return localStorage.getItem('token') ?? sessionStorage.getItem('token'); }
-        catch { return null; }
-      }
       const tokenLocal = readToken();
       const res = await fetch(`${apiBase}/api/users/me`, {
         method: 'GET',
@@ -87,11 +87,11 @@ export const useAuthStore = defineStore('auth', () => {
     await fetchUser();
   }
 
+  function setToken(t: string | null): void {
+    token.value = t;
+  }
+
   async function initFromStorage(): Promise<void> {
-    function readToken(): string | null {
-      try { return localStorage.getItem('token') ?? sessionStorage.getItem('token'); }
-      catch { return null; }
-    }
     const stored = readToken();
     if (stored) token.value = stored;
   }
@@ -111,6 +111,7 @@ export const useAuthStore = defineStore('auth', () => {
     login,
     logout,
     initFromStorage,
+    setToken,
     
     refreshUser,
     fetchUser,

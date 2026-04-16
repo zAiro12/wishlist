@@ -49,19 +49,28 @@ onMounted(async () => {
     // If the provider returned a token in the query string, persist it now
     // (prefer localStorage, fallback to sessionStorage), then update the store
     // token so `fetchUser()` can use it via Authorization header.
-    function persistToken(t: string) {
-      try { localStorage.setItem('token', t); } catch {
-        try { sessionStorage.setItem('token', t); } catch {}
+    const persistToken = (t: string) => {
+      try {
+        localStorage.setItem('token', t);
+      } catch (_e) {
+        try {
+          sessionStorage.setItem('token', t);
+        } catch (_e2) {
+          /* ignore storage errors */
+        }
       }
-    }
+    };
 
     if (tokenFromQuery) {
       try {
         persistToken(tokenFromQuery);
-        // update store token synchronously if store exposes it
-        if ((auth as any).token !== undefined) (auth as any).token = tokenFromQuery;
+        // update store token synchronously if available
+        const maybeSet = (auth as unknown as { setToken?: (t: string) => void }).setToken;
+        if (maybeSet) {
+          try { maybeSet(tokenFromQuery); } catch (_e) { /* ignore setter errors */ }
+        }
       } catch (_e) {
-        // ignore
+        /* ignore storage errors */
       }
     }
 
