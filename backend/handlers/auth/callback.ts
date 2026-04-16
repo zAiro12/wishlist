@@ -169,9 +169,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
     if (process.env.NODE_ENV === 'production') cookieParts.push('Secure');
     res.setHeader('Set-Cookie', cookieParts.join('; '));
 
+    // Redirect to frontend and include the token in the URL fragment so the
+    // frontend can persist it to localStorage if desired. Use query param for
+    // needsBirthdate and fragment for token (fragment is not sent to server).
+    const encodedToken = encodeURIComponent(token);
     const target = needsBirthdate
-      ? `${FRONTEND_URL}/auth/callback?needsBirthdate=true`
-      : `${FRONTEND_URL}/`;
+      ? `${FRONTEND_URL}/auth/callback?needsBirthdate=true#token=${encodedToken}`
+      : `${FRONTEND_URL}/#token=${encodedToken}`;
     res.redirect(302, target);
   } catch (err) {
     console.error('OAuth callback error:', err);
