@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia';
 import { ref, computed } from 'vue';
 import type { User } from '../types';
-import { users as usersApi, auth as authApi } from '../api/client';
+import { auth as authApi } from '../api/client';
 import { ApiError } from '../api/client';
 
 export const useAuthStore = defineStore('auth', () => {
@@ -20,13 +20,43 @@ export const useAuthStore = defineStore('auth', () => {
     if (initialized.value && !force) return;
     initialized.value = true;
     try {
-      user.value = await usersApi.me();
+      // Make the request with explicit Authorization header to ensure the
+      // token is sent even when some callers bypass the shared client.
+      const apiBase = import.meta.env.VITE_API_URL ?? 'http://localhost:3000';
+      const tokenLocal = localStorage.getItem('token');
+      const res = await fetch(`${apiBase}/api/users/me`, {
+        method: 'GET',
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(tokenLocal ? { Authorization: `Bearer ${tokenLocal}` } : {}),
+        },
+      });
+
+      if (!res.ok) {
+        if (res.status === 401 || res.status === 403) {
+          user.value = null;
+          token.value = null;
+          localStorage.removeItem('token');
+          return;
+        }
+        let text = '';
+        try {
+          const j = await res.json();
+          text = j.error ?? JSON.stringify(j);
+        } catch (e) {
+          text = res.statusText;
+        }
+        throw new ApiError(res.status, { error: text });
+      }
+
+      user.value = await res.json();
     } catch (err) {
       if (err instanceof ApiError && (err.status === 401 || err.status === 403)) {
-        // Silently clear user info on unauthorized; do not perform navigation here.
         user.value = null;
+        token.value = null;
+        localStorage.removeItem('token');
       } else {
-        // For other errors, rethrow so callers can decide how to handle them.
         throw err;
       }
     }
