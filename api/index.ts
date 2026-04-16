@@ -188,6 +188,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 			const params = match(url, r.pattern)
 			if (params) {
 				;(req as any).params = params
+				// Merge path params into req.query so handlers can read them normally
+				try {
+					req.query = { ...(req.query ?? {}), ...params }
+				} catch (e) {
+					// best-effort; do not block handler
+				}
 				try {
 					await r.handler(req, res)
 				} catch (err) {
