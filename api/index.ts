@@ -91,25 +91,47 @@ const routes: { pattern: string; handler: Handler }[] = [
 	{ pattern: '/admin/wishlists',                   handler: adminWishlistsHandler }
 ]
 
+// Construct allowed origins set from environment, normalizing to origin only
+const ALLOWED_RAW = (process.env.ALLOWED_ORIGINS ?? '')
+	.split(',')
+	.map((o) => o.trim())
+	.filter(Boolean);
+const ALLOWED_SET = new Set(
+	ALLOWED_RAW.map((o) => {
+		try {
+			return new URL(o).origin;
+		} catch {
+			return o;
+		}
+	})
+);
+const FALLBACK_ORIGIN = (() => {
+	try {
+		return new URL(process.env.FRONTEND_URL ?? '').origin;
+	} catch {
+		return '';
+	}
+})();
+
 export default async function handler(req: VercelRequest, res: VercelResponse) {
 	logRequest(req)
 
-	function setCorsHeaders() {
-		// Keep values minimal and non-sensitive
-		res.setHeader('Access-Control-Allow-Origin', '*')
-		res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PATCH, OPTIONS')
-		res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization')
+	// Set CORS headers using environment-configured allowed origins.
+	// Returns true if the request was an OPTIONS preflight and has been handled.
+	function setCorsHeaders(req: VercelRequest, res: VercelResponse): boolean {
+		const origin = (req.headers.origin ?? '').toString();
+		const allowed = ALLOWED_SET.has(origin) ? origin : (FALLBACK_ORIGIN || null);
+		if (allowed) res.setHeader('Access-Control-Allow-Origin', allowed);
+		res.setHeader('Access-Control-Allow-Credentials', 'true');
+		res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS');
+		res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+		res.setHeader('Vary', 'Origin');
+		if ((req.method || '').toUpperCase() === 'OPTIONS') { res.status(204).end(); return true; }
+		return false;
 	}
 
-	// Always set CORS headers for every response
-	setCorsHeaders()
-
-	// Handle preflight OPTIONS requests centrally
-	if ((req.method || 'GET').toUpperCase() === 'OPTIONS') {
-		// respond with no content; headers already set
-		res.status(204).send('')
-		return
-	}
+	// Always set CORS headers for every response and short-circuit OPTIONS
+	if (setCorsHeaders(req, res)) return;
 	try {
 		console.log('api/index.ts HIT')
 				// Expose OpenAPI JSON and Swagger UI (renamed to /api-docs)
