@@ -11,13 +11,14 @@
             <div style="display:flex;gap:0.5rem;margin-top:1rem;justify-content:flex-end;">
                 <button class="btn-secondary" @click="onCancel">Annulla</button>
                 <button class="btn-primary" :disabled="store.loading" @click="onConfirm">{{ store.loading ? 'Joining…' :
-                    'Entra' }}</button>
+                    'Entra nel gruppo' }}</button>
             </div>
         </div>
     </div>
 </template>
 
 <script setup lang="ts">
+import { onMounted, onUnmounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { useInviteStore } from '../stores/invite';
 
@@ -32,6 +33,19 @@ function onCancel(): void {
 async function onConfirm(): Promise<void> {
     await store.confirmJoin(router);
 }
+
+function onKey(e: KeyboardEvent): void {
+    if (e.key === 'Escape') {
+        onCancel();
+    }
+}
+
+onMounted(() => {
+    window.addEventListener('keydown', onKey);
+});
+onUnmounted(() => {
+    window.removeEventListener('keydown', onKey);
+});
 </script>
 
 <style scoped>

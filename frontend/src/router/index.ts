@@ -17,7 +17,6 @@ const routes = [
   { name: 'MyWishlist', path: '/wishlist', component: () => import('../views/MyWishlistView.vue'), meta: { requiresAuth: true } },
   { name: 'Groups', path: '/groups', component: () => import('../views/GroupsView.vue'), meta: { requiresAuth: true } },
   { name: 'GroupDetail', path: '/groups/:groupId', component: () => import('../views/GroupDetailView.vue'), meta: { requiresAuth: true } },
-  { name: 'JoinGroup', path: '/join/:groupId', component: () => import('../views/JoinGroupView.vue'), meta: { requiresAuth: true } },
   { name: 'FriendsWishlists', path: '/groups/:groupId/wishlists', component: () => import('../views/FriendsWishlistsView.vue'), meta: { requiresAuth: true } },
 
   // Admin
