@@ -30,14 +30,15 @@ export const router = createRouter({
   routes,
 });
 
-let authInitialized = false;
-
 router.beforeEach(async (to) => {
   const auth = useAuthStore();
 
-  if (!authInitialized) {
+  // Ensure we attempt to restore the session exactly once.
+  if (!auth.initialized) {
+    // Make sure the store knows about any token saved in localStorage
     await auth.initFromStorage();
-    authInitialized = true;
+    // Then fetch the current user (silent on failure). fetchUser sets initialized.
+    await auth.fetchUser().catch(() => {});
   }
 
   // Explicitly allow public routes by name (ensure AuthCallback is never intercepted)

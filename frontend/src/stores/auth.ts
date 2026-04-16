@@ -8,6 +8,7 @@ export const useAuthStore = defineStore('auth', () => {
   const user = ref<User | null>(null);
   const token = ref<string | null>(localStorage.getItem('auth_token'));
   const loading = ref(false);
+  const initialized = ref(false);
 
   const isAuthenticated = computed(() => user.value !== null);
   const isAdmin = computed(() => user.value?.role === 'ADMIN');
@@ -15,12 +16,18 @@ export const useAuthStore = defineStore('auth', () => {
     () => user.value !== null && (!user.value.birthdate || !user.value.birthdateConfirmed)
   );
 
-  async function fetchUser(): Promise<void> {
+  async function fetchUser(force = false): Promise<void> {
+    if (initialized.value && !force) return;
+    initialized.value = true;
     try {
       user.value = await usersApi.me();
     } catch (err) {
       if (err instanceof ApiError && (err.status === 401 || err.status === 403)) {
-        clearSession();
+        // Silently clear user info on unauthorized; do not perform navigation here.
+        user.value = null;
+      } else {
+        // For other errors, rethrow so callers can decide how to handle them.
+        throw err;
       }
     }
   }
@@ -29,12 +36,6 @@ export const useAuthStore = defineStore('auth', () => {
     const stored = localStorage.getItem('auth_token');
     if (stored) {
       token.value = stored;
-      loading.value = true;
-      try {
-        await fetchUser();
-      } finally {
-        loading.value = false;
-      }
     }
   }
 
@@ -56,7 +57,7 @@ export const useAuthStore = defineStore('auth', () => {
     token.value = newToken;
     loading.value = true;
     try {
-      await fetchUser();
+      await fetchUser(true);
     } finally {
       loading.value = false;
     }
@@ -84,5 +85,7 @@ export const useAuthStore = defineStore('auth', () => {
     logout,
     setTokenAndFetch,
     refreshUser,
+    fetchUser,
+    initialized,
   };
 });

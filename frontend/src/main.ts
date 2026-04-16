@@ -13,7 +13,9 @@ app.use(router);
 const authInit = async () => {
 	const auth = useAuthStore();
 	try {
+		// Load token from storage (does not fetch) and then attempt to fetch user silently.
 		await auth.initFromStorage();
+		await auth.fetchUser().catch(() => {});
 	} catch {
 		// ignore
 	}
