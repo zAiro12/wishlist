@@ -14,11 +14,57 @@ function getToken(): string | null {
   return localStorage.getItem('auth_token');
 }
 
+function isTokenExpiredOrExpiringSoon(token: string): boolean {
+  try {
+    const parts = token.split('.');
+    if (parts.length < 2) return true;
+    const payload = JSON.parse(atob(parts[1]));
+    const expiresIn = (payload.exp as number) - Math.floor(Date.now() / 1000);
+    return expiresIn < 5 * 60; // less than 5 minutes
+  } catch {
+    return true;
+  }
+}
+
+async function refreshToken(): Promise<string | null> {
+  const current = getToken();
+  try {
+    const res = await fetch(`${API_BASE}/api/auth/refresh`, {
+      method: 'GET',
+      credentials: 'include',
+      headers: {
+        Authorization: `Bearer ${current ?? ''}`,
+      },
+    });
+    if (!res.ok) return null;
+    const data = await res.json();
+    if (data.token) {
+      localStorage.setItem('auth_token', data.token);
+      return data.token;
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
+
 async function request<T>(
   path: string,
   options: RequestInit = {}
 ): Promise<T> {
-  const token = getToken();
+  let token = getToken();
+  // Refresh if expiring soon
+  if (token && isTokenExpiredOrExpiringSoon(token)) {
+    const newToken = await refreshToken();
+    if (newToken) {
+      token = newToken;
+    } else {
+      // Refresh failed: clear and redirect to login
+      localStorage.removeItem('auth_token');
+      window.location.href = '/login';
+      throw new ApiError(401, { error: 'Unauthorized' });
+    }
+  }
   const hasBody = options.body !== undefined && options.body !== null;
 
   const headers: Record<string, string> = {

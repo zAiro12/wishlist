@@ -13,11 +13,11 @@ export interface JwtPayload {
   exp?: number;
 }
 
-// Sign a short-lived JWT (15 minutes) for auth_cookie usage
+// Sign a JWT for auth usage. Use a long-lived token for refreshable sessions.
 export function signJwt(payload: { userId: string; role: string }): string {
   return jwt.sign({ userId: payload.userId, role: payload.role }, SECRET as string, {
     algorithm: 'HS256',
-    expiresIn: '15m',
+    expiresIn: '30d',
   });
 }
 
