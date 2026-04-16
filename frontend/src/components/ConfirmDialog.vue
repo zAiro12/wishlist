@@ -1,5 +1,5 @@
 <template>
-    <div v-if="state.visible" class="modal-overlay" @click.self="onCancel">
+    <div v-if="state.visible && state.options" class="modal-overlay" @click.self="onCancel">
         <div class="modal-card" role="dialog" aria-modal="true" :aria-labelledby="titleId" tabindex="-1" ref="cardRef">
             <h3 :id="titleId">{{ title }}</h3>
             <p style="color:var(--color-text-muted); margin-top:0.5rem;">{{ message }}</p>
