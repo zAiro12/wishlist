@@ -56,7 +56,9 @@ async function request<T>(
   // Debug log: show if we found a token in localStorage
   try {
     console.log('[CLIENT] token trovato:', token ? `sì, ${token.substring(0,20)}...` : 'NO');
-  } catch {}
+  } catch (_e) {
+    // ignore logging errors (e.g. circular structures or locked storage)
+  }
   // Refresh if expiring soon
   if (token && isTokenExpiredOrExpiringSoon(token)) {
     const newToken = await refreshToken();
