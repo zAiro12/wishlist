@@ -17,6 +17,7 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
+import type { LocationQueryRaw } from 'vue-router';
 import { useAuthStore } from '../stores/auth';
 
 const router = useRouter();
@@ -70,7 +71,7 @@ onMounted(async () => {
       // update store token synchronously
       auth.token = token;
       // Clean the URL to avoid exposing the token in browser history
-      const keepQuery: Record<string, unknown> = {};
+      const keepQuery: LocationQueryRaw = {};
       if (route.query.needsBirthdate === 'true') keepQuery.needsBirthdate = 'true';
       await router.replace({ name: 'AuthCallback', query: keepQuery }).catch(() => {});
     } catch (e) {
