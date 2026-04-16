@@ -31,11 +31,14 @@ export const router = createRouter({
 });
 
 router.beforeEach(async (to) => {
+  // Let the callback page handle its own token extraction
+  if (to.name === 'AuthCallback') return true;
+
   const auth = useAuthStore();
 
   // Ensure we attempt to restore the session exactly once.
   if (!auth.initialized) {
-    // Make sure the store knows about any token saved in localStorage
+    // Make sure the store knows about any token saved in storage
     await auth.initFromStorage();
     // Then fetch the current user (silent on failure). fetchUser sets initialized.
     await auth.fetchUser().catch(() => {});
