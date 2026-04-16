@@ -73,7 +73,7 @@ onMounted(async () => {
       // Clean the URL to avoid exposing the token in browser history
       const keepQuery: LocationQueryRaw = {};
       if (route.query.needsBirthdate === 'true') keepQuery.needsBirthdate = 'true';
-      await router.replace({ name: 'AuthCallback', query: keepQuery }).catch(() => {});
+      await router.replace({ name: 'AuthCallback', query: keepQuery }).catch(() => { });
     } catch (e) {
       // ignore
     }
@@ -88,6 +88,6 @@ onMounted(async () => {
 
   // In background, fetch the current user to populate the store.
   // Do this silently: failures should not trigger navigation here.
-  void auth.fetchUser().catch(() => {});
+  void auth.fetchUser().catch(() => { });
 });
 </script>

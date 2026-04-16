@@ -15,7 +15,6 @@
           <p style="font-size: 0.8rem; color: var(--color-text-muted); margin-top: 0.25rem;">
             Your birthdate is used to calculate who to celebrate in groups.
           </p>
-          <p v-if="day && month && year" style="font-size:0.9rem;color:var(--color-text);margin-top:0.25rem;">Displayed: {{ formatDate(composedIso) }}</p>
         </div>
 
         <p v-if="error" class="error-message">{{ error }}</p>
