@@ -27,6 +27,7 @@ import meHandler from '../backend/handlers/users/me'
 import groupsHandler from '../backend/handlers/groups/index'
 import groupHandler from '../backend/handlers/groups/[groupId]'
 import membersHandler from '../backend/handlers/groups/[groupId]/members'
+import joinHandler from '../backend/handlers/groups/[groupId]/join'
 import nextCelebratedHandler from '../backend/handlers/groups/[groupId]/next-celebrated'
 import transferHandler from '../backend/handlers/groups/[groupId]/transfer'
 import wishlistsInGroupHandler from '../backend/handlers/groups/[groupId]/wishlists'
@@ -77,6 +78,7 @@ const routes: { pattern: string; handler: Handler }[] = [
 	{ pattern: '/groups',                            handler: groupsHandler },
 	{ pattern: '/groups/:groupId',                   handler: groupHandler },
 	{ pattern: '/groups/:groupId/members',           handler: membersHandler },
+	{ pattern: '/groups/:groupId/join',              handler: joinHandler },
 	{ pattern: '/groups/:groupId/next-celebrated',   handler: nextCelebratedHandler },
 	{ pattern: '/groups/:groupId/transfer',          handler: transferHandler },
 	{ pattern: '/groups/:groupId/wishlists',         handler: wishlistsInGroupHandler },

@@ -16,6 +16,7 @@ const routes = [
   { name: 'MyWishlist', path: '/wishlist', component: () => import('../views/MyWishlistView.vue'), meta: { requiresAuth: true } },
   { name: 'Groups', path: '/groups', component: () => import('../views/GroupsView.vue'), meta: { requiresAuth: true } },
   { name: 'GroupDetail', path: '/groups/:groupId', component: () => import('../views/GroupDetailView.vue'), meta: { requiresAuth: true } },
+  { name: 'JoinGroup', path: '/join/:groupId', component: () => import('../views/JoinGroupView.vue'), meta: { requiresAuth: true } },
   { name: 'FriendsWishlists', path: '/groups/:groupId/wishlists', component: () => import('../views/FriendsWishlistsView.vue'), meta: { requiresAuth: true } },
 
   // Admin
@@ -51,7 +52,9 @@ router.beforeEach(async (to) => {
   if (!requiresAuth) return true;
 
   if (!auth.isAuthenticated) {
-    return { name: 'Login' };
+    // Preserve the intended destination as a `redirect` query param so the
+    // login flow can forward the user back after authenticating.
+    return { name: 'Login', query: { redirect: to.fullPath } };
   }
 
   if (auth.isAuthenticated && to.path !== '/setup-birthdate' && auth.needsBirthdate) {
@@ -63,6 +66,9 @@ router.beforeEach(async (to) => {
   }
 
   if (auth.isAuthenticated && to.name === 'Login') {
+    // If login page included a redirect param, honour it after successful auth.
+    const redirect = to.query['redirect'] as string | undefined;
+    if (redirect && typeof redirect === 'string') return { path: redirect };
     return { name: 'Home' };
   }
 

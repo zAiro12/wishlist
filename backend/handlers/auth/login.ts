@@ -24,10 +24,33 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
 
   const { state, nonce } = createState(provider);
 
-  const cookie =
-    `oauth_nonce=${nonce}; HttpOnly; SameSite=None; Path=/api/auth/callback; Max-Age=600` +
-    (process.env.NODE_ENV === 'production' ? '; Secure' : '');
-  res.setHeader('Set-Cookie', cookie);
+  const cookieParts = [
+    `oauth_nonce=${nonce}`,
+    'HttpOnly',
+    'SameSite=None',
+    'Path=/api/auth/callback',
+    'Max-Age=600',
+  ];
+  if (process.env.NODE_ENV === 'production') cookieParts.push('Secure');
+
+  const cookiesToSet: string[] = [cookieParts.join('; ')];
+
+  // Preserve a frontend redirect parameter through the OAuth flow by storing
+  // it in a short-lived cookie scoped to the callback path.
+  const redirectParam = typeof req.query['redirect'] === 'string' ? req.query['redirect'] as string : '';
+  if (redirectParam) {
+    const redirectCookieParts = [
+      `oauth_redirect=${encodeURIComponent(redirectParam)}`,
+      'HttpOnly',
+      'SameSite=Lax',
+      'Path=/api/auth/callback',
+      'Max-Age=600',
+    ];
+    if (process.env.NODE_ENV === 'production') redirectCookieParts.push('Secure');
+    cookiesToSet.push(redirectCookieParts.join('; '));
+  }
+
+  res.setHeader('Set-Cookie', cookiesToSet);
 
   try {
     const url = getAuthorizationUrl(provider, state);

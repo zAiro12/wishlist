@@ -69,7 +69,13 @@ export const useAuthStore = defineStore('auth', () => {
 
 
   function login(provider: 'google' | 'github' | 'microsoft'): void {
-    window.location.href = authApi.loginUrl(provider);
+    // Preserve any `redirect` query parameter on the login page so the backend
+    // can forward it through the OAuth flow and the frontend can resume.
+    const currentParams = new URLSearchParams(window.location.search);
+    const redirect = currentParams.get('redirect');
+    const base = authApi.loginUrl(provider);
+    const target = redirect ? `${base}&redirect=${encodeURIComponent(redirect)}` : base;
+    window.location.href = target;
   }
 
   async function logout(): Promise<void> {

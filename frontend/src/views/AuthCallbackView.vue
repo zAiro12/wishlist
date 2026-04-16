@@ -39,6 +39,7 @@ onMounted(async () => {
   const needsBirthdate = route.query.needsBirthdate === 'true';
   const tokenFromQuery = (route.query.token as string | undefined) ?? undefined;
   const err = route.query['error'] as string | undefined;
+  const redirectPath = (route.query.redirect as string | undefined) ?? undefined;
 
   if (err) {
     errorMsg.value = ERROR_MESSAGES[err] ?? `Authentication error: ${err}`;
@@ -81,9 +82,18 @@ onMounted(async () => {
   }
 
   if (needsBirthdate || auth.needsBirthdate) {
-    await router.replace({ name: 'SetupBirthdate' });
+    // Preserve redirect for post-birthdate completion
+    if (redirectPath) {
+      await router.replace({ name: 'SetupBirthdate', query: { redirect: redirectPath } });
+    } else {
+      await router.replace({ name: 'SetupBirthdate' });
+    }
   } else {
-    await router.replace({ name: 'Home' });
+    if (redirectPath) {
+      await router.replace({ path: redirectPath });
+    } else {
+      await router.replace({ name: 'Home' });
+    }
   }
 });
 </script>

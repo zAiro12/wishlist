@@ -37,7 +37,14 @@ function clearNonceCookie(res: VercelResponse): void {
     cookieParts.push('Secure');
   }
 
-  res.setHeader('Set-Cookie', cookieParts.join('; '));
+  // Clear oauth_nonce
+  const cookies: string[] = [cookieParts.join('; ')];
+  // Also clear oauth_redirect if present
+  const redirectClear = ['oauth_redirect=', 'HttpOnly', 'SameSite=Lax', 'Path=/api/auth/callback', 'Max-Age=0'];
+  if (process.env.NODE_ENV === 'production') redirectClear.push('Secure');
+  cookies.push(redirectClear.join('; '));
+
+  res.setHeader('Set-Cookie', cookies);
 }
 
 function redirectError(res: VercelResponse, error: string): void {
@@ -173,9 +180,16 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
     // frontend can read it and persist it to local/session storage. Use
     // `needsBirthdate` as a query param as well.
     const encodedToken = encodeURIComponent(token);
-    const target = needsBirthdate
+    // Forward any stored oauth_redirect cookie to the frontend callback so the
+    // frontend can perform a post-login redirect (e.g. to /join/:groupId).
+    const redirectCookie = cookies['oauth_redirect'] ? String(cookies['oauth_redirect']) : '';
+    const encodedRedirect = redirectCookie ? `&redirect=${encodeURIComponent(redirectCookie)}` : '';
+
+    const targetBase = needsBirthdate
       ? `${FRONTEND_URL}/auth/callback?needsBirthdate=true&token=${encodedToken}`
       : `${FRONTEND_URL}/auth/callback?token=${encodedToken}`;
+
+    const target = `${targetBase}${encodedRedirect}`;
     res.redirect(302, target);
   } catch (err) {
     console.error('OAuth callback error:', err);

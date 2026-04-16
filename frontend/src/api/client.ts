@@ -91,6 +91,9 @@ export const groups = {
   delete: (groupId: string) =>
     request<{ message: string }>(`/api/groups/${groupId}`, { method: 'DELETE' }),
 
+  join: (groupId: string) =>
+    request<import('../types').GroupMember>(`/api/groups/${groupId}/join`, { method: 'POST' }),
+
   members: {
     list: (groupId: string) =>
       request<import('../types').GroupMember[]>(`/api/groups/${groupId}/members`),
