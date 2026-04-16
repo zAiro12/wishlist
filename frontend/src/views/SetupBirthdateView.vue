@@ -2,7 +2,8 @@
   <div class="complete-wrapper">
     <div class="card" style="width: 100%; max-width: 480px;">
       <h2>Set Your Birthdate</h2>
-      <p style="color: var(--color-text-muted); margin-bottom: 1.5rem;">We need your birthdate to complete your profile.</p>
+      <p style="color: var(--color-text-muted); margin-bottom: 1.5rem;">We need your birthdate to complete your profile.
+      </p>
 
       <form @submit.prevent="handleSubmit">
         <div class="form-group">
@@ -10,7 +11,8 @@
           <div style="display:flex;gap:0.5rem;align-items:center;">
             <input v-model="day" type="number" min="1" max="31" placeholder="DD" style="width:4.5rem;" required />
             <input v-model="month" type="number" min="1" max="12" placeholder="MM" style="width:4.5rem;" required />
-            <input v-model="year" type="number" min="1900" max="2099" placeholder="YYYY" style="width:6.5rem;" required />
+            <input v-model="year" type="number" min="1900" max="2099" placeholder="YYYY" style="width:6.5rem;"
+              required />
           </div>
           <p style="font-size: 0.8rem; color: var(--color-text-muted); margin-top: 0.25rem;">
             Your birthdate is used to calculate who to celebrate in groups.
@@ -19,7 +21,8 @@
 
         <p v-if="error" class="error-message">{{ error }}</p>
 
-        <button type="submit" class="btn-primary" :disabled="saving" style="width: 100%; padding: 0.75rem; margin-top: 0.5rem;">
+        <button type="submit" class="btn-primary" :disabled="saving"
+          style="width: 100%; padding: 0.75rem; margin-top: 0.5rem;">
           {{ saving ? 'Saving…' : 'Confirm' }}
         </button>
       </form>
