@@ -6,7 +6,7 @@ import { ApiError } from '../api/client';
 
 export const useAuthStore = defineStore('auth', () => {
   const user = ref<User | null>(null);
-  const token = ref<string | null>(localStorage.getItem('token'));
+  const token = ref<string | null>(sessionStorage.getItem('token'));
   const loading = ref(false);
   const initialized = ref(false);
 
@@ -23,7 +23,7 @@ export const useAuthStore = defineStore('auth', () => {
       // Make the request with explicit Authorization header to ensure the
       // token is sent even when some callers bypass the shared client.
       const apiBase = import.meta.env.VITE_API_URL ?? 'http://localhost:3000';
-      const tokenLocal = localStorage.getItem('token');
+      const tokenLocal = sessionStorage.getItem('token');
       const res = await fetch(`${apiBase}/api/users/me`, {
         method: 'GET',
         credentials: 'include',
@@ -37,7 +37,7 @@ export const useAuthStore = defineStore('auth', () => {
         if (res.status === 401 || res.status === 403) {
           user.value = null;
           token.value = null;
-          localStorage.removeItem('token');
+          sessionStorage.removeItem('token');
           return;
         }
         let text = '';
@@ -55,7 +55,7 @@ export const useAuthStore = defineStore('auth', () => {
       if (err instanceof ApiError && (err.status === 401 || err.status === 403)) {
         user.value = null;
         token.value = null;
-        localStorage.removeItem('token');
+        sessionStorage.removeItem('token');
       } else {
         throw err;
       }
@@ -63,7 +63,7 @@ export const useAuthStore = defineStore('auth', () => {
   }
 
   async function initFromStorage(): Promise<void> {
-    const stored = localStorage.getItem('token');
+    const stored = sessionStorage.getItem('token');
     if (stored) {
       token.value = stored;
     }
@@ -83,7 +83,7 @@ export const useAuthStore = defineStore('auth', () => {
   }
 
   async function setTokenAndFetch(newToken: string): Promise<void> {
-    localStorage.setItem('token', newToken);
+    sessionStorage.setItem('token', newToken);
     token.value = newToken;
     loading.value = true;
     try {
@@ -98,7 +98,7 @@ export const useAuthStore = defineStore('auth', () => {
   }
 
   function clearSession(): void {
-    localStorage.removeItem('token');
+    sessionStorage.removeItem('token');
     token.value = null;
     user.value = null;
   }

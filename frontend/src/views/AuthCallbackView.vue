@@ -39,7 +39,7 @@ onMounted(async () => {
   // Debug logging to help diagnose missing token issues
   const hash = window.location.hash;
   console.log('[CALLBACK] hash:', hash);
-  console.log('[CALLBACK] token in localStorage:', localStorage.getItem('token') ?? localStorage.getItem('auth_token'));
+  console.log('[CALLBACK] token in localStorage:', sessionStorage.getItem('token') ?? localStorage.getItem('auth_token'));
 
   // Prefer token delivered as a query param (safer with some hosting setups)
   const tokenFromQuery = (route.query.token as string | undefined) ?? undefined;
@@ -67,7 +67,7 @@ onMounted(async () => {
   // the query param so the UX is fast and deterministic.
   if (token) {
     try {
-      localStorage.setItem('token', token);
+      sessionStorage.setItem('token', token);
       // update store token synchronously
       auth.token = token;
       // Clean the URL to avoid exposing the token in browser history

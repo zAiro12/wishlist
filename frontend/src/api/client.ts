@@ -11,7 +11,7 @@ export class ApiError extends Error {
 }
 
 function getToken(): string | null {
-  return localStorage.getItem('token');
+  return sessionStorage.getItem('token');
 }
 
 function isTokenExpiredOrExpiringSoon(token: string): boolean {
@@ -39,7 +39,7 @@ async function refreshToken(): Promise<string | null> {
     if (!res.ok) return null;
     const data = await res.json();
     if (data.token) {
-      localStorage.setItem('token', data.token);
+      sessionStorage.setItem('token', data.token);
       return data.token;
     }
     return null;
@@ -66,7 +66,7 @@ async function request<T>(
       token = newToken;
     } else {
       // Refresh failed: clear and redirect to login
-      localStorage.removeItem('token');
+      sessionStorage.removeItem('token');
       window.location.href = '/login';
       throw new ApiError(401, { error: 'Unauthorized' });
     }
