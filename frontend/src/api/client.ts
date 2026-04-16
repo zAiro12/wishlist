@@ -93,6 +93,8 @@ export const groups = {
 
   join: (groupId: string) =>
     request<import('../types').GroupMember>(`/api/groups/${groupId}/join`, { method: 'POST' }),
+  invitePreview: (groupId: string) =>
+    request<{ id: string; name: string; description: string | null; owner: { id: string; givenName: string | null; familyName: string | null } | null; memberCount: number; isMember: boolean }>(`/api/groups/${groupId}/invite-preview`),
 
   members: {
     list: (groupId: string) =>

@@ -1,5 +1,6 @@
 import { createRouter, createWebHistory } from 'vue-router';
 import { useAuthStore } from '../stores/auth';
+import { useInviteStore } from '../stores/invite';
 
 const routes = [
   // Public
@@ -36,11 +37,40 @@ router.beforeEach(async (to) => {
   if (to.name === 'AuthCallback') return true;
 
   const auth = useAuthStore();
+  const invite = useInviteStore();
 
   // Ensure we attempt to fetch the session exactly once.
   if (!auth.initialized) {
     // Fetch the current user (silent on failure). fetchUser sets initialized.
     await auth.fetchUser().catch(() => {});
+  }
+
+  // If there's a join query param on the incoming route, handle invite flow.
+  const joinParam = (to.query['join'] as string | undefined) ?? undefined;
+  if (joinParam) {
+    // If not authenticated, redirect to login and preserve the full path (includes ?join=)
+    if (!auth.isAuthenticated) {
+      return { name: 'Login', query: { redirect: to.fullPath } };
+    }
+
+    // If authenticated but needs birthdate, redirect to setup and preserve redirect
+    if (auth.isAuthenticated && auth.needsBirthdate) {
+      return { name: 'SetupBirthdate', query: { redirect: to.fullPath } };
+    }
+
+    // Authenticated and ready: load preview and either redirect to group or show modal
+    try {
+      await invite.loadPreview(joinParam);
+      if (invite.preview && invite.preview.isMember) {
+        return { path: `/groups/${joinParam}` };
+      }
+      invite.showFor(joinParam);
+      // Allow navigation to continue (e.g., Home) while modal is shown
+      return true;
+    } catch (e) {
+      // On preview load error, allow navigation and let modal/store show error
+      return true;
+    }
   }
 
   // Explicitly allow public routes by name (ensure AuthCallback is never intercepted)

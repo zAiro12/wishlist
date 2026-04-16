@@ -32,7 +32,7 @@
 
 <script setup lang="ts">
 import { ref, computed } from 'vue';
-import { useRouter } from 'vue-router';
+import { useRouter, useRoute } from 'vue-router';
 import { useAuthStore } from '../stores/auth';
 import { users as usersApi, ApiError } from '../api/client';
 
@@ -63,7 +63,13 @@ async function handleSubmit() {
   try {
     await usersApi.updateProfile({ birthdate: composedIso.value });
     await auth.refreshUser();
-    await router.replace('/');
+    const route = useRoute();
+    const redirect = (route.query.redirect as string | undefined) ?? undefined;
+    if (redirect && typeof redirect === 'string') {
+      await router.replace(redirect);
+    } else {
+      await router.replace('/');
+    }
   } catch (err) {
     error.value = err instanceof ApiError ? err.message : 'An unexpected error occurred.';
   } finally {

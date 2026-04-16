@@ -28,7 +28,7 @@
       <div v-if="nextCelebrated.users.length > 0" class="card birthday-banner">
         <p style="font-weight:600;">
           <span v-if="nextCelebrated.daysUntil === 0">🎂 Oggi è il compleanno di {{ nextCelebrated.users[0].givenName
-            }}! 🎉</span>
+          }}! 🎉</span>
           <span v-else>🎂 Prossimo compleanno: {{ nextCelebrated.users[0].givenName }} {{
             nextCelebrated.users[0].familyName }} tra {{ nextCelebrated.daysUntil }} giorn{{ nextCelebrated.daysUntil
               !== 1 ? 'i' : 'o' }}</span>
@@ -118,7 +118,7 @@ const copied = ref(false);
 
 async function copyInviteLink(): Promise<void> {
   try {
-    const inviteLink = `${window.location.origin}/join/${groupId}`;
+    const inviteLink = `${window.location.origin}/?join=${groupId}`;
     await navigator.clipboard.writeText(inviteLink);
     copied.value = true;
     setTimeout(() => { copied.value = false; }, 2000);
