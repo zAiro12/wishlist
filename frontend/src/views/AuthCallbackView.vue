@@ -70,6 +70,9 @@ onMounted(async () => {
       sessionStorage.setItem('token', token);
       // update store token synchronously
       auth.token = token;
+      // ensure subsequent navigation will attempt to fetch the user
+      // (the router may call fetchUser() while the token wasn't present yet)
+      auth.initialized = false;
       // Clean the URL to avoid exposing the token in browser history
       const keepQuery: LocationQueryRaw = {};
       if (route.query.needsBirthdate === 'true') keepQuery.needsBirthdate = 'true';

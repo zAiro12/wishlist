@@ -18,7 +18,6 @@ export const useAuthStore = defineStore('auth', () => {
 
   async function fetchUser(force = false): Promise<void> {
     if (initialized.value && !force) return;
-    initialized.value = true;
     try {
       // Make the request with explicit Authorization header to ensure the
       // token is sent even when some callers bypass the shared client.
@@ -38,6 +37,10 @@ export const useAuthStore = defineStore('auth', () => {
           user.value = null;
           token.value = null;
           sessionStorage.removeItem('token');
+          // Mark as initialized even on auth failures so callers know we've
+          // attempted an authenticated request. Other non-auth errors should
+          // not flip this flag so retries remain possible.
+          initialized.value = true;
           return;
         }
         let text = '';
@@ -51,11 +54,13 @@ export const useAuthStore = defineStore('auth', () => {
       }
 
       user.value = await res.json();
+      initialized.value = true;
     } catch (err) {
       if (err instanceof ApiError && (err.status === 401 || err.status === 403)) {
         user.value = null;
         token.value = null;
         sessionStorage.removeItem('token');
+        initialized.value = true;
       } else {
         throw err;
       }
