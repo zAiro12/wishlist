@@ -28,11 +28,17 @@ const cancelLabel = ref<string>('Cancel');
 watch(
     () => state.request.value,
     (req) => {
+        if (import.meta.env.DEV) console.log('[confirm][ConfirmDialog] watcher request changed:', req);
         if (req) {
+            if (import.meta.env.DEV) console.log('[confirm][ConfirmDialog] using request to populate labels');
             title.value = req.title ?? 'Confirm';
-            message.value = req.message;
+            // if message missing, log fallback usage
+            if (!req.message && import.meta.env.DEV) console.warn('[confirm][ConfirmDialog] request.message is empty, using fallback');
+            message.value = req.message ?? 'Are you sure?';
             confirmLabel.value = req.confirmLabel ?? 'Confirm';
             cancelLabel.value = req.cancelLabel ?? 'Cancel';
+        } else {
+            if (import.meta.env.DEV) console.log('[confirm][ConfirmDialog] request is null; dialog should not render');
         }
     }
 );
@@ -50,6 +56,7 @@ function onKey(e: KeyboardEvent): void {
 }
 
 onMounted(() => {
+    if (import.meta.env.DEV) console.log('[confirm][ConfirmDialog] mounted, current request:', state.request.value);
     window.addEventListener('keydown', onKey);
 });
 onUnmounted(() => {
@@ -59,7 +66,10 @@ onUnmounted(() => {
 watch(
     () => state.request.value,
     (r) => {
-        if (r) setTimeout(() => { cardRef.value?.focus(); }, 0);
+        if (r) {
+            if (import.meta.env.DEV) console.log('[confirm][ConfirmDialog] request non-null, focusing card');
+            setTimeout(() => { cardRef.value?.focus(); }, 0);
+        }
     }
 );
 </script>
