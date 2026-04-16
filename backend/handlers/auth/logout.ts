@@ -12,7 +12,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
   const cookieParts = [
     'auth_token=',
     'HttpOnly',
-    'SameSite=Lax',
+    'SameSite=None',
     'Path=/',
     'Max-Age=0',
   ];

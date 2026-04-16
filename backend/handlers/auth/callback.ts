@@ -161,10 +161,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
     const cookieParts = [
       `auth_token=${encodeURIComponent(token)}`,
       'HttpOnly',
-      'SameSite=Lax',
+      'SameSite=None',
       'Path=/',
       `Max-Age=${15 * 60}`,
     ];
+    // Set Secure in production; required alongside SameSite=None
     if (process.env.NODE_ENV === 'production') cookieParts.push('Secure');
     res.setHeader('Set-Cookie', cookieParts.join('; '));
 

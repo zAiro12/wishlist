@@ -25,7 +25,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
   const { state, nonce } = createState(provider);
 
   const cookie =
-    `oauth_nonce=${nonce}; HttpOnly; SameSite=Lax; Path=/api/auth/callback; Max-Age=600` +
+    `oauth_nonce=${nonce}; HttpOnly; SameSite=None; Path=/api/auth/callback; Max-Age=600` +
     (process.env.NODE_ENV === 'production' ? '; Secure' : '');
   res.setHeader('Set-Cookie', cookie);
 
