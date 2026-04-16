@@ -33,14 +33,7 @@ try {
 export function setCors(req: VercelRequest, res: VercelResponse): boolean {
   const origin = (req.headers.origin ?? '').toString();
 
-  // Temporary debug log to inspect runtime CORS environment in Vercel logs
-  console.log('[CORS DEBUG]', {
-    origin,
-    ALLOWED_ORIGINS,
-    FRONTEND_ORIGIN,
-    envAllowed: process.env.ALLOWED_ORIGINS,
-    envFrontend: process.env.FRONTEND_URL,
-  });
+  // (debug log removed)
 
   // If ALLOWED_ORIGINS is configured and contains the request origin, allow it.
   if (ALLOWED_ORIGINS.length > 0 && ALLOWED_ORIGINS.includes(origin)) {
