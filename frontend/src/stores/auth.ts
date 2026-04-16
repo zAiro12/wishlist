@@ -6,7 +6,7 @@ import { ApiError } from '../api/client';
 
 export const useAuthStore = defineStore('auth', () => {
   const user = ref<User | null>(null);
-  const token = ref<string | null>(localStorage.getItem('auth_token'));
+  const token = ref<string | null>(localStorage.getItem('token'));
   const loading = ref(false);
   const initialized = ref(false);
 
@@ -33,7 +33,7 @@ export const useAuthStore = defineStore('auth', () => {
   }
 
   async function initFromStorage(): Promise<void> {
-    const stored = localStorage.getItem('auth_token');
+    const stored = localStorage.getItem('token');
     if (stored) {
       token.value = stored;
     }
@@ -53,7 +53,7 @@ export const useAuthStore = defineStore('auth', () => {
   }
 
   async function setTokenAndFetch(newToken: string): Promise<void> {
-    localStorage.setItem('auth_token', newToken);
+    localStorage.setItem('token', newToken);
     token.value = newToken;
     loading.value = true;
     try {
@@ -68,7 +68,7 @@ export const useAuthStore = defineStore('auth', () => {
   }
 
   function clearSession(): void {
-    localStorage.removeItem('auth_token');
+    localStorage.removeItem('token');
     token.value = null;
     user.value = null;
   }

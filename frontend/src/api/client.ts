@@ -11,7 +11,7 @@ export class ApiError extends Error {
 }
 
 function getToken(): string | null {
-  return localStorage.getItem('auth_token');
+  return localStorage.getItem('token');
 }
 
 function isTokenExpiredOrExpiringSoon(token: string): boolean {
@@ -39,7 +39,7 @@ async function refreshToken(): Promise<string | null> {
     if (!res.ok) return null;
     const data = await res.json();
     if (data.token) {
-      localStorage.setItem('auth_token', data.token);
+      localStorage.setItem('token', data.token);
       return data.token;
     }
     return null;
@@ -53,6 +53,10 @@ async function request<T>(
   options: RequestInit = {}
 ): Promise<T> {
   let token = getToken();
+  // Debug log: show if we found a token in localStorage
+  try {
+    console.log('[CLIENT] token trovato:', token ? `sì, ${token.substring(0,20)}...` : 'NO');
+  } catch {}
   // Refresh if expiring soon
   if (token && isTokenExpiredOrExpiringSoon(token)) {
     const newToken = await refreshToken();
@@ -60,7 +64,7 @@ async function request<T>(
       token = newToken;
     } else {
       // Refresh failed: clear and redirect to login
-      localStorage.removeItem('auth_token');
+      localStorage.removeItem('token');
       window.location.href = '/login';
       throw new ApiError(401, { error: 'Unauthorized' });
     }
@@ -76,9 +80,9 @@ async function request<T>(
     headers['Content-Type'] = 'application/json';
   }
 
-  if (token) {
-    headers['Authorization'] = `Bearer ${token}`;
-  }
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
 
   // If no token in local storage, assume server-set HttpOnly cookie session
   // and send credentials so the cookie is included in the request.

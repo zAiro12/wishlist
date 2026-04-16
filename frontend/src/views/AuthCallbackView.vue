@@ -35,13 +35,20 @@ const ERROR_MESSAGES: Record<string, string> = {
 };
 
 onMounted(async () => {
-  // Token is delivered via URL fragment (#token=...) to keep it out of server logs
-  // Prefer the router-provided hash when available, and fallback to window.location.hash.
+  // Debug logging to help diagnose missing token issues
+  const hash = window.location.hash;
+  console.log('[CALLBACK] hash:', hash);
+  console.log('[CALLBACK] token in localStorage:', localStorage.getItem('token') ?? localStorage.getItem('auth_token'));
+
+  // Prefer token delivered as a query param (safer with some hosting setups)
+  const tokenFromQuery = (route.query.token as string | undefined) ?? undefined;
+  // Fallback to fragment for backward compatibility
   const rawHash = (route.hash && route.hash.length) ? route.hash : window.location.hash || '';
   const fragment = rawHash.startsWith('#') ? rawHash.slice(1) : rawHash;
   const fragParams = new URLSearchParams(fragment);
+  const tokenFromFragment = fragParams.get('token') ?? undefined;
 
-  const token = fragParams.get('token') ?? undefined;
+  const token = tokenFromQuery ?? tokenFromFragment;
   // Read needsBirthdate from query param (do not wait for user fetch)
   const needsBirthdate = route.query.needsBirthdate === 'true';
 
@@ -59,9 +66,13 @@ onMounted(async () => {
   // the query param so the UX is fast and deterministic.
   if (token) {
     try {
-      localStorage.setItem('auth_token', token);
+      localStorage.setItem('token', token);
       // update store token synchronously
       auth.token = token;
+      // Clean the URL to avoid exposing the token in browser history
+      const keepQuery: Record<string, unknown> = {};
+      if (route.query.needsBirthdate === 'true') keepQuery.needsBirthdate = 'true';
+      await router.replace({ name: 'AuthCallback', query: keepQuery }).catch(() => {});
     } catch (e) {
       // ignore
     }
