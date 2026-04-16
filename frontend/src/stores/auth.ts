@@ -49,7 +49,7 @@ export const useAuthStore = defineStore('auth', () => {
         try {
           const j = await res.json();
           text = j.error ?? JSON.stringify(j);
-        } catch (e) {
+        } catch {
           text = res.statusText;
         }
         throw new ApiError(res.status, { error: text });

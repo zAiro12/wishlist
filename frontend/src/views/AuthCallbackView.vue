@@ -53,10 +53,10 @@ onMounted(async () => {
     const persistToken = (t: string) => {
       try {
         localStorage.setItem('token', t);
-      } catch (_e) {
+      } catch {
         try {
           sessionStorage.setItem('token', t);
-        } catch (_e2) {
+        } catch {
           /* ignore storage errors */
         }
       }
@@ -68,16 +68,16 @@ onMounted(async () => {
         // update store token synchronously if available
         const maybeSet = (auth as unknown as { setToken?: (t: string) => void }).setToken;
         if (maybeSet) {
-          try { maybeSet(tokenFromQuery); } catch (_e) { /* ignore setter errors */ }
+          try { maybeSet(tokenFromQuery); } catch { /* ignore setter errors */ }
         }
-      } catch (_e) {
+      } catch {
         /* ignore storage errors */
       }
     }
 
     // Fetch current user to populate store (will use Authorization header if token present)
     await auth.fetchUser();
-  } catch (_e) {
+  } catch {
     // ignore fetch errors here; we'll redirect based on what we know
   }
 

@@ -66,7 +66,7 @@ router.beforeEach(async (to) => {
       invite.showFor(joinParam);
       // Allow navigation to continue (e.g., Home) while modal is shown
       return true;
-    } catch (e) {
+    } catch {
       // On preview load error, allow navigation and let modal/store show error
       return true;
     }

@@ -1,7 +1,7 @@
 <template>
     <div v-if="store.visible" class="modal-overlay" @click.self="onCancel">
-        <div class="modal-card">
-            <h3>{{ store.preview?.name ?? 'Group' }}</h3>
+        <div class="modal-card" role="dialog" aria-modal="true" :aria-labelledby="titleId" tabindex="-1" ref="cardRef">
+            <h3 :id="titleId">{{ store.preview?.name ?? 'Group' }}</h3>
             <p v-if="store.preview?.description" style="color:var(--color-text-muted)">{{ store.preview?.description }}
             </p>
             <p style="margin-top:1rem;">Vuoi entrare?</p>
@@ -18,16 +18,31 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, onUnmounted } from 'vue';
-import { useRouter } from 'vue-router';
+import { onMounted, onUnmounted, ref, watch } from 'vue';
+import { useRouter, type LocationQueryRaw } from 'vue-router';
 import { useInviteStore } from '../stores/invite';
 
 const store = useInviteStore();
 const router = useRouter();
+const cardRef = ref<HTMLElement | null>(null);
+const titleId = `invite-modal-title`;
+
+function removeJoinQueryAndReplace(): void {
+    const route = router.currentRoute.value;
+    const raw: LocationQueryRaw = {};
+    for (const [k, v] of Object.entries(route.query)) {
+        if (k === 'join') continue;
+        if (v === undefined) continue;
+        if (Array.isArray(v)) raw[k] = v as string[];
+        else raw[k] = String(v);
+    }
+    router.replace({ path: route.path, query: raw }).catch(() => { });
+}
 
 function onCancel(): void {
     store.hide();
-    router.replace('/groups').catch(() => { });
+    // Remove the `join` query param but otherwise keep the current path
+    removeJoinQueryAndReplace();
 }
 
 async function onConfirm(): Promise<void> {
@@ -46,6 +61,16 @@ onMounted(() => {
 onUnmounted(() => {
     window.removeEventListener('keydown', onKey);
 });
+
+watch(
+    () => store.visible,
+    (v) => {
+        if (v) {
+            // focus the modal for accessibility
+            setTimeout(() => { cardRef.value?.focus(); }, 0);
+        }
+    }
+);
 </script>
 
 <style scoped>

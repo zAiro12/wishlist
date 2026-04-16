@@ -37,7 +37,9 @@
     </div>
 
     <!-- List -->
-    <div v-if="loading" style="text-align:center;padding:3rem;"><div class="spinner" /></div>
+    <div v-if="loading" style="text-align:center;padding:3rem;">
+      <div class="spinner" />
+    </div>
     <p v-else-if="error" class="error-message">{{ error }}</p>
     <div v-else-if="items.length === 0" class="card" style="text-align:center;color:var(--color-text-muted);">
       <p>Your wishlist is empty. Add your first item!</p>
@@ -52,12 +54,15 @@
               [{{ PRIORITY_LABELS[item.priority] }}]
             </span>
           </div>
-          <p v-if="item.description" style="color:var(--color-text-muted);font-size:0.875rem;">{{ item.description }}</p>
-          <a v-if="item.url" :href="item.url" target="_blank" rel="noopener noreferrer" style="font-size:0.875rem;">View Link</a>
+          <p v-if="item.description" style="color:var(--color-text-muted);font-size:0.875rem;">{{ item.description }}
+          </p>
+          <a v-if="item.url" :href="item.url" target="_blank" rel="noopener noreferrer" style="font-size:0.875rem;">View
+            Link</a>
         </div>
         <div style="display:flex;gap:0.5rem;margin-left:1rem;">
           <button class="btn-secondary" style="font-size:0.8rem;" @click="openEdit(item)">Edit</button>
-          <button class="btn-danger" style="font-size:0.8rem;padding:0.3rem 0.75rem;" @click="handleDelete(item)">Delete</button>
+          <button class="btn-danger" style="font-size:0.8rem;padding:0.3rem 0.75rem;"
+            @click="handleDelete(item)">Delete</button>
         </div>
       </div>
     </div>
@@ -130,18 +135,31 @@ async function handleSubmit() {
   }
 }
 
+import openConfirm from '../composables/useConfirm';
+
 async function handleDelete(item: WishlistItem) {
-  if (!confirm(`Delete "${item.title}"?`)) return;
+  const ok = await openConfirm({ message: `Delete "${item.title}"?`, confirmLabel: 'Delete', cancelLabel: 'Annulla' });
+  if (!ok) return;
   try {
     await wishlistApi.delete(item.id);
     items.value = items.value.filter((i) => i.id !== item.id);
   } catch (err) {
-    alert(err instanceof ApiError ? err.message : 'Failed to delete item');
+    error.value = err instanceof ApiError ? err.message : 'Failed to delete item';
   }
 }
 </script>
 
 <style scoped>
-.page-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; }
-.item-row { display: flex; justify-content: space-between; align-items: flex-start; }
+.page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+}
+
+.item-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+}
 </style>

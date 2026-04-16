@@ -28,7 +28,7 @@
       <div v-if="nextCelebrated.users.length > 0" class="card birthday-banner">
         <p style="font-weight:600;">
           <span v-if="nextCelebrated.daysUntil === 0">🎂 Oggi è il compleanno di {{ nextCelebrated.users[0].givenName
-            }}! 🎉</span>
+          }}! 🎉</span>
           <span v-else>🎂 Prossimo compleanno: {{ nextCelebrated.users[0].givenName }} {{
             nextCelebrated.users[0].familyName }} tra {{ nextCelebrated.daysUntil }} giorn{{ nextCelebrated.daysUntil
               !== 1 ? 'i' : 'o' }}</span>
@@ -144,7 +144,7 @@ onMounted(async () => {
   try {
     const nc = await groupsApi.nextCelebrated(groupId);
     nextCelebrated.value = { users: nc.nextCelebrated, daysUntil: nc.daysUntil };
-  } catch (err) {
+  } catch {
     // silent fail: leave nextCelebrated empty
     nextCelebrated.value = { users: [], daysUntil: null };
   } finally {
@@ -153,8 +153,9 @@ onMounted(async () => {
 });
 
 async function handleLeave() {
-  if (!confirm('Are you sure you want to leave this group?')) return;
   try {
+    const ok = await (await import('../composables/useConfirm')).openConfirm({ message: 'Are you sure you want to leave this group?', confirmLabel: 'Leave', cancelLabel: 'Annulla' });
+    if (!ok) return;
     await groupsApi.members.leave(groupId);
     await router.replace('/groups');
   } catch (err) {
@@ -163,8 +164,9 @@ async function handleLeave() {
 }
 
 async function handleRemove(member: GroupMember) {
-  if (!confirm('Remove this member from group?')) return;
   try {
+    const ok = await (await import('../composables/useConfirm')).openConfirm({ message: 'Remove this member from group?', confirmLabel: 'Remove', cancelLabel: 'Annulla' });
+    if (!ok) return;
     await groupsApi.members.remove(groupId, member.userId);
     if (group.value?.members) {
       group.value.members = group.value.members.filter((m) => m.userId !== member.userId);
@@ -189,8 +191,9 @@ async function handleTransfer() {
 }
 
 async function handleDeleteGroup() {
-  if (!confirm('Delete this group? This action cannot be undone.')) return;
   try {
+    const ok = await (await import('../composables/useConfirm')).openConfirm({ message: 'Delete this group? This action cannot be undone.', confirmLabel: 'Delete', cancelLabel: 'Annulla' });
+    if (!ok) return;
     await groupsApi.delete(groupId);
     await router.replace('/groups');
   } catch (err) {
