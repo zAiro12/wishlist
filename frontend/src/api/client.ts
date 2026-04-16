@@ -10,67 +10,10 @@ export class ApiError extends Error {
   }
 }
 
-function getToken(): string | null {
-  return sessionStorage.getItem('token');
-}
-
-function isTokenExpiredOrExpiringSoon(token: string): boolean {
-  try {
-    const parts = token.split('.');
-    if (parts.length < 2) return true;
-    const payload = JSON.parse(atob(parts[1]));
-    const expiresIn = (payload.exp as number) - Math.floor(Date.now() / 1000);
-    return expiresIn < 5 * 60; // less than 5 minutes
-  } catch {
-    return true;
-  }
-}
-
-async function refreshToken(): Promise<string | null> {
-  const current = getToken();
-  try {
-    const res = await fetch(`${API_BASE}/api/auth/refresh`, {
-      method: 'GET',
-      credentials: 'include',
-      headers: {
-        Authorization: `Bearer ${current ?? ''}`,
-      },
-    });
-    if (!res.ok) return null;
-    const data = await res.json();
-    if (data.token) {
-      sessionStorage.setItem('token', data.token);
-      return data.token;
-    }
-    return null;
-  } catch {
-    return null;
-  }
-}
-
 async function request<T>(
   path: string,
   options: RequestInit = {}
 ): Promise<T> {
-  let token = getToken();
-  // Debug log: show if we found a token in localStorage
-  try {
-    console.log('[CLIENT] token trovato:', token ? `sì, ${token.substring(0,20)}...` : 'NO');
-  } catch (_e) {
-    // ignore logging errors (e.g. circular structures or locked storage)
-  }
-  // Refresh if expiring soon
-  if (token && isTokenExpiredOrExpiringSoon(token)) {
-    const newToken = await refreshToken();
-    if (newToken) {
-      token = newToken;
-    } else {
-      // Refresh failed: clear and redirect to login
-      sessionStorage.removeItem('token');
-      window.location.href = '/login';
-      throw new ApiError(401, { error: 'Unauthorized' });
-    }
-  }
   const hasBody = options.body !== undefined && options.body !== null;
 
   const headers: Record<string, string> = {
@@ -82,18 +25,12 @@ async function request<T>(
     headers['Content-Type'] = 'application/json';
   }
 
-    if (token) {
-      headers['Authorization'] = `Bearer ${token}`;
-    }
-
-  // If no token in local storage, assume server-set HttpOnly cookie session
-  // and send credentials so the cookie is included in the request.
   const fetchOptions: RequestInit = {
     ...options,
     headers,
+    // Always include credentials so server-set HttpOnly cookies are sent
+    credentials: 'include',
   };
-  // Always include credentials so server-set HttpOnly cookies are sent
-  fetchOptions.credentials = 'include';
 
   const res = await fetch(`${API_BASE}${path}`, fetchOptions);
 

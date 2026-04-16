@@ -6,7 +6,7 @@ import { ApiError } from '../api/client';
 
 export const useAuthStore = defineStore('auth', () => {
   const user = ref<User | null>(null);
-  const token = ref<string | null>(sessionStorage.getItem('token'));
+  
   const loading = ref(false);
   const initialized = ref(false);
 
@@ -19,24 +19,18 @@ export const useAuthStore = defineStore('auth', () => {
   async function fetchUser(force = false): Promise<void> {
     if (initialized.value && !force) return;
     try {
-      // Make the request with explicit Authorization header to ensure the
-      // token is sent even when some callers bypass the shared client.
       const apiBase = import.meta.env.VITE_API_URL ?? 'http://localhost:3000';
-      const tokenLocal = sessionStorage.getItem('token');
       const res = await fetch(`${apiBase}/api/users/me`, {
         method: 'GET',
         credentials: 'include',
         headers: {
           'Content-Type': 'application/json',
-          ...(tokenLocal ? { Authorization: `Bearer ${tokenLocal}` } : {}),
         },
       });
 
       if (!res.ok) {
         if (res.status === 401 || res.status === 403) {
           user.value = null;
-          token.value = null;
-          sessionStorage.removeItem('token');
           // Mark as initialized even on auth failures so callers know we've
           // attempted an authenticated request. Other non-auth errors should
           // not flip this flag so retries remain possible.
@@ -58,8 +52,6 @@ export const useAuthStore = defineStore('auth', () => {
     } catch (err) {
       if (err instanceof ApiError && (err.status === 401 || err.status === 403)) {
         user.value = null;
-        token.value = null;
-        sessionStorage.removeItem('token');
         initialized.value = true;
       } else {
         throw err;
@@ -67,12 +59,6 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
-  async function initFromStorage(): Promise<void> {
-    const stored = sessionStorage.getItem('token');
-    if (stored) {
-      token.value = stored;
-    }
-  }
 
   function login(provider: 'google' | 'github' | 'microsoft'): void {
     window.location.href = authApi.loginUrl(provider);
@@ -87,38 +73,26 @@ export const useAuthStore = defineStore('auth', () => {
     clearSession();
   }
 
-  async function setTokenAndFetch(newToken: string): Promise<void> {
-    sessionStorage.setItem('token', newToken);
-    token.value = newToken;
-    loading.value = true;
-    try {
-      await fetchUser(true);
-    } finally {
-      loading.value = false;
-    }
-  }
+  // client-side token storage removed; cookie-based sessions are used.
 
   async function refreshUser(): Promise<void> {
     await fetchUser();
   }
 
   function clearSession(): void {
-    sessionStorage.removeItem('token');
-    token.value = null;
     user.value = null;
   }
 
   return {
     user,
-    token,
+    
     loading,
     isAuthenticated,
     isAdmin,
     needsBirthdate,
-    initFromStorage,
     login,
     logout,
-    setTokenAndFetch,
+    
     refreshUser,
     fetchUser,
     initialized,

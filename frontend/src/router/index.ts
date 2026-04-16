@@ -36,11 +36,9 @@ router.beforeEach(async (to) => {
 
   const auth = useAuthStore();
 
-  // Ensure we attempt to restore the session exactly once.
+  // Ensure we attempt to fetch the session exactly once.
   if (!auth.initialized) {
-    // Make sure the store knows about any token saved in storage
-    await auth.initFromStorage();
-    // Then fetch the current user (silent on failure). fetchUser sets initialized.
+    // Fetch the current user (silent on failure). fetchUser sets initialized.
     await auth.fetchUser().catch(() => {});
   }
 
