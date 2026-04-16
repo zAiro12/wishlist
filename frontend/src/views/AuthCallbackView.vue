@@ -37,6 +37,7 @@ const ERROR_MESSAGES: Record<string, string> = {
 onMounted(async () => {
   // Read non-sensitive params from the query string
   const needsBirthdate = route.query.needsBirthdate === 'true';
+  const tokenFromQuery = (route.query.token as string | undefined) ?? undefined;
   const err = route.query['error'] as string | undefined;
 
   if (err) {
@@ -45,7 +46,26 @@ onMounted(async () => {
   }
 
   try {
-    // Rely on server-set HttpOnly cookie; fetch current user to populate store
+    // If the provider returned a token in the query string, persist it now
+    // (prefer localStorage, fallback to sessionStorage), then update the store
+    // token so `fetchUser()` can use it via Authorization header.
+    function persistToken(t: string) {
+      try { localStorage.setItem('token', t); } catch {
+        try { sessionStorage.setItem('token', t); } catch {}
+      }
+    }
+
+    if (tokenFromQuery) {
+      try {
+        persistToken(tokenFromQuery);
+        // update store token synchronously if store exposes it
+        if ((auth as any).token !== undefined) (auth as any).token = tokenFromQuery;
+      } catch (_e) {
+        // ignore
+      }
+    }
+
+    // Fetch current user to populate store (will use Authorization header if token present)
     await auth.fetchUser();
   } catch (_e) {
     // ignore fetch errors here; we'll redirect based on what we know

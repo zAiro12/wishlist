@@ -6,7 +6,8 @@ import { ApiError } from '../api/client';
 
 export const useAuthStore = defineStore('auth', () => {
   const user = ref<User | null>(null);
-  
+  // token stored client-side (localStorage preferred, sessionStorage fallback)
+  const token = ref<string | null>(null);
   const loading = ref(false);
   const initialized = ref(false);
 
@@ -20,11 +21,18 @@ export const useAuthStore = defineStore('auth', () => {
     if (initialized.value && !force) return;
     try {
       const apiBase = import.meta.env.VITE_API_URL ?? 'http://localhost:3000';
+      // Read token from storage and include Authorization header if present
+      function readToken(): string | null {
+        try { return localStorage.getItem('token') ?? sessionStorage.getItem('token'); }
+        catch { return null; }
+      }
+      const tokenLocal = readToken();
       const res = await fetch(`${apiBase}/api/users/me`, {
         method: 'GET',
         credentials: 'include',
         headers: {
           'Content-Type': 'application/json',
+          ...(tokenLocal ? { Authorization: `Bearer ${tokenLocal}` } : {}),
         },
       });
 
@@ -79,19 +87,30 @@ export const useAuthStore = defineStore('auth', () => {
     await fetchUser();
   }
 
+  async function initFromStorage(): Promise<void> {
+    function readToken(): string | null {
+      try { return localStorage.getItem('token') ?? sessionStorage.getItem('token'); }
+      catch { return null; }
+    }
+    const stored = readToken();
+    if (stored) token.value = stored;
+  }
+
   function clearSession(): void {
+    token.value = null;
     user.value = null;
   }
 
   return {
     user,
-    
+    token,
     loading,
     isAuthenticated,
     isAdmin,
     needsBirthdate,
     login,
     logout,
+    initFromStorage,
     
     refreshUser,
     fetchUser,

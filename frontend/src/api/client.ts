@@ -25,6 +25,13 @@ async function request<T>(
     headers['Content-Type'] = 'application/json';
   }
 
+  function readToken(): string | null {
+    try { return localStorage.getItem('token') ?? sessionStorage.getItem('token'); }
+    catch { return null; }
+  }
+  const token = readToken();
+  if (token) headers['Authorization'] = `Bearer ${token}`;
+
   const fetchOptions: RequestInit = {
     ...options,
     headers,
