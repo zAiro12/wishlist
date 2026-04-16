@@ -17,7 +17,6 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
-import type { LocationQueryRaw } from 'vue-router';
 import { useAuthStore } from '../stores/auth';
 
 const router = useRouter();

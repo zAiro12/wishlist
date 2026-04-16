@@ -9,16 +9,15 @@ const app = createApp(App);
 app.use(createPinia());
 app.use(router);
 
-// Initialise auth from storage so session is restored on page load
+// Initialise auth so session is restored on page load
 const authInit = async () => {
-	const auth = useAuthStore();
-	try {
-		// Load token from storage (does not fetch) and then attempt to fetch user silently.
-		await auth.initFromStorage();
-		await auth.fetchUser().catch(() => {});
-	} catch {
-		// ignore
-	}
+  const auth = useAuthStore();
+  try {
+    // Attempt to fetch user silently. fetchUser sets initialized.
+    await auth.fetchUser().catch(() => {});
+  } catch {
+    // ignore
+  }
 };
 
 // If a redirect path was saved by the GitHub Pages 404 fallback, navigate to it
