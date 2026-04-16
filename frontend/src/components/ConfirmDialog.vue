@@ -1,5 +1,5 @@
 <template>
-    <div v-if="state.visible && state.options?.value" class="modal-overlay" @click.self="onCancel">
+    <div v-if="state.request" class="modal-overlay" @click.self="onCancel">
         <div class="modal-card" role="dialog" aria-modal="true" :aria-labelledby="titleId" tabindex="-1" ref="cardRef">
             <h3 :id="titleId">{{ title }}</h3>
             <p style="color:var(--color-text-muted); margin-top:0.5rem;">{{ message }}</p>
@@ -26,16 +26,15 @@ const confirmLabel = ref<string>('Confirm');
 const cancelLabel = ref<string>('Cancel');
 
 watch(
-    () => state.options.value,
-    (opts) => {
-        if (opts) {
-            title.value = opts.title ?? 'Confirm';
-            message.value = opts.message;
-            confirmLabel.value = opts.confirmLabel ?? 'Confirm';
-            cancelLabel.value = opts.cancelLabel ?? 'Cancel';
+    () => state.request.value,
+    (req) => {
+        if (req) {
+            title.value = req.title ?? 'Confirm';
+            message.value = req.message;
+            confirmLabel.value = req.confirmLabel ?? 'Confirm';
+            cancelLabel.value = req.cancelLabel ?? 'Cancel';
         }
-    },
-    { immediate: true }
+    }
 );
 
 function onConfirm(): void {
@@ -58,9 +57,9 @@ onUnmounted(() => {
 });
 
 watch(
-    () => state.visible.value,
-    (v) => {
-        if (v) setTimeout(() => { cardRef.value?.focus(); }, 0);
+    () => state.request.value,
+    (r) => {
+        if (r) setTimeout(() => { cardRef.value?.focus(); }, 0);
     }
 );
 </script>

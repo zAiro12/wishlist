@@ -7,17 +7,16 @@ export type ConfirmOptions = {
   cancelLabel?: string;
 };
 
-const visible = ref(false);
-const options = ref<ConfirmOptions | null>(null);
+// Single nullable request object as source of truth
+const request = ref<ConfirmOptions | null>(null);
 let resolver: ((v: boolean) => void) | null = null;
 
 export function openConfirm(opts: ConfirmOptions): Promise<boolean> {
-  options.value = opts;
-  visible.value = true;
+  request.value = { ...opts };
   return new Promise<boolean>((res) => {
     resolver = (v: boolean) => {
-      visible.value = false;
-      options.value = null;
+      // reset state
+      request.value = null;
       res(v);
       resolver = null;
     };
@@ -29,7 +28,7 @@ export function confirmResolve(value: boolean): void {
 }
 
 export function useConfirmState() {
-  return { visible, options };
+  return { request };
 }
 
 export default openConfirm;
