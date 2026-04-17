@@ -40,6 +40,14 @@ const router = useRouter();
 const route = useRoute();
 const auth = useAuthStore();
 
+function sanitizeRedirectTarget(r?: string | undefined): string {
+  if (!r) return '/';
+  const v = r.trim();
+  if (v === '/setup-birthdate' || v.startsWith('/setup-birthdate') || v.includes('/setup-birthdate')) return '/';
+  if (v.includes('redirect=/setup-birthdate')) return '/';
+  return v;
+}
+
 const initialIso = auth.user?.birthdate ?? '';
 const day = ref(initialIso ? initialIso.split('-')[2] : '');
 const month = ref(initialIso ? initialIso.split('-')[1] : '');
@@ -107,7 +115,7 @@ async function handleSubmit() {
     if (Array.isArray(rawRedirect)) redirect = rawRedirect[0];
     else if (typeof rawRedirect === 'string') redirect = rawRedirect?.trim() || undefined;
 
-    const target = redirect && redirect.length > 0 && redirect !== '/setup-birthdate' ? redirect : '/';
+    const target = sanitizeRedirectTarget(redirect);
     console.info('Computed navigation target after save', { rawRedirect, redirect, target });
 
     try {

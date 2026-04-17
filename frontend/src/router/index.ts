@@ -31,6 +31,17 @@ export const router = createRouter({
   routes,
 });
 
+// Small helper to sanitize redirect targets and avoid recursive nesting
+function sanitizeRedirectCandidate(candidate?: string): string {
+  if (!candidate) return '/';
+  const c = candidate.trim();
+  // If the candidate is or contains the setup page, prefer root to avoid loops
+  if (c === '/setup-birthdate' || c.startsWith('/setup-birthdate') || c.includes('/setup-birthdate')) return '/';
+  // Prevent nested redirect query patterns like `?redirect=/setup-birthdate?redirect=...`
+  if (c.includes('redirect=/setup-birthdate')) return '/';
+  return c;
+}
+
 router.beforeEach(async (to) => {
   // Diagnostic log for route guard decisions
   try {
@@ -60,7 +71,12 @@ router.beforeEach(async (to) => {
 
     // If authenticated but needs birthdate, redirect to setup and preserve redirect
     if (auth.isAuthenticated && auth.needsBirthdate) {
-      const safeRedirect = to.fullPath === '/setup-birthdate' ? '/' : to.fullPath;
+      // If we're already on the setup page, don't add another redirect param.
+      if (to.path === '/setup-birthdate') {
+        console.info('Guard: already on setup page; avoid adding nested redirect', { to: to.fullPath });
+        return { name: 'SetupBirthdate' };
+      }
+      const safeRedirect = sanitizeRedirectCandidate(to.fullPath);
       console.info('Guard: authenticated but needs birthdate -> redirect SetupBirthdate', {
         redirect: safeRedirect,
         initialized: auth.initialized,
