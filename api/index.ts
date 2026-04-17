@@ -24,6 +24,7 @@ import loginHandler from '../backend/handlers/auth/login'
 import logoutHandler from '../backend/handlers/auth/logout'
 import callbackHandler from '../backend/handlers/auth/callback'
 import meHandler from '../backend/handlers/users/me'
+import birthdateHandler from '../backend/handlers/users/me/birthdate'
 import groupsHandler from '../backend/handlers/groups/index'
 import groupHandler from '../backend/handlers/groups/[groupId]'
 import membersHandler from '../backend/handlers/groups/[groupId]/members'
@@ -75,6 +76,7 @@ const routes: { pattern: string; handler: Handler }[] = [
 	{ pattern: '/auth/callback',                     handler: callbackHandler },
 
 	{ pattern: '/users/me',                          handler: meHandler },
+	{ pattern: '/users/me/birthdate',               handler: birthdateHandler },
 
 	{ pattern: '/groups',                            handler: groupsHandler },
 	{ pattern: '/groups/:groupId',                   handler: groupHandler },
