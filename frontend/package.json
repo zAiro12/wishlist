@@ -5,8 +5,8 @@
   "type": "module",
   "scripts": {
     "start": "vite",
-    "build": "vue-tsc --noEmit && vite build",
-    "typecheck": "vue-tsc --noEmit",
+    "build": "if [ \"$CI\" = \"true\" ]; then vue-tsc --noEmit -p tsconfig.ci.json; else vue-tsc --noEmit -p tsconfig.json; fi && vite build",
+    "typecheck": "vue-tsc --noEmit -p tsconfig.json",
     "preview": "vite preview",
     "lint": "eslint src --ext ts,vue --report-unused-disable-directives --max-warnings 0"
   },
