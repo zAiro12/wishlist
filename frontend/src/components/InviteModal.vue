@@ -13,7 +13,7 @@
                 <button class="btn-primary" :disabled="store.loading" @click="onConfirm">{{ store.loading ? 'Joining…' :
                     'Entra nel gruppo' }}</button>
             </div>
-    </div>
+        </dialog>
     </div>
 </template>
 
@@ -36,7 +36,7 @@ function removeJoinQueryAndReplace(): void {
         if (Array.isArray(v)) raw[k] = v as string[];
         else raw[k] = String(v);
     }
-    router.replace({ path: route.path, query: raw }).catch(() => { });
+    router.replace({ path: route.path, query: raw }).catch((e) => { void e; });
 }
 
 function onCancel(): void {
@@ -68,14 +68,14 @@ watch(
         if (v) {
             // focus the modal for accessibility and try native dialog open
             setTimeout(() => {
-                if (cardRef.value && typeof (cardRef.value as any).showModal === 'function') {
-                    try { (cardRef.value as HTMLDialogElement).showModal(); } catch { }
+                if (cardRef.value && 'showModal' in cardRef.value && typeof cardRef.value.showModal === 'function') {
+                    try { cardRef.value.showModal(); } catch (e) { void e; }
                 }
                 cardRef.value?.focus();
             }, 0);
         } else {
-            if (cardRef.value && typeof (cardRef.value as any).close === 'function') {
-                try { (cardRef.value as HTMLDialogElement).close(); } catch { }
+            if (cardRef.value && 'close' in cardRef.value && typeof cardRef.value.close === 'function') {
+                try { cardRef.value.close(); } catch (e) { void e; }
             }
         }
     }

@@ -45,14 +45,14 @@ watch(
     (r) => {
         if (r) {
             setTimeout(() => {
-                if (cardRef.value && typeof (cardRef.value as any).showModal === 'function') {
-                    try { (cardRef.value as HTMLDialogElement).showModal(); } catch { }
+                if (cardRef.value && 'showModal' in cardRef.value && typeof cardRef.value.showModal === 'function') {
+                    try { cardRef.value.showModal(); } catch (e) { void e; }
                 }
                 cardRef.value?.focus();
             }, 0);
         } else {
-            if (cardRef.value && typeof (cardRef.value as any).close === 'function') {
-                try { (cardRef.value as HTMLDialogElement).close(); } catch { }
+            if (cardRef.value && 'close' in cardRef.value && typeof cardRef.value.close === 'function') {
+                try { cardRef.value.close(); } catch (e) { void e; }
             }
         }
     }
