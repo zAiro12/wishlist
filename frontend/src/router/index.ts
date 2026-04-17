@@ -60,15 +60,16 @@ router.beforeEach(async (to) => {
 
     // If authenticated but needs birthdate, redirect to setup and preserve redirect
     if (auth.isAuthenticated && auth.needsBirthdate) {
+      const safeRedirect = to.fullPath === '/setup-birthdate' ? '/' : to.fullPath;
       console.info('Guard: authenticated but needs birthdate -> redirect SetupBirthdate', {
-        redirect: to.fullPath,
+        redirect: safeRedirect,
         initialized: auth.initialized,
         needsBirthdate: auth.needsBirthdate,
         birthdate: auth.user?.birthdate,
         birthdateConfirmed: auth.user?.birthdateConfirmed,
         user: auth.user,
       });
-      return { name: 'SetupBirthdate', query: { redirect: to.fullPath } };
+      return { name: 'SetupBirthdate', query: { redirect: safeRedirect } };
     }
 
     // Authenticated and ready: load preview and either redirect to group or show modal
@@ -100,6 +101,14 @@ router.beforeEach(async (to) => {
     console.info('Guard: not authenticated for protected route, redirect to Login', { to: to.fullPath });
     return { name: 'Login', query: { redirect: to.fullPath } };
   }
+  // If the user is authenticated and no longer needs a birthdate, don't allow
+  // them to be redirected back to the setup page. If they somehow land on
+  // `/setup-birthdate` after completing it, forward them home immediately.
+  if (auth.isAuthenticated && !auth.needsBirthdate && to.path === '/setup-birthdate') {
+    console.info('Guard: user completed birthdate but is on setup route — redirecting Home', { user: auth.user });
+    return { name: 'Home' };
+  }
+
   if (auth.isAuthenticated && to.path !== '/setup-birthdate' && auth.needsBirthdate) {
     console.info('Guard: authenticated but still needs birthdate -> redirect SetupBirthdate', {
       initialized: auth.initialized,

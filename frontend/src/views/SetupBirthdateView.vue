@@ -107,7 +107,8 @@ async function handleSubmit() {
     if (Array.isArray(rawRedirect)) redirect = rawRedirect[0];
     else if (typeof rawRedirect === 'string') redirect = rawRedirect?.trim() || undefined;
 
-    const target = redirect && redirect.length > 0 ? redirect : '/';
+    const target = redirect && redirect.length > 0 && redirect !== '/setup-birthdate' ? redirect : '/';
+    console.info('Computed navigation target after save', { rawRedirect, redirect, target });
 
     try {
       // Use replace so the setup page is not kept in history
