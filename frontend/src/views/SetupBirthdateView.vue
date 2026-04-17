@@ -80,10 +80,13 @@ async function handleSubmit() {
   // refresh the user profile but handle errors separately so the user still
   // sees that their birthdate was saved.
   try {
-    await auth.refreshUser();
+    // Force refetch the current user so auth.needsBirthdate is updated immediately.
+    await auth.fetchUser(true);
+    // Log the updated user state for debugging
+    console.info('User after refresh', auth.user);
   } catch (err) {
-    console.error('refreshUser failed after birthdate update', err);
-    // Surface a distinct error but do not overwrite the successful save state.
+    console.error('fetchUser(true) failed after birthdate update', err);
+    // Do not mark save as failed; inform user to reload if necessary
     error.value = 'Profile updated but failed to refresh. Please reload the page.';
   }
 
