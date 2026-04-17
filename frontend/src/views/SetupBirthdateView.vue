@@ -87,25 +87,25 @@ async function handleSubmit() {
     error.value = 'Profile updated but failed to refresh. Please reload the page.';
   }
 
-    try {
-      const rawRedirect = route?.query?.redirect;
-      let redirect: string | undefined;
-      if (Array.isArray(rawRedirect)) redirect = rawRedirect[0];
-      else if (typeof rawRedirect === 'string') redirect = rawRedirect;
+  try {
+    const rawRedirect = route.query.redirect as string | string[] | null | undefined;
+    let redirect: string | undefined;
+    if (Array.isArray(rawRedirect)) redirect = rawRedirect[0];
+    else if (typeof rawRedirect === 'string') redirect = rawRedirect;
 
-      if (redirect) {
-        await router.replace(redirect);
-      } else {
-        await router.replace('/');
-      }
-    } catch (err) {
-      // Navigation failures are not fatal for the update — log them and show a
-      // non-generic message but do not mark the save as failed.
-      console.error('Navigation after birthdate update failed', err);
-      error.value = 'Saved but navigation failed. Please use the app menu to continue.';
-    } finally {
-      saving.value = false;
+    if (redirect) {
+      await router.replace(redirect);
+    } else {
+      await router.replace('/');
     }
+  } catch (err) {
+    // Navigation failures are not fatal for the update — log them and show a
+    // non-generic message but do not mark the save as failed.
+    console.error('Navigation after birthdate update failed', err);
+    error.value = 'Saved but navigation failed. Please use the app menu to continue.';
+  } finally {
+    saving.value = false;
+  }
 }
 </script>
 
