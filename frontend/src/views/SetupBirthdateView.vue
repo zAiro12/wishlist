@@ -91,18 +91,24 @@ async function handleSubmit() {
     const rawRedirect = route.query.redirect as string | string[] | null | undefined;
     let redirect: string | undefined;
     if (Array.isArray(rawRedirect)) redirect = rawRedirect[0];
-    else if (typeof rawRedirect === 'string') redirect = rawRedirect;
+    else if (typeof rawRedirect === 'string') redirect = rawRedirect?.trim() || undefined;
 
-    if (redirect) {
-      await router.replace(redirect);
-    } else {
-      await router.replace('/');
+    const target = redirect && redirect.length > 0 ? redirect : '/';
+
+    try {
+      // Use replace so the setup page is not kept in history
+      await router.replace(target);
+    } catch (navErr) {
+      // Log navigation errors separately; attempt a safe fallback to '/'.
+      console.error('Navigation after birthdate update failed, target:', target, navErr);
+      if (target !== '/') {
+        try {
+          await router.replace('/');
+        } catch (fallbackErr) {
+          console.error('Fallback navigation to / failed', fallbackErr);
+        }
+      }
     }
-  } catch (err) {
-    // Navigation failures are not fatal for the update — log them and show a
-    // non-generic message but do not mark the save as failed.
-    console.error('Navigation after birthdate update failed', err);
-    error.value = 'Saved but navigation failed. Please use the app menu to continue.';
   } finally {
     saving.value = false;
   }
