@@ -60,7 +60,14 @@ router.beforeEach(async (to) => {
 
     // If authenticated but needs birthdate, redirect to setup and preserve redirect
     if (auth.isAuthenticated && auth.needsBirthdate) {
-      console.info('Guard: authenticated but needs birthdate -> redirect SetupBirthdate', { redirect: to.fullPath, user: auth.user });
+      console.info('Guard: authenticated but needs birthdate -> redirect SetupBirthdate', {
+        redirect: to.fullPath,
+        initialized: auth.initialized,
+        needsBirthdate: auth.needsBirthdate,
+        birthdate: auth.user?.birthdate,
+        birthdateConfirmed: auth.user?.birthdateConfirmed,
+        user: auth.user,
+      });
       return { name: 'SetupBirthdate', query: { redirect: to.fullPath } };
     }
 
@@ -94,7 +101,13 @@ router.beforeEach(async (to) => {
     return { name: 'Login', query: { redirect: to.fullPath } };
   }
   if (auth.isAuthenticated && to.path !== '/setup-birthdate' && auth.needsBirthdate) {
-    console.info('Guard: authenticated but still needs birthdate -> redirect SetupBirthdate', { user: auth.user });
+    console.info('Guard: authenticated but still needs birthdate -> redirect SetupBirthdate', {
+      initialized: auth.initialized,
+      needsBirthdate: auth.needsBirthdate,
+      birthdate: auth.user?.birthdate,
+      birthdateConfirmed: auth.user?.birthdateConfirmed,
+      user: auth.user,
+    });
     return { name: 'SetupBirthdate' };
   }
 
