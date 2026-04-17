@@ -74,6 +74,11 @@ export const users = {
       method: 'PATCH',
       body: JSON.stringify(data),
     }),
+  updateBirthdate: (birthdate: string) =>
+    request<{ birthdate: string }>('/api/users/me/birthdate', {
+      method: 'PATCH',
+      body: JSON.stringify({ birthdate }),
+    }),
 };
 
 // ─── Groups ───────────────────────────────────────────────────────────────────

@@ -61,7 +61,9 @@ async function handleSubmit() {
   saving.value = true;
   error.value = null;
   try {
-    await usersApi.updateProfile({ birthdate: composedIso.value });
+    if (import.meta.env.DEV) console.log('[birthdate] submitting', composedIso.value);
+    await usersApi.updateBirthdate(composedIso.value);
+    if (import.meta.env.DEV) console.log('[birthdate] updateBirthdate response OK');
     await auth.refreshUser();
     const route = useRoute();
     const redirect = (route.query.redirect as string | undefined) ?? undefined;
@@ -71,7 +73,13 @@ async function handleSubmit() {
       await router.replace('/');
     }
   } catch (err) {
-    error.value = err instanceof ApiError ? err.message : 'An unexpected error occurred.';
+    if (import.meta.env.DEV) console.error('[birthdate] error', err);
+    if (err instanceof ApiError) {
+      // surface real API error message when possible
+      error.value = err.data?.error ?? err.message;
+    } else {
+      error.value = 'An unexpected error occurred.';
+    }
   } finally {
     saving.value = false;
   }
