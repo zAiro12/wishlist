@@ -100,10 +100,29 @@ async function handleSubmit() {
 
     try {
       // Use replace so the setup page is not kept in history
-      await router.replace(target);
+      const failure = await router.replace(target);
+      // Log navigation diagnostics
+      console.info('Navigation diagnostics:', {
+        target,
+        failure,
+        currentFullPath: router.currentRoute.value.fullPath,
+        currentName: router.currentRoute.value.name,
+        redirectedFrom: (router.currentRoute.value as Record<string, unknown>).redirectedFrom,
+      });
+
+      // If navigation failed, attempt fallback to '/'
+      if (failure) {
+        console.warn('Navigation returned failure, attempting fallback to /', failure);
+        try {
+          const fallbackFailure = await router.replace('/');
+          console.info('Fallback navigation result', { fallbackFailure, currentFullPath: router.currentRoute.value.fullPath });
+        } catch (fallbackErr) {
+          console.error('Fallback navigation to / failed', fallbackErr);
+        }
+      }
     } catch (navErr) {
-      // Log navigation errors separately; attempt a safe fallback to '/'.
-      console.error('Navigation after birthdate update failed, target:', target, navErr);
+      // Catch unexpected promise rejections
+      console.error('Navigation threw after birthdate update, target:', target, navErr);
       if (target !== '/') {
         try {
           await router.replace('/');

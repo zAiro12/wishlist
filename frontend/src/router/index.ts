@@ -32,6 +32,11 @@ export const router = createRouter({
 });
 
 router.beforeEach(async (to) => {
+  // Diagnostic log for route guard decisions
+  try {
+    console.info('router.beforeEach:', { to: to.fullPath, name: to.name });
+  } catch (e) { void e; }
+
   // Let the callback page handle its own token extraction
   if (to.name === 'AuthCallback') return true;
 
@@ -49,11 +54,13 @@ router.beforeEach(async (to) => {
   if (joinParam) {
     // If not authenticated, redirect to login and preserve the full path (includes ?join=)
     if (!auth.isAuthenticated) {
+      console.info('Guard: unauthenticated and join param, redirect to Login', { joinParam, redirect: to.fullPath });
       return { name: 'Login', query: { redirect: to.fullPath } };
     }
 
     // If authenticated but needs birthdate, redirect to setup and preserve redirect
     if (auth.isAuthenticated && auth.needsBirthdate) {
+      console.info('Guard: authenticated but needs birthdate -> redirect SetupBirthdate', { redirect: to.fullPath, user: auth.user });
       return { name: 'SetupBirthdate', query: { redirect: to.fullPath } };
     }
 
@@ -83,10 +90,11 @@ router.beforeEach(async (to) => {
   if (!auth.isAuthenticated) {
     // Preserve the intended destination as a `redirect` query param so the
     // login flow can forward the user back after authenticating.
+    console.info('Guard: not authenticated for protected route, redirect to Login', { to: to.fullPath });
     return { name: 'Login', query: { redirect: to.fullPath } };
   }
-
   if (auth.isAuthenticated && to.path !== '/setup-birthdate' && auth.needsBirthdate) {
+    console.info('Guard: authenticated but still needs birthdate -> redirect SetupBirthdate', { user: auth.user });
     return { name: 'SetupBirthdate' };
   }
 
