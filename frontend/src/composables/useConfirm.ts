@@ -20,8 +20,8 @@ export function openConfirm(opts: ConfirmOptions): Promise<boolean> {
   request.value = { ...opts };
   if (import.meta.env.DEV && typeof window !== 'undefined') {
     // expose for quick inspection in browser console
-    // eslint-disable-next-line no-undef
-    (window as any).__confirmDebug = { request };
+    const w = window as unknown as { __confirmDebug?: unknown; [k: string]: unknown };
+    w.__confirmDebug = { request };
   }
   return new Promise<boolean>((res) => {
     resolver = (v: boolean) => {
@@ -43,8 +43,8 @@ export function confirmResolve(value: boolean): void {
 export function useConfirmState() {
   if (import.meta.env.DEV && typeof window !== 'undefined') {
     // expose current request ref for debugging
-    // eslint-disable-next-line no-undef
-    (window as any).__confirmDebug = { request };
+    const w = window as unknown as { __confirmDebug?: unknown; [k: string]: unknown };
+    w.__confirmDebug = { request };
   }
   return { request };
 }

@@ -18,8 +18,8 @@ onMounted(() => {
     const state = useConfirmState();
     console.log('[app] mounted - confirm state at startup:', state.request?.value ?? null);
     if (typeof window !== 'undefined') {
-      // eslint-disable-next-line no-undef
-      (window as any).__confirmDebug = state;
+      const w = window as unknown as { __confirmDebug?: unknown; [k: string]: unknown };
+      w.__confirmDebug = state;
     }
   }
 });
