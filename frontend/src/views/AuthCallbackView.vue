@@ -66,17 +66,21 @@ onMounted(async () => {
       try {
         persistToken(tokenFromQuery);
         // update store token synchronously if available
-        const maybeSet = (auth as unknown as { setToken?: (t: string) => void }).setToken;
-        if (maybeSet) {
-          try { maybeSet(tokenFromQuery); } catch { /* ignore setter errors */ }
-        }
+        try { auth.setToken?.(tokenFromQuery); } catch { /* ignore setter errors */ }
       } catch {
         /* ignore storage errors */
       }
     }
 
     // Fetch current user to populate store (will use Authorization header if token present)
-    await auth.fetchUser();
+    try {
+      await auth.fetchUser(true);
+    } catch (fetchErr) {
+      // Ensure the store is marked initialized so the router guard won't
+      // immediately redirect the user back to login while callback is winding up.
+      try { (auth as unknown as { initialized?: boolean }).initialized = true; } catch { /* ignore */ }
+      throw fetchErr;
+    }
   } catch {
     // ignore fetch errors here; we'll redirect based on what we know
   }
