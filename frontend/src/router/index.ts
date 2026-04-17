@@ -1,6 +1,7 @@
 import { createRouter, createWebHistory } from 'vue-router';
 import { useAuthStore } from '../stores/auth';
 import { useInviteStore } from '../stores/invite';
+import sanitizeRedirectTarget from '../utils/sanitizeRedirect';
 
 const routes = [
   // Public
@@ -31,23 +32,9 @@ export const router = createRouter({
   routes,
 });
 
-// Small helper to sanitize redirect targets and avoid recursive nesting
-function sanitizeRedirectCandidate(candidate?: string): string {
-  if (!candidate) return '/';
-  const c = candidate.trim();
-  // If the candidate is or contains the setup page, prefer root to avoid loops
-  if (c === '/setup-birthdate' || c.startsWith('/setup-birthdate') || c.includes('/setup-birthdate')) return '/';
-  // Prevent nested redirect query patterns like `?redirect=/setup-birthdate?redirect=...`
-  if (c.includes('redirect=/setup-birthdate')) return '/';
-  return c;
-}
+// (sanitization handled by shared utility)
 
 router.beforeEach(async (to) => {
-  // Diagnostic log for route guard decisions
-  try {
-    console.info('router.beforeEach:', { to: to.fullPath, name: to.name });
-  } catch (e) { void e; }
-
   // Let the callback page handle its own token extraction
   if (to.name === 'AuthCallback') return true;
 
@@ -56,7 +43,6 @@ router.beforeEach(async (to) => {
 
   // Ensure we attempt to fetch the session exactly once.
   if (!auth.initialized) {
-    // Fetch the current user (silent on failure). fetchUser sets initialized.
     await auth.fetchUser().catch(() => {});
   }
 
@@ -65,26 +51,15 @@ router.beforeEach(async (to) => {
   if (joinParam) {
     // If not authenticated, redirect to login and preserve the full path (includes ?join=)
     if (!auth.isAuthenticated) {
-      console.info('Guard: unauthenticated and join param, redirect to Login', { joinParam, redirect: to.fullPath });
       return { name: 'Login', query: { redirect: to.fullPath } };
     }
 
     // If authenticated but needs birthdate, redirect to setup and preserve redirect
     if (auth.isAuthenticated && auth.needsBirthdate) {
-      // If we're already on the setup page, don't add another redirect param.
       if (to.path === '/setup-birthdate') {
-        console.info('Guard: already on setup page; avoid adding nested redirect', { to: to.fullPath });
         return { name: 'SetupBirthdate' };
       }
-      const safeRedirect = sanitizeRedirectCandidate(to.fullPath);
-      console.info('Guard: authenticated but needs birthdate -> redirect SetupBirthdate', {
-        redirect: safeRedirect,
-        initialized: auth.initialized,
-        needsBirthdate: auth.needsBirthdate,
-        birthdate: auth.user?.birthdate,
-        birthdateConfirmed: auth.user?.birthdateConfirmed,
-        user: auth.user,
-      });
+      const safeRedirect = sanitizeRedirectTarget(to.fullPath);
       return { name: 'SetupBirthdate', query: { redirect: safeRedirect } };
     }
 
@@ -103,7 +78,7 @@ router.beforeEach(async (to) => {
     }
   }
 
-  // Explicitly allow public routes by name (ensure AuthCallback is never intercepted)
+  // Explicitly allow public routes by name
   const publicRoutes = ['Login', 'AuthCallback', 'Home'];
   if (publicRoutes.includes(to.name as string)) return true;
 
@@ -112,27 +87,14 @@ router.beforeEach(async (to) => {
   if (!requiresAuth) return true;
 
   if (!auth.isAuthenticated) {
-    // Preserve the intended destination as a `redirect` query param so the
-    // login flow can forward the user back after authenticating.
-    console.info('Guard: not authenticated for protected route, redirect to Login', { to: to.fullPath });
     return { name: 'Login', query: { redirect: to.fullPath } };
   }
-  // If the user is authenticated and no longer needs a birthdate, don't allow
-  // them to be redirected back to the setup page. If they somehow land on
-  // `/setup-birthdate` after completing it, forward them home immediately.
+
   if (auth.isAuthenticated && !auth.needsBirthdate && to.path === '/setup-birthdate') {
-    console.info('Guard: user completed birthdate but is on setup route — redirecting Home', { user: auth.user });
     return { name: 'Home' };
   }
 
   if (auth.isAuthenticated && to.path !== '/setup-birthdate' && auth.needsBirthdate) {
-    console.info('Guard: authenticated but still needs birthdate -> redirect SetupBirthdate', {
-      initialized: auth.initialized,
-      needsBirthdate: auth.needsBirthdate,
-      birthdate: auth.user?.birthdate,
-      birthdateConfirmed: auth.user?.birthdateConfirmed,
-      user: auth.user,
-    });
     return { name: 'SetupBirthdate' };
   }
 

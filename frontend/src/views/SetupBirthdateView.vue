@@ -35,18 +35,13 @@ import { ref, computed } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
 import { useAuthStore } from '../stores/auth';
 import { users as usersApi, ApiError } from '../api/client';
+import sanitizeRedirectTarget from '../utils/sanitizeRedirect';
 
 const router = useRouter();
 const route = useRoute();
 const auth = useAuthStore();
 
-function sanitizeRedirectTarget(r?: string | undefined): string {
-  if (!r) return '/';
-  const v = r.trim();
-  if (v === '/setup-birthdate' || v.startsWith('/setup-birthdate') || v.includes('/setup-birthdate')) return '/';
-  if (v.includes('redirect=/setup-birthdate')) return '/';
-  return v;
-}
+// use shared sanitizeRedirectTarget from utils
 
 const initialIso = auth.user?.birthdate ?? '';
 const day = ref(initialIso ? initialIso.split('-')[2] : '');
@@ -116,39 +111,12 @@ async function handleSubmit() {
     else if (typeof rawRedirect === 'string') redirect = rawRedirect?.trim() || undefined;
 
     const target = sanitizeRedirectTarget(redirect);
-    console.info('Computed navigation target after save', { rawRedirect, redirect, target });
-
     try {
-      // Use replace so the setup page is not kept in history
-      const failure = await router.replace(target);
-      // Log navigation diagnostics
-      console.info('Navigation diagnostics:', {
-        target,
-        failure,
-        currentFullPath: router.currentRoute.value.fullPath,
-        currentName: router.currentRoute.value.name,
-        redirectedFrom: (router.currentRoute.value as unknown as Record<string, unknown>).redirectedFrom,
-      });
-
-      // If navigation failed, attempt fallback to '/'
-      if (failure) {
-        console.warn('Navigation returned failure, attempting fallback to /', failure);
-        try {
-          const fallbackFailure = await router.replace('/');
-          console.info('Fallback navigation result', { fallbackFailure, currentFullPath: router.currentRoute.value.fullPath });
-        } catch (fallbackErr) {
-          console.error('Fallback navigation to / failed', fallbackErr);
-        }
-      }
+      await router.replace(target);
     } catch (navErr) {
-      // Catch unexpected promise rejections
-      console.error('Navigation threw after birthdate update, target:', target, navErr);
+      console.error('Navigation after birthdate update failed, attempting / as fallback', navErr);
       if (target !== '/') {
-        try {
-          await router.replace('/');
-        } catch (fallbackErr) {
-          console.error('Fallback navigation to / failed', fallbackErr);
-        }
+        try { await router.replace('/'); } catch { /* swallow */ }
       }
     }
   } finally {
