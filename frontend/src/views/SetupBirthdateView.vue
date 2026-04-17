@@ -37,6 +37,7 @@ import { useAuthStore } from '../stores/auth';
 import { users as usersApi, ApiError } from '../api/client';
 
 const router = useRouter();
+const route = useRoute();
 const auth = useAuthStore();
 
 const initialIso = auth.user?.birthdate ?? '';
@@ -86,22 +87,25 @@ async function handleSubmit() {
     error.value = 'Profile updated but failed to refresh. Please reload the page.';
   }
 
-  try {
-    const route = useRoute();
-    const redirect = (route.query.redirect as string | undefined) ?? undefined;
-    if (redirect && typeof redirect === 'string') {
-      await router.replace(redirect);
-    } else {
-      await router.replace('/');
+    try {
+      const rawRedirect = route?.query?.redirect;
+      let redirect: string | undefined;
+      if (Array.isArray(rawRedirect)) redirect = rawRedirect[0];
+      else if (typeof rawRedirect === 'string') redirect = rawRedirect;
+
+      if (redirect) {
+        await router.replace(redirect);
+      } else {
+        await router.replace('/');
+      }
+    } catch (err) {
+      // Navigation failures are not fatal for the update — log them and show a
+      // non-generic message but do not mark the save as failed.
+      console.error('Navigation after birthdate update failed', err);
+      error.value = 'Saved but navigation failed. Please use the app menu to continue.';
+    } finally {
+      saving.value = false;
     }
-  } catch (err) {
-    // Navigation failures are not fatal for the update — log them and show a
-    // non-generic message.
-    console.error('Navigation after birthdate update failed', err);
-    error.value = 'Saved but navigation failed. Please use the app menu to continue.';
-  } finally {
-    saving.value = false;
-  }
 }
 </script>
 
