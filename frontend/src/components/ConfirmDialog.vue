@@ -1,6 +1,6 @@
 <template>
     <div v-if="request" class="modal-overlay" @click.self="onCancel">
-        <div class="modal-card" role="dialog" aria-modal="true" :aria-labelledby="titleId" tabindex="-1" ref="cardRef">
+        <dialog class="modal-card" aria-modal="true" :aria-labelledby="titleId" tabindex="-1" ref="cardRef">
             <h3 :id="titleId">{{ request.title ?? 'Confirm' }}</h3>
             <p style="color:var(--color-text-muted); margin-top:0.5rem;">{{ request.message ?? 'Are you sure?' }}</p>
 
@@ -18,7 +18,7 @@ import { useConfirmState, confirmResolve } from '../composables/useConfirm';
 
 const state = useConfirmState();
 const request = computed(() => state.request.value);
-const cardRef = ref<HTMLElement | null>(null);
+const cardRef = ref<HTMLDialogElement | null>(null);
 const titleId = 'confirm-dialog-title';
 
 function onConfirm(): void {
@@ -44,7 +44,16 @@ watch(
     () => request.value,
     (r) => {
         if (r) {
-            setTimeout(() => { cardRef.value?.focus(); }, 0);
+            setTimeout(() => {
+                if (cardRef.value && typeof (cardRef.value as any).showModal === 'function') {
+                    try { (cardRef.value as HTMLDialogElement).showModal(); } catch { }
+                }
+                cardRef.value?.focus();
+            }, 0);
+        } else {
+            if (cardRef.value && typeof (cardRef.value as any).close === 'function') {
+                try { (cardRef.value as HTMLDialogElement).close(); } catch { }
+            }
         }
     }
 );

@@ -1,6 +1,6 @@
 <template>
     <div v-if="store.visible" class="modal-overlay" @click.self="onCancel">
-        <div class="modal-card" role="dialog" aria-modal="true" :aria-labelledby="titleId" tabindex="-1" ref="cardRef">
+        <dialog class="modal-card" aria-modal="true" :aria-labelledby="titleId" tabindex="-1" ref="cardRef">
             <h3 :id="titleId">{{ store.preview?.name ?? 'Group' }}</h3>
             <p v-if="store.preview?.description" style="color:var(--color-text-muted)">{{ store.preview?.description }}
             </p>
@@ -24,7 +24,7 @@ import { useInviteStore } from '../stores/invite';
 
 const store = useInviteStore();
 const router = useRouter();
-const cardRef = ref<HTMLElement | null>(null);
+const cardRef = ref<HTMLDialogElement | null>(null);
 const titleId = `invite-modal-title`;
 
 function removeJoinQueryAndReplace(): void {
@@ -66,8 +66,17 @@ watch(
     () => store.visible,
     (v) => {
         if (v) {
-            // focus the modal for accessibility
-            setTimeout(() => { cardRef.value?.focus(); }, 0);
+            // focus the modal for accessibility and try native dialog open
+            setTimeout(() => {
+                if (cardRef.value && typeof (cardRef.value as any).showModal === 'function') {
+                    try { (cardRef.value as HTMLDialogElement).showModal(); } catch { }
+                }
+                cardRef.value?.focus();
+            }, 0);
+        } else {
+            if (cardRef.value && typeof (cardRef.value as any).close === 'function') {
+                try { (cardRef.value as HTMLDialogElement).close(); } catch { }
+            }
         }
     }
 );
