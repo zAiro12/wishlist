@@ -8,7 +8,7 @@
                 <button class="btn-secondary" @click="onCancel">{{ request.cancelLabel ?? 'Cancel' }}</button>
                 <button class="btn-danger" @click="onConfirm">{{ request.confirmLabel ?? 'Confirm' }}</button>
             </div>
-        </div>
+        </dialog>
     </div>
 </template>
 

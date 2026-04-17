@@ -13,7 +13,7 @@
                 <button class="btn-primary" :disabled="store.loading" @click="onConfirm">{{ store.loading ? 'Joining…' :
                     'Entra nel gruppo' }}</button>
             </div>
-        </div>
+    </div>
     </div>
 </template>
 

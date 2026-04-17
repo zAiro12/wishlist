@@ -169,7 +169,7 @@ async function handleRemove(member: GroupMember) {
     if (!ok) return;
     await groupsApi.members.remove(groupId, member.userId);
     if (group.value?.members) {
-      group.value.members = group.value.members.filter((m) => m.userId !== member.userId);
+      group.value.members = group.value.members.filter((m: { userId: string; }) => m.userId !== member.userId);
     }
   } catch (err) {
     actionError.value = err instanceof ApiError ? err.message : 'Failed to remove member';
