@@ -23,14 +23,95 @@ export const openApiSpec: OpenAPIV3.Document = {
         description: 'JWT stored in HttpOnly cookie `auth_token`',
       },
     },
-    schemas: {},
+    schemas: {
+      User: {
+        type: 'object',
+        properties: {
+          id: { type: 'string' },
+          email: { type: 'string' },
+          emailVerified: { type: 'boolean' },
+          givenName: { type: 'string', nullable: true },
+          familyName: { type: 'string', nullable: true },
+          birthdate: { type: 'string', nullable: true, description: 'YYYY-MM-DD' },
+          birthdateConfirmed: { type: 'boolean' },
+          role: { type: 'string' },
+          status: { type: 'string' },
+          createdAt: { type: 'string', format: 'date-time' },
+          updatedAt: { type: 'string', format: 'date-time' },
+        },
+      },
+      Group: {
+        type: 'object',
+        properties: {
+          id: { type: 'string' },
+          name: { type: 'string' },
+          description: { type: 'string', nullable: true },
+          ownerId: { type: 'string' },
+          memberCount: { type: 'integer' },
+          deletedAt: { type: 'string', format: 'date-time', nullable: true },
+        },
+      },
+      GroupMember: {
+        type: 'object',
+        properties: {
+          id: { type: 'string' },
+          groupId: { type: 'string' },
+          userId: { type: 'string' },
+          joinedAt: { type: 'string', format: 'date-time' },
+          removedAt: { type: 'string', format: 'date-time', nullable: true },
+        },
+      },
+      WishlistItem: {
+        type: 'object',
+        properties: {
+          id: { type: 'string' },
+          title: { type: 'string' },
+          description: { type: 'string', nullable: true },
+          url: { type: 'string', nullable: true },
+          price: { type: 'number', nullable: true },
+          createdAt: { type: 'string', format: 'date-time' },
+          updatedAt: { type: 'string', format: 'date-time' },
+          ownerId: { type: 'string' },
+        },
+      },
+      BirthdateRequest: {
+        type: 'object',
+        properties: { birthdate: { type: 'string', description: 'YYYY-MM-DD' } },
+        required: ['birthdate'],
+      },
+      BirthdateResponse: {
+        type: 'object',
+        properties: { birthdate: { type: 'string' } },
+      },
+      ErrorResponse: {
+        type: 'object',
+        properties: {
+          error: { type: 'string' },
+          issues: { type: 'array', items: { type: 'object' }, nullable: true },
+        },
+      },
+    },
   },
   paths: {
+    '/api/users/me/birthdate': {
+      patch: {
+        summary: "Update current user's birthdate",
+        security: [{ cookieAuth: [] }],
+        requestBody: { required: true, content: { 'application/json': { schema: { type: 'object', properties: { birthdate: { type: 'string', description: 'YYYY-MM-DD' } }, required: ['birthdate'] } } } },
+        responses: { '200': { description: 'Updated birthdate', content: { 'application/json': { schema: { type: 'object', properties: { birthdate: { type: 'string' } } } } } }, '400': { description: 'Validation failed', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } } } }, '401': { description: 'Unauthorized' } },
+      },
+    },
     '/api/users/me': {
       get: {
         summary: 'Get current user profile',
         security: [{ cookieAuth: [] }],
-        responses: { '200': { description: 'User profile' }, '401': { description: 'Unauthorized' } },
+        responses: { '200': { description: 'User profile', content: { 'application/json': { schema: { $ref: '#/components/schemas/User' } } } }, '401': { description: 'Unauthorized' } },
+      },
+      patch: {
+        summary: 'Update current user profile (name, family name, birthdate)',
+        security: [{ cookieAuth: [] }],
+        requestBody: { required: true, content: { 'application/json': { schema: { type: 'object', properties: { givenName: { type: 'string' }, familyName: { type: 'string' }, birthdate: { type: 'string', description: 'YYYY-MM-DD' } } } } } },
+        responses: { '200': { description: 'Updated user', content: { 'application/json': { schema: { $ref: '#/components/schemas/User' } } } }, '400': { description: 'Validation failed', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } } } }, '401': { description: 'Unauthorized' } },
       },
     },
     '/api/auth/login': {
@@ -57,22 +138,63 @@ export const openApiSpec: OpenAPIV3.Document = {
       },
     },
     '/api/groups': {
-      get: { summary: 'List groups', responses: { '200': { description: 'Array of groups' } } },
-      post: { summary: 'Create group', responses: { '201': { description: 'Group created' } } },
+      get: { summary: 'List groups', security: [{ cookieAuth: [] }], responses: { '200': { description: 'Array of groups', content: { 'application/json': { schema: { type: 'array', items: { $ref: '#/components/schemas/Group' } } } } } } },
+      post: { summary: 'Create group', security: [{ cookieAuth: [] }], requestBody: { required: true, content: { 'application/json': { schema: { type: 'object', properties: { name: { type: 'string' }, description: { type: 'string' } }, required: ['name'] } } } }, responses: { '201': { description: 'Group created', content: { 'application/json': { schema: { $ref: '#/components/schemas/Group' } } } }, '400': { description: 'Validation failed' } } },
     },
     '/api/wishlist': {
       get: { summary: 'List wishlist items', responses: { '200': { description: 'Array of items' } } },
       post: { summary: 'Create wishlist item', responses: { '201': { description: 'Item created' } } },
     },
+    '/api/groups/{groupId}': {
+      parameters: [{ name: 'groupId', in: 'path', required: true, schema: { type: 'string' } }],
+      get: { summary: 'Get group detail', security: [{ cookieAuth: [] }], responses: { '200': { description: 'Group detail', content: { 'application/json': { schema: { $ref: '#/components/schemas/Group' } } } }, '404': { description: 'Group not found' } } },
+      patch: { summary: 'Update group', security: [{ cookieAuth: [] }], requestBody: { content: { 'application/json': { schema: { type: 'object', properties: { name: { type: 'string' }, description: { type: 'string' } } } } } }, responses: { '200': { description: 'Updated group' } } },
+      delete: { summary: 'Delete group', security: [{ cookieAuth: [] }], responses: { '200': { description: 'Group deleted' } } },
+    },
+    '/api/groups/{groupId}/join': {
+      parameters: [{ name: 'groupId', in: 'path', required: true, schema: { type: 'string' } }],
+      post: { summary: 'Join group (create membership)', security: [{ cookieAuth: [] }], responses: { '201': { description: 'Membership created' }, '200': { description: 'Membership reactivated' }, '401': { description: 'Unauthorized' } } },
+    },
+    '/api/groups/{groupId}/invite-preview': {
+      parameters: [{ name: 'groupId', in: 'path', required: true, schema: { type: 'string' } }],
+      get: { summary: 'Get invite preview for group', responses: { '200': { description: 'Invite preview' } } },
+    },
+    '/api/groups/{groupId}/members': {
+      parameters: [{ name: 'groupId', in: 'path', required: true, schema: { type: 'string' } }],
+      get: { summary: 'List group members', security: [{ cookieAuth: [] }], responses: { '200': { description: 'Array of members', content: { 'application/json': { schema: { type: 'array', items: { $ref: '#/components/schemas/GroupMember' } } } } } } },
+      post: { summary: 'Join group (members endpoint)', security: [{ cookieAuth: [] }], responses: { '201': { description: 'Joined' } } },
+      delete: { summary: 'Leave group', security: [{ cookieAuth: [] }], responses: { '200': { description: 'Left group' } } },
+    },
+    '/api/groups/{groupId}/members?userId={userId}': {
+      parameters: [{ name: 'groupId', in: 'path', required: true, schema: { type: 'string' } }, { name: 'userId', in: 'query', required: true, schema: { type: 'string' } }],
+      delete: { summary: 'Remove member from group (owner only)', security: [{ cookieAuth: [] }], responses: { '200': { description: 'Member removed' } } },
+    },
+    '/api/groups/{groupId}/transfer': {
+      parameters: [{ name: 'groupId', in: 'path', required: true, schema: { type: 'string' } }],
+      post: { summary: 'Transfer group ownership', security: [{ cookieAuth: [] }], requestBody: { content: { 'application/json': { schema: { type: 'object', properties: { newOwnerId: { type: 'string' } }, required: ['newOwnerId'] } } } }, responses: { '200': { description: 'Ownership transferred' } } },
+    },
+    '/api/groups/{groupId}/wishlists': {
+      parameters: [{ name: 'groupId', in: 'path', required: true, schema: { type: 'string' } }],
+      get: { summary: 'Get wishlists for group', security: [{ cookieAuth: [] }], responses: { '200': { description: 'Array of wishlist items' } } },
+    },
+    '/api/groups/{groupId}/next-celebrated': {
+      parameters: [{ name: 'groupId', in: 'path', required: true, schema: { type: 'string' } }],
+      get: { summary: 'Get next celebrated users for a group', security: [{ cookieAuth: [] }], responses: { '200': { description: 'Next celebrated payload' } } },
+    },
+    '/api/wishlist': {
+      get: { summary: 'List wishlist items', responses: { '200': { description: 'Array of items', content: { 'application/json': { schema: { type: 'array', items: { $ref: '#/components/schemas/WishlistItem' } } } } } } },
+      post: { summary: 'Create wishlist item', security: [{ cookieAuth: [] }], requestBody: { required: true, content: { 'application/json': { schema: { $ref: '#/components/schemas/WishlistItem' } } } }, responses: { '201': { description: 'Item created', content: { 'application/json': { schema: { $ref: '#/components/schemas/WishlistItem' } } } }, '400': { description: 'Validation failed', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } } } } },
+    },
     '/api/wishlist/{itemId}': {
       parameters: [{ name: 'itemId', in: 'path', required: true, schema: { type: 'string' } }],
-      patch: { summary: 'Update item', responses: { '200': { description: 'Updated' } } },
-      delete: { summary: 'Delete item', responses: { '200': { description: 'Deleted' } } },
+      patch: { summary: 'Update item', security: [{ cookieAuth: [] }], requestBody: { content: { 'application/json': { schema: { $ref: '#/components/schemas/WishlistItem' } } } }, responses: { '200': { description: 'Updated', content: { 'application/json': { schema: { $ref: '#/components/schemas/WishlistItem' } } } }, '400': { description: 'Validation failed' } } },
+      delete: { summary: 'Delete item', security: [{ cookieAuth: [] }], responses: { '200': { description: 'Deleted' } } },
     },
     '/api/wishlist-status/{itemId}': {
       parameters: [{ name: 'itemId', in: 'path', required: true, schema: { type: 'string' } }],
-      put: { summary: 'Set item status', responses: { '200': { description: 'Status set' } } },
-      delete: { summary: 'Clear status', responses: { '200': { description: 'Status cleared' } } },
+      put: { summary: 'Set item status', security: [{ cookieAuth: [] }], requestBody: { required: true, content: { 'application/json': { schema: { type: 'object', properties: { status: { type: 'string' } }, required: ['status'] } } } }, responses: { '200': { description: 'Status set' } } },
+      delete: { summary: 'Clear status', security: [{ cookieAuth: [] }], responses: { '200': { description: 'Status cleared' } } },
+    },
     },
   },
 }
