@@ -32,14 +32,38 @@ export async function requireAuth(
   try {
     // Prefer cookie-based auth_token, fallback to Authorization header
     const cookies = parseCookies(req.headers.cookie ?? '');
-    const token = cookies['auth_token'] ?? (req.headers.authorization?.startsWith('Bearer ') ? req.headers.authorization!.slice(7) : null);
+    const headerAuth = req.headers.authorization?.startsWith('Bearer ') ? req.headers.authorization!.slice(7) : null;
+    const token = cookies['auth_token'] ?? headerAuth;
+
+    // Diagnostic logging for /api/users/me to debug 401 after auth callback
+    try {
+      const isMe = (req.url ?? '').includes('/api/users/me');
+      if (isMe) {
+        const headerPresent = !!req.headers.authorization;
+        const headerPreview = headerPresent ? String(req.headers.authorization).slice(0, 20) + '...' : 'none';
+        const cookiePresent = !!cookies['auth_token'];
+        const cookiePreview = cookiePresent ? String(cookies['auth_token']).slice(0, 8) + '...' : 'none';
+        console.info('[auth-debug] /api/users/me request', { path: req.url, headerPresent, headerPreview, cookiePresent, cookiePreview });
+      }
+    } catch (logErr) { void logErr; }
 
     if (!token) {
       res.status(401).json({ error: 'Unauthorized' });
       return;
     }
 
-    const payload = verifyJwt(token);
+    let payload: JwtPayload;
+    try {
+      payload = verifyJwt(token);
+    } catch (verifyErr) {
+      // If this was /api/users/me, log the verification error for debugging
+      try {
+        if ((req.url ?? '').includes('/api/users/me')) {
+          console.error('[auth-debug] JWT verify failed for /api/users/me:', (verifyErr as Error).message);
+        }
+      } catch (logErr) { void logErr; }
+      throw verifyErr;
+    }
     const dbUser = await prisma.user.findUnique({ where: { id: payload.userId } });
     if (!dbUser) {
       res.status(401).json({ error: 'User not found' });
