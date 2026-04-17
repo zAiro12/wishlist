@@ -34,7 +34,6 @@ function onKey(e: KeyboardEvent): void {
 }
 
 onMounted(() => {
-    if (import.meta.env.DEV) console.log('[confirm][ConfirmDialog] mounted, request at mount:', request.value);
     window.addEventListener('keydown', onKey);
 });
 onUnmounted(() => {
@@ -45,7 +44,6 @@ watch(
     () => request.value,
     (r) => {
         if (r) {
-            if (import.meta.env.DEV) console.log('[confirm][ConfirmDialog] request non-null, focusing card');
             setTimeout(() => { cardRef.value?.focus(); }, 0);
         }
     }
