@@ -107,7 +107,7 @@ async function handleSubmit() {
         failure,
         currentFullPath: router.currentRoute.value.fullPath,
         currentName: router.currentRoute.value.name,
-        redirectedFrom: (router.currentRoute.value as Record<string, unknown>).redirectedFrom,
+        redirectedFrom: (router.currentRoute.value as unknown as Record<string, unknown>).redirectedFrom,
       });
 
       // If navigation failed, attempt fallback to '/'
