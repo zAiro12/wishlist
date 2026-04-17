@@ -63,7 +63,6 @@ async function request<T>(
   } catch (e) {
     // Parsing failed — log for debugging and return undefined to treat as success
     // in callers that only care about the HTTP status.
-    // eslint-disable-next-line no-console
     console.error('Failed to parse JSON response for', path, e);
     return undefined as T;
   }

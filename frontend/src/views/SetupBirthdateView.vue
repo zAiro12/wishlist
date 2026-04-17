@@ -65,7 +65,6 @@ async function handleSubmit() {
   } catch (err) {
     // If the PATCH failed with an API error, show that; otherwise log and
     // present a generic error.
-    // eslint-disable-next-line no-console
     console.error('updateBirthdate failed', err);
     if (err instanceof ApiError) {
       error.value = err.data?.error ?? err.message;
@@ -82,7 +81,6 @@ async function handleSubmit() {
   try {
     await auth.refreshUser();
   } catch (err) {
-    // eslint-disable-next-line no-console
     console.error('refreshUser failed after birthdate update', err);
     // Surface a distinct error but do not overwrite the successful save state.
     error.value = 'Profile updated but failed to refresh. Please reload the page.';
@@ -99,7 +97,6 @@ async function handleSubmit() {
   } catch (err) {
     // Navigation failures are not fatal for the update — log them and show a
     // non-generic message.
-    // eslint-disable-next-line no-console
     console.error('Navigation after birthdate update failed', err);
     error.value = 'Saved but navigation failed. Please use the app menu to continue.';
   } finally {
