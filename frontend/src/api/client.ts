@@ -30,6 +30,14 @@ async function request<T>(
     catch { return null; }
   }
   const token = readToken();
+  if (token) {
+    try {
+      const safe = String(token).slice(0, 8) + '...';
+      console.info('API request', path, 'using token prefix', safe);
+    } catch (e) { void e; }
+  } else {
+    console.info('API request', path, 'no token present in storage');
+  }
   if (token) headers['Authorization'] = `Bearer ${token}`;
 
   const fetchOptions: RequestInit = {
