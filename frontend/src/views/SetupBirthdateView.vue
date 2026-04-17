@@ -62,7 +62,33 @@ async function handleSubmit() {
   error.value = null;
   try {
     await usersApi.updateBirthdate(composedIso.value);
+  } catch (err) {
+    // If the PATCH failed with an API error, show that; otherwise log and
+    // present a generic error.
+    // eslint-disable-next-line no-console
+    console.error('updateBirthdate failed', err);
+    if (err instanceof ApiError) {
+      error.value = err.data?.error ?? err.message;
+    } else {
+      error.value = 'An unexpected error occurred while saving your birthdate.';
+    }
+    saving.value = false;
+    return;
+  }
+
+  // At this point the PATCH returned 2xx (treated as success). Attempt to
+  // refresh the user profile but handle errors separately so the user still
+  // sees that their birthdate was saved.
+  try {
     await auth.refreshUser();
+  } catch (err) {
+    // eslint-disable-next-line no-console
+    console.error('refreshUser failed after birthdate update', err);
+    // Surface a distinct error but do not overwrite the successful save state.
+    error.value = 'Profile updated but failed to refresh. Please reload the page.';
+  }
+
+  try {
     const route = useRoute();
     const redirect = (route.query.redirect as string | undefined) ?? undefined;
     if (redirect && typeof redirect === 'string') {
@@ -71,12 +97,11 @@ async function handleSubmit() {
       await router.replace('/');
     }
   } catch (err) {
-    if (err instanceof ApiError) {
-      // surface real API error message when possible
-      error.value = err.data?.error ?? err.message;
-    } else {
-      error.value = 'An unexpected error occurred.';
-    }
+    // Navigation failures are not fatal for the update — log them and show a
+    // non-generic message.
+    // eslint-disable-next-line no-console
+    console.error('Navigation after birthdate update failed', err);
+    error.value = 'Saved but navigation failed. Please use the app menu to continue.';
   } finally {
     saving.value = false;
   }

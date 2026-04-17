@@ -53,7 +53,20 @@ async function request<T>(
 
   if (res.status === 204) return undefined as T;
 
-  return res.json() as Promise<T>;
+  // Some endpoints may return 200 with an empty body. Handle empty responses
+  // gracefully instead of throwing on JSON parse errors so callers can treat
+  // HTTP 200 as success even when no JSON is present.
+  try {
+    const text = await res.text();
+    if (!text) return undefined as T;
+    return JSON.parse(text) as T;
+  } catch (e) {
+    // Parsing failed — log for debugging and return undefined to treat as success
+    // in callers that only care about the HTTP status.
+    // eslint-disable-next-line no-console
+    console.error('Failed to parse JSON response for', path, e);
+    return undefined as T;
+  }
 }
 
 // ─── Auth ─────────────────────────────────────────────────────────────────────
