@@ -29,6 +29,8 @@ export async function requireAuth(
   res: VercelResponse,
   handler: Handler
 ): Promise<void> {
+  // Diagnostic stage tracker for enhanced logging
+  let lastStage = 'start';
   try {
     // Prefer cookie-based auth_token, fallback to Authorization header
     const cookies = parseCookies(req.headers.cookie ?? '');
@@ -55,7 +57,15 @@ export async function requireAuth(
     let payload: JwtPayload;
     try {
       payload = verifyJwt(token);
+      lastStage = 'verified';
+      // Log decoded payload for /api/users/me to help root-cause analysis
+      try {
+        if ((req.url ?? '').includes('/api/users/me')) {
+          console.info('[auth-debug] JWT payload for /api/users/me', { userId: payload.userId, role: (payload as any).role ?? null });
+        }
+      } catch (logErr) { void logErr; }
     } catch (verifyErr) {
+      lastStage = 'verifyFailed';
       // If this was /api/users/me, log the verification error for debugging
       try {
         if ((req.url ?? '').includes('/api/users/me')) {
@@ -64,7 +74,15 @@ export async function requireAuth(
       } catch (logErr) { void logErr; }
       throw verifyErr;
     }
+    lastStage = 'dbLookup';
     const dbUser = await prisma.user.findUnique({ where: { id: payload.userId } });
+    try {
+      if ((req.url ?? '').includes('/api/users/me')) {
+        const found = !!dbUser;
+        const id = dbUser ? dbUser.id : null;
+        console.info('[auth-debug] prisma lookup for /api/users/me', { found, id });
+      }
+    } catch (logErr) { void logErr; }
     if (!dbUser) {
       res.status(401).json({ error: 'User not found' });
       return;
@@ -78,7 +96,20 @@ export async function requireAuth(
     (req as AuthedRequest).user = { ...payload, dbUser };
     await handler(req as AuthedRequest, res);
   } catch (err) {
-    res.status(401).json({ error: (err instanceof UnauthorizedError) ? err.message : 'Invalid or expired token' });
+    // Enhanced final error logging for /api/users/me to expose root cause without changing behavior
+    try {
+      if ((req.url ?? '').includes('/api/users/me')) {
+        const e = err as any;
+        const errorName = e?.name ?? 'UnknownError';
+        const errorMessage = e?.message ?? String(e ?? '');
+        let errorSource = 'unknown';
+        if (lastStage === 'verifyFailed') errorSource = 'jwt_verify';
+        else if (lastStage === 'dbLookup' || lastStage === 'dbFound') errorSource = 'prisma_or_user_lookup';
+        else if (lastStage === 'verified') errorSource = 'post_verify';
+        console.error('[auth-debug] final error for /api/users/me', { lastStage, errorSource, errorName, errorMessage });
+      }
+    } catch (logErr) { void logErr; }
+    res.status(401).json({ error: (err instanceof UnauthorizedError) ? (err as Error).message : 'Invalid or expired token' });
   }
 }
 
