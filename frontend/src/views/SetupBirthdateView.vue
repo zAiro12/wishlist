@@ -88,16 +88,12 @@ async function handleSubmit() {
       if (auth.user) {
         (auth.user as unknown as Record<string, unknown>).birthdate = composedIso.value;
         (auth.user as unknown as Record<string, unknown>).birthdateConfirmed = true;
-        console.info('Optimistic auth.user update', { birthdate: composedIso.value });
       }
-    } catch (optErr) {
-      console.warn('Optimistic update failed', optErr);
-    }
+    } catch (optErr) { void optErr; }
 
     // Force refetch the current user so auth.needsBirthdate is updated from server.
     await auth.fetchUser(true);
-    // Log the updated user state for debugging
-    console.info('User after refresh', auth.user);
+    // updated user state is used by guards; no debug log
   } catch (err) {
     console.error('fetchUser(true) failed after birthdate update', err);
     // Do not mark save as failed; inform user to reload if necessary

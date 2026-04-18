@@ -37,17 +37,7 @@ export async function requireAuth(
     const headerAuth = req.headers.authorization?.startsWith('Bearer ') ? req.headers.authorization!.slice(7) : null;
     const token = cookies['auth_token'] ?? headerAuth;
 
-    // Diagnostic logging for /api/users/me to debug 401 after auth callback
-    try {
-      const isMe = (req.url ?? '').includes('/api/users/me');
-      if (isMe) {
-        const headerPresent = !!req.headers.authorization;
-        const headerPreview = headerPresent ? String(req.headers.authorization).slice(0, 20) + '...' : 'none';
-        const cookiePresent = !!cookies['auth_token'];
-        const cookiePreview = cookiePresent ? String(cookies['auth_token']).slice(0, 8) + '...' : 'none';
-        console.info('[auth-debug] /api/users/me request', { path: req.url, headerPresent, headerPreview, cookiePresent, cookiePreview });
-      }
-    } catch (logErr) { void logErr; }
+    // (diagnostics removed)
 
     if (!token) {
       res.status(401).json({ error: 'Unauthorized' });
@@ -59,30 +49,16 @@ export async function requireAuth(
       payload = verifyJwt(token);
       lastStage = 'verified';
       // Log decoded payload for /api/users/me to help root-cause analysis
-      try {
-        if ((req.url ?? '').includes('/api/users/me')) {
-          console.info('[auth-debug] JWT payload for /api/users/me', { userId: payload.userId, role: (payload as any).role ?? null });
-        }
-      } catch (logErr) { void logErr; }
+      try { /* payload decoded; no debug log */ } catch (logErr) { void logErr; }
     } catch (verifyErr) {
       lastStage = 'verifyFailed';
       // If this was /api/users/me, log the verification error for debugging
-      try {
-        if ((req.url ?? '').includes('/api/users/me')) {
-          console.error('[auth-debug] JWT verify failed for /api/users/me:', (verifyErr as Error).message);
-        }
-      } catch (logErr) { void logErr; }
+      try { /* verify failed; no debug log */ } catch (logErr) { void logErr; }
       throw verifyErr;
     }
     lastStage = 'dbLookup';
     const dbUser = await prisma.user.findUnique({ where: { id: payload.userId } });
-    try {
-      if ((req.url ?? '').includes('/api/users/me')) {
-        const found = !!dbUser;
-        const id = dbUser ? dbUser.id : null;
-        console.info('[auth-debug] prisma lookup for /api/users/me', { found, id });
-      }
-    } catch (logErr) { void logErr; }
+    try { /* db lookup completed; no debug log */ } catch (logErr) { void logErr; }
     if (!dbUser) {
       res.status(401).json({ error: 'User not found' });
       return;
@@ -97,18 +73,7 @@ export async function requireAuth(
     await handler(req as AuthedRequest, res);
   } catch (err) {
     // Enhanced final error logging for /api/users/me to expose root cause without changing behavior
-    try {
-      if ((req.url ?? '').includes('/api/users/me')) {
-        const e = err as any;
-        const errorName = e?.name ?? 'UnknownError';
-        const errorMessage = e?.message ?? String(e ?? '');
-        let errorSource = 'unknown';
-        if (lastStage === 'verifyFailed') errorSource = 'jwt_verify';
-        else if (lastStage === 'dbLookup' || lastStage === 'dbFound') errorSource = 'prisma_or_user_lookup';
-        else if (lastStage === 'verified') errorSource = 'post_verify';
-        console.error('[auth-debug] final error for /api/users/me', { lastStage, errorSource, errorName, errorMessage });
-      }
-    } catch (logErr) { void logErr; }
+    try { /* final error occurred; no debug log */ } catch (logErr) { void logErr; }
     res.status(401).json({ error: (err instanceof UnauthorizedError) ? (err as Error).message : 'Invalid or expired token' });
   }
 }

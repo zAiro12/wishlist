@@ -69,7 +69,6 @@ onMounted(async () => {
         try { auth.setToken?.(tokenFromQuery); } catch { /* ignore setter errors */ }
         // Mark initialized early to prevent router guard redirecting to login
         try { (auth as unknown as { initialized?: boolean }).initialized = true; } catch { /* ignore */ }
-        console.info('AuthCallback: token persisted to storage and auth.initialized set before fetchUser');
       } catch {
         /* ignore storage errors */
       }
@@ -77,11 +76,8 @@ onMounted(async () => {
 
     // Fetch current user to populate store (will use Authorization header if token present)
     try {
-      console.info('AuthCallback: about to call fetchUser(true); token in localStorage:', !!localStorage.getItem('token'));
       await auth.fetchUser(true);
-      console.info('AuthCallback: fetchUser succeeded; user:', auth.user ? { id: auth.user.id, email: auth.user.email } : null);
-    } catch (fetchErr) {
-      console.error('AuthCallback: fetchUser failed', fetchErr);
+    } catch {
       // Ensure the store is marked initialized so the router guard won't
       // immediately redirect the user back to login while callback is winding up.
       try { (auth as unknown as { initialized?: boolean }).initialized = true; } catch { /* ignore */ }
