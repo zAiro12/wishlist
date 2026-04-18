@@ -1,7 +1,7 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
+import type { User } from '@prisma/client';
 import { verifyJwt, type JwtPayload } from './jwt';
 import { prisma } from './prisma';
-import type { User } from '@prisma/client';
 import { ForbiddenError, UnauthorizedError } from './errors';
 
 type DbUser = User;
@@ -14,14 +14,50 @@ type Handler = (req: AuthedRequest, res: VercelResponse) => Promise<void>;
 
 function parseCookies(header = ''): Record<string, string> {
   const cookies: Record<string, string> = {};
+
   for (const part of header.split(';')) {
     const eqIdx = part.indexOf('=');
     if (eqIdx === -1) continue;
+
     const key = part.slice(0, eqIdx).trim();
     const val = part.slice(eqIdx + 1).trim();
+
     if (key) cookies[key] = decodeURIComponent(val);
   }
+
   return cookies;
+}
+
+function getAuthToken(req: VercelRequest): string | null {
+  const cookies = parseCookies(req.headers.cookie ?? '');
+  const cookieToken = cookies['auth_token'];
+
+  if (cookieToken) return cookieToken;
+
+  const authHeader = req.headers.authorization;
+  if (authHeader?.startsWith('Bearer ')) {
+    return authHeader.slice(7);
+  }
+
+  return null;
+}
+
+async function getAuthenticatedUser(token: string): Promise<JwtPayload & { dbUser: DbUser }> {
+  const payload = verifyJwt(token);
+
+  const dbUser = await prisma.user.findUnique({
+    where: { id: payload.userId },
+  });
+
+  if (!dbUser) {
+    throw new UnauthorizedError('User not found');
+  }
+
+  if (dbUser.bannedAt) {
+    throw new ForbiddenError('Account banned');
+  }
+
+  return { ...payload, dbUser };
 }
 
 export async function requireAuth(
@@ -29,52 +65,30 @@ export async function requireAuth(
   res: VercelResponse,
   handler: Handler
 ): Promise<void> {
-  // Diagnostic stage tracker for enhanced logging
-  let lastStage = 'start';
   try {
-    // Prefer cookie-based auth_token, fallback to Authorization header
-    const cookies = parseCookies(req.headers.cookie ?? '');
-    const headerAuth = req.headers.authorization?.startsWith('Bearer ') ? req.headers.authorization!.slice(7) : null;
-    const token = cookies['auth_token'] ?? headerAuth;
-
-    // (diagnostics removed)
+    const token = getAuthToken(req);
 
     if (!token) {
       res.status(401).json({ error: 'Unauthorized' });
       return;
     }
 
-    let payload: JwtPayload;
-    try {
-      payload = verifyJwt(token);
-      lastStage = 'verified';
-      // Log decoded payload for /api/users/me to help root-cause analysis
-      try { /* payload decoded; no debug log */ } catch (logErr) { void logErr; }
-    } catch (verifyErr) {
-      lastStage = 'verifyFailed';
-      // If this was /api/users/me, log the verification error for debugging
-      try { /* verify failed; no debug log */ } catch (logErr) { void logErr; }
-      throw verifyErr;
-    }
-    lastStage = 'dbLookup';
-    const dbUser = await prisma.user.findUnique({ where: { id: payload.userId } });
-    try { /* db lookup completed; no debug log */ } catch (logErr) { void logErr; }
-    if (!dbUser) {
-      res.status(401).json({ error: 'User not found' });
-      return;
-    }
+    const user = await getAuthenticatedUser(token);
+    (req as AuthedRequest).user = user;
 
-    if (dbUser.bannedAt) {
-      res.status(403).json({ error: 'Account banned' });
-      return;
-    }
-
-    (req as AuthedRequest).user = { ...payload, dbUser };
     await handler(req as AuthedRequest, res);
   } catch (err) {
-    // Enhanced final error logging for /api/users/me to expose root cause without changing behavior
-    try { /* final error occurred; no debug log */ } catch (logErr) { void logErr; }
-    res.status(401).json({ error: (err instanceof UnauthorizedError) ? (err as Error).message : 'Invalid or expired token' });
+    if (err instanceof ForbiddenError) {
+      res.status(403).json({ error: err.message });
+      return;
+    }
+
+    if (err instanceof UnauthorizedError) {
+      res.status(401).json({ error: err.message });
+      return;
+    }
+
+    res.status(401).json({ error: 'Invalid or expired token' });
   }
 }
 
@@ -84,58 +98,81 @@ export async function requireAdmin(
   handler: Handler
 ): Promise<void> {
   await requireAuth(req, res, async (authedReq, authedRes) => {
-    // Check the DB role (not the JWT claim) so demoted admins lose access immediately
     if (authedReq.user.dbUser.role !== 'ADMIN') {
       authedRes.status(403).json({ error: 'Admin access required' });
       return;
     }
+
     await handler(authedReq, authedRes);
   });
 }
 
-// Middleware factory: require that the requester is a member of the given groupId
 export function requireGroupMember(groupIdParam = 'groupId') {
   return async function (req: VercelRequest, res: VercelResponse, handler: Handler) {
     await requireAuth(req, res, async (authedReq, authedRes) => {
       const groupId = (authedReq.query[groupIdParam] ?? authedReq.body?.groupId) as string;
+
       if (!groupId) {
         authedRes.status(400).json({ error: 'groupId is required' });
         return;
       }
-      const membership = await prisma.groupMember.findUnique({ where: { groupId_userId: { groupId, userId: authedReq.user.userId } } });
+
+      const membership = await prisma.groupMember.findUnique({
+        where: {
+          groupId_userId: {
+            groupId,
+            userId: authedReq.user.userId,
+          },
+        },
+      });
+
       if (!membership) {
         authedRes.status(403).json({ error: 'Not a group member' });
         return;
       }
+
       await handler(authedReq, authedRes);
     });
   };
 }
 
-// Middleware factory: require that the requester is the owner of the given groupId
 export function requireGroupOwner(groupIdParam = 'groupId') {
   return async function (req: VercelRequest, res: VercelResponse, handler: Handler) {
     await requireAuth(req, res, async (authedReq, authedRes) => {
       const groupId = (authedReq.query[groupIdParam] ?? authedReq.body?.groupId) as string;
+
       if (!groupId) {
         authedRes.status(400).json({ error: 'groupId is required' });
         return;
       }
-      const group = await prisma.group.findUnique({ where: { id: groupId } });
+
+      const group = await prisma.group.findUnique({
+        where: { id: groupId },
+      });
+
       if (!group) {
         authedRes.status(404).json({ error: 'Group not found' });
         return;
       }
+
       if (group.ownerId !== authedReq.user.userId) {
         authedRes.status(403).json({ error: 'Only group owner allowed' });
         return;
       }
+
       await handler(authedReq, authedRes);
     });
   };
 }
 
 export async function assertGroupMember(userId: string, groupId: string) {
-  const membership = await prisma.groupMember.findUnique({ where: { groupId_userId: { groupId, userId } } });
-  if (!membership) throw new ForbiddenError('User is not a member of this group');
+  const membership = await prisma.groupMember.findUnique({
+    where: {
+      groupId_userId: { groupId, userId },
+    },
+  });
+
+  if (!membership) {
+    throw new ForbiddenError('User is not a member of this group');
+  }
 }
