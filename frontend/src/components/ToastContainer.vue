@@ -6,7 +6,6 @@
         :key="t.id"
         class="toast-item"
         :class="t.variant"
-        @mouseenter="clearAutoDismiss(t.id)"
       >
         <div class="toast-message">{{ t.message }}</div>
         <button class="toast-dismiss" @click="dismissToast(t.id)" aria-label="Chiudi">×</button>
@@ -32,12 +31,6 @@ onMounted(() => {
     }
   }
 })
-
-// Pause auto-dismiss on hover: we won't implement resume timers complexity —
-// keep it simple while respecting pointer interaction.
-function clearAutoDismiss(_id: number) {
-  // noop: auto-dismiss timers are short and safe; leaving function for future extension
-}
 
 // use composable's `dismissToast` directly in template
 </script>
