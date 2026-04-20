@@ -40,8 +40,7 @@ function clearNonceCookie(res: VercelResponse): void {
   // Clear oauth_nonce
   const cookies: string[] = [cookieParts.join('; ')];
   // Also clear oauth_redirect if present
-  const redirectClear = ['oauth_redirect=', 'HttpOnly', 'SameSite=Lax', 'Path=/api/auth/callback', 'Max-Age=0'];
-  if (process.env.NODE_ENV === 'production') redirectClear.push('Secure');
+  const redirectClear = ['oauth_redirect=', 'HttpOnly', 'SameSite=None', 'Secure', 'Path=/api/auth/callback', 'Max-Age=0'];
   cookies.push(redirectClear.join('; '));
 
   res.setHeader('Set-Cookie', cookies);

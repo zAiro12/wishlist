@@ -42,11 +42,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
     const redirectCookieParts = [
       `oauth_redirect=${encodeURIComponent(redirectParam)}`,
       'HttpOnly',
-      'SameSite=Lax',
+      'SameSite=None',
+      'Secure',
       'Path=/api/auth/callback',
       'Max-Age=600',
     ];
-    if (process.env.NODE_ENV === 'production') redirectCookieParts.push('Secure');
     cookiesToSet.push(redirectCookieParts.join('; '));
   }
 
