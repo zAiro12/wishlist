@@ -75,12 +75,15 @@ import NavBar from '../components/NavBar.vue';
 import StatusBadge from '../components/StatusBadge.vue';
 import { wishlist as wishlistApi, ApiError } from '../api/client';
 import type { WishlistItem } from '../types';
+import { useToast } from '../composables/useToast'
 
 const PRIORITY_LABELS = ['Low', 'Normal', 'Medium', 'High', 'Very High', 'Must Have'];
 
 const items = ref<WishlistItem[]>([]);
 const loading = ref(true);
 const error = ref<string | null>(null);
+
+const { showToast } = useToast()
 
 const showForm = ref(false);
 const editItem = ref<WishlistItem | null>(null);
@@ -96,6 +99,7 @@ async function loadItems() {
     items.value = await wishlistApi.list();
   } catch (err) {
     error.value = err instanceof ApiError ? err.message : 'Failed to load items';
+    showToast(error.value ?? 'Errore caricamento', 'error')
   } finally {
     loading.value = false;
   }
@@ -123,13 +127,16 @@ async function handleSubmit() {
     if (editItem.value) {
       const updated = await wishlistApi.update(editItem.value.id, data);
       items.value = items.value.map((i) => (i.id === editItem.value!.id ? updated : i));
+      showToast('Item aggiornato', 'success')
     } else {
       const created = await wishlistApi.create(data);
       items.value = [created, ...items.value];
+      showToast('Item aggiunto alla wishlist', 'success')
     }
     showForm.value = false;
   } catch (err) {
     formError.value = err instanceof ApiError ? err.message : 'Failed to save item';
+    showToast(formError.value ?? 'Errore salvataggio', 'error')
   } finally {
     saving.value = false;
   }
@@ -143,8 +150,10 @@ async function handleDelete(item: WishlistItem) {
   try {
     await wishlistApi.delete(item.id);
     items.value = items.value.filter((i) => i.id !== item.id);
+    showToast('Item eliminato', 'info')
   } catch (err) {
     error.value = err instanceof ApiError ? err.message : 'Failed to delete item';
+    showToast(error.value ?? 'Errore eliminazione', 'error')
   }
 }
 </script>
