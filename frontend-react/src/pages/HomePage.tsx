@@ -9,7 +9,14 @@ export default function HomePage(){
   const [lists,setLists] = useState<Wishlist[] | null>(null)
   useEffect(()=>{
     // mock fetch
-    setTimeout(()=> setLists([{id:'1',name:'Gifts for Luca', owner:'me'},{id:'2',name:'Friends', owner:'cricca'}]), 800)
+    const timeoutId = setTimeout(
+      ()=> setLists([{id:'1',name:'Gifts for Luca', owner:'me'},{id:'2',name:'Friends', owner:'cricca'}]),
+      800
+    )
+
+    return ()=>{
+      clearTimeout(timeoutId)
+    }
   },[])
 
   if(lists===null) return <div className="container"><SkeletonLoader lines={4} /></div>

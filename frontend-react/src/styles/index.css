@@ -17,6 +17,9 @@ body{font-family:Inter, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica
 .app-root{min-height:100vh; display:flex; flex-direction:column}
 main{flex:1; padding:var(--gap); max-width:1000px; margin:0 auto}
 
+.sr-only{position:absolute; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip:rect(0,0,0,0); white-space:nowrap; border:0}
+.sr-only:focus,
+.sr-only:active{position:static; width:auto; height:auto; margin:0; overflow:visible; clip:auto; white-space:normal}
 .container{background:var(--color-surface); padding:var(--gap); border-radius:var(--radius);}
 
 .list{display:grid; gap:12px}

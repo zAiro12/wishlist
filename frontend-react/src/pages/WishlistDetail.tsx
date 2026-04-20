@@ -10,7 +10,10 @@ export default function WishlistDetail(){
   const {id} = useParams()
   const [items,setItems] = useState<Item[] | null>(null)
   useEffect(()=>{
-    setTimeout(()=> setItems([{id:'i1',name:'Libro'},{id:'i2',name:'Cuffie'}]), 700)
+    setItems(null)
+    const timeoutId = setTimeout(()=> setItems([{id:'i1',name:'Libro'},{id:'i2',name:'Cuffie'}]), 700)
+
+    return ()=> clearTimeout(timeoutId)
   },[id])
 
   const add = (name:string)=> setItems(prev=> prev? [{id:Date.now().toString(), name}, ...prev]: [{id:Date.now().toString(), name}])
