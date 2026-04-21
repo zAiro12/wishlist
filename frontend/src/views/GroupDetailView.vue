@@ -18,9 +18,9 @@
         </div>
         <div style="display:flex;gap:0.5rem;align-items:center;">
           <RouterLink :to="`/groups/${groupId}/wishlists`" class="btn-primary">View Wishlists</RouterLink>
-          <button v-if="isMember" class="btn-secondary" @click="copyInviteLink"
-            :aria-label="copied ? 'Link copied' : 'Copy invite link'" style="padding:0.5rem 0.75rem;">
-            {{ copied ? '✓ Link copiato!' : 'Copy invite link' }}
+          <button v-if="isMember" class="btn-secondary" @click="shareInviteLink"
+            :aria-label="copied ? 'Link copied' : 'Share invite'" style="padding:0.5rem 0.75rem;">
+            {{ copied ? '✓ Link copiato!' : 'Share invite' }}
           </button>
         </div>
       </div>
@@ -97,6 +97,7 @@ import NavBar from '../components/NavBar.vue';
 import { groups as groupsApi, ApiError } from '../api/client';
 import { useAuthStore } from '../stores/auth';
 import type { Group, GroupMember, User } from '../types';
+import { useToast } from '../composables/useToast'
 
 const route = useRoute();
 const router = useRouter();
@@ -116,17 +117,44 @@ const activeMembers = computed(() => group.value?.members?.filter((m) => m.remov
 const isMember = computed(() => activeMembers.value.some((m) => m.userId === authStore.user?.id));
 const copied = ref(false);
 
-async function copyInviteLink(): Promise<void> {
+const { showToast } = useToast()
+
+async function shareInviteLink(): Promise<void> {
   try {
     const base = import.meta.env.BASE_URL ?? '/';
     const url = new URL(base, window.location.origin);
     url.searchParams.set('join', groupId);
     const inviteLink = url.toString();
-    await navigator.clipboard.writeText(inviteLink);
-    copied.value = true;
-    setTimeout(() => { copied.value = false; }, 2000);
-  } catch {
-    actionError.value = 'Failed to copy invite link';
+
+    const title = group.value?.name ?? 'Join my group on Wishlist';
+    const text = group.value ? `Join ${group.value.name} on Wishlist!` : 'Join my group on Wishlist!';
+
+    // Try native share first
+    if ((navigator as any).share) {
+      try {
+        await (navigator as any).share({ title, text, url: inviteLink });
+        try { showToast('Link condiviso', 'success') } catch {}
+        return;
+      } catch (err: any) {
+        // User cancelled share or error — treat cancellation as silent
+        if (err && (err.name === 'AbortError' || err.name === 'NotAllowedError')) {
+          return;
+        }
+        // otherwise fall through to clipboard fallback
+      }
+    }
+
+    // Fallback: copy to clipboard
+    try {
+      await navigator.clipboard.writeText(inviteLink);
+      copied.value = true;
+      try { showToast('Link copiato negli appunti', 'success') } catch {}
+      setTimeout(() => { copied.value = false; }, 2000);
+    } catch {
+      actionError.value = 'Failed to copy invite link';
+    }
+  } catch (e) {
+    actionError.value = 'Failed to prepare invite link';
   }
 }
 
