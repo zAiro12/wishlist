@@ -30,7 +30,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
       const items = await prisma.wishlistItem.findMany({
         where: { ownerId: { in: memberIds }, deletedAt: null },
         include: { owner: { select: { id: true, givenName: true, familyName: true, email: true } }, status: true },
-        orderBy: [{ ownerId: 'asc' }, { priority: 'desc' }, { createdAt: 'asc' }],
+        orderBy: [{ ownerId: 'asc' }, { createdAt: 'asc' }],
       });
 
       const maskedItems = items.map((item) => (item.ownerId === userId ? { ...item, status: null } : item));

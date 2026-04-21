@@ -22,12 +22,6 @@
           <label>Link (URL)</label>
           <input v-model="form.url" type="url" placeholder="https://…" />
         </div>
-        <div class="form-group">
-          <label>Priority</label>
-          <select v-model.number="form.priority">
-            <option v-for="(l, i) in PRIORITY_LABELS" :key="i" :value="i">{{ l }}</option>
-          </select>
-        </div>
         <p v-if="formError" class="error-message">{{ formError }}</p>
         <div style="display:flex;gap:0.5rem;">
           <button type="submit" class="btn-primary" :disabled="saving">{{ saving ? 'Saving…' : 'Save' }}</button>
@@ -50,9 +44,7 @@
           <div style="display:flex;align-items:center;gap:0.5rem;margin-bottom:0.25rem;">
             <span style="font-weight:600;">{{ item.title }}</span>
             <StatusBadge :status="item.status?.status ?? 'DISPONIBILE'" />
-            <span v-if="item.priority > 0" style="font-size:0.75rem;color:var(--color-text-muted);">
-              [{{ PRIORITY_LABELS[item.priority] }}]
-            </span>
+            <!-- priority display removed -->
           </div>
           <p v-if="item.description" style="color:var(--color-text-muted);font-size:0.875rem;">{{ item.description }}
           </p>
@@ -77,7 +69,7 @@ import { wishlist as wishlistApi, ApiError } from '../api/client';
 import type { WishlistItem } from '../types';
 import { useToast } from '../composables/useToast'
 
-const PRIORITY_LABELS = ['Low', 'Normal', 'Medium', 'High', 'Very High', 'Must Have'];
+// Priority removed from create/edit form — not persisted in backend
 
 const items = ref<WishlistItem[]>([]);
 const loading = ref(true);
@@ -87,7 +79,7 @@ const { showToast } = useToast()
 
 const showForm = ref(false);
 const editItem = ref<WishlistItem | null>(null);
-const form = reactive({ title: '', description: '', url: '', priority: 0 });
+const form = reactive({ title: '', description: '', url: '' });
 const formError = ref<string | null>(null);
 const saving = ref(false);
 
@@ -107,14 +99,14 @@ async function loadItems() {
 
 function openCreate() {
   editItem.value = null;
-  Object.assign(form, { title: '', description: '', url: '', priority: 0 });
+  Object.assign(form, { title: '', description: '', url: '' });
   formError.value = null;
   showForm.value = true;
 }
 
 function openEdit(item: WishlistItem) {
   editItem.value = item;
-  Object.assign(form, { title: item.title, description: item.description ?? '', url: item.url ?? '', priority: item.priority });
+  Object.assign(form, { title: item.title, description: item.description ?? '', url: item.url ?? '' });
   formError.value = null;
   showForm.value = true;
 }
@@ -123,7 +115,7 @@ async function handleSubmit() {
   saving.value = true;
   formError.value = null;
   try {
-    const data = { title: form.title, description: form.description || undefined, url: form.url || undefined, priority: form.priority };
+    const data = { title: form.title, description: form.description || undefined, url: form.url || undefined };
     if (editItem.value) {
       const updated = await wishlistApi.update(editItem.value.id, data);
       items.value = items.value.map((i) => (i.id === editItem.value!.id ? updated : i));

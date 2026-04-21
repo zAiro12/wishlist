@@ -43,7 +43,6 @@ export const CreateWishlistItemSchema = z.object({
   description: z.string().max(1000).optional(),
   url: z.string().url('Must be a valid URL').optional().or(z.literal('')),
   imageUrl: z.string().url('Must be a valid URL').optional().or(z.literal('')),
-  priority: z.number().int().min(0).max(5).default(0),
 });
 
 export const UpdateWishlistItemSchema = z.object({
@@ -51,7 +50,7 @@ export const UpdateWishlistItemSchema = z.object({
   description: z.string().max(1000).optional(),
   url: z.string().url('Must be a valid URL').optional().or(z.literal('')),
   imageUrl: z.string().url('Must be a valid URL').optional().or(z.literal('')),
-  priority: z.number().int().min(0).max(5).optional(),
+  // priority intentionally removed from API validation — backend will ignore it
 });
 
 // ─── Status ────────────────────────────────────────────────────────────────────

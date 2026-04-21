@@ -50,12 +50,60 @@ async function request<T>(
   const res = await fetch(`${API_BASE}${path}`, fetchOptions);
 
   if (!res.ok) {
-    let data: { error: string; issues?: unknown[] };
-    try {
-      data = await res.json();
-    } catch {
-      data = { error: res.statusText };
+    // --- INIZIO blocco refresh ---
+    if (res.status === 401) {
+      const newToken = await tryRefresh()
+      if (newToken) {
+        // Riprova la richiesta originale con il nuovo token
+        const retryHeaders: Record<string, string> = {
+          ...(options.headers as Record<string, string> ?? {}),
+        }
+        if (hasBody) retryHeaders['Content-Type'] = 'application/json'
+        retryHeaders['Authorization'] = `Bearer ${newToken}`
+
+        const retryRes = await fetch(`${API_BASE}${path}`, {
+          ...options,
+          headers: retryHeaders,
+          credentials: 'include',
+        })
+
+        if (retryRes.ok) {
+          if (retryRes.status === 204) return undefined as T
+          try {
+            const text = await retryRes.text()
+            if (!text) return undefined as T
+            return JSON.parse(text) as T
+          } catch {
+            return undefined as T
+          }
+        }
+
+        // Il retry ha fallito — se ancora 401, forza logout
+        if (retryRes.status === 401) {
+          try { localStorage.removeItem('token') } catch { /* ignore */ }
+          try { sessionStorage.removeItem('token') } catch { /* ignore */ }
+          window.location.href = '/login'
+          return undefined as T
+        }
+
+        // Altro errore nel retry
+        let retryData: { error: string; issues?: unknown[] }
+        try { retryData = await retryRes.json() }
+        catch { retryData = { error: retryRes.statusText } }
+        throw new ApiError(retryRes.status, retryData)
+      }
+
+      // Refresh fallito — forza logout
+      try { localStorage.removeItem('token') } catch { /* ignore */ }
+      try { sessionStorage.removeItem('token') } catch { /* ignore */ }
+      window.location.href = '/login'
+      return undefined as T
     }
+    // --- FINE blocco refresh ---
+
+    let data: { error: string; issues?: unknown[] };
+    try { data = await res.json() }
+    catch { data = { error: res.statusText } }
     throw new ApiError(res.status, data);
   }
 
@@ -74,6 +122,42 @@ async function request<T>(
     console.error('Failed to parse JSON response for', path, e);
     return undefined as T;
   }
+}
+
+let isRefreshing = false
+let refreshPromise: Promise<string | null> | null = null
+
+async function tryRefresh(): Promise<string | null> {
+  if (isRefreshing && refreshPromise) return refreshPromise
+
+  isRefreshing = true
+  refreshPromise = (async () => {
+    try {
+      const res = await fetch(`${API_BASE}/api/auth/refresh`, {
+        method: 'GET',
+        credentials: 'include',
+        headers: (() => {
+          try {
+            const t = localStorage.getItem('token') ?? sessionStorage.getItem('token')
+            return (t ? { Authorization: `Bearer ${t}` } : {}) as Record<string, string>
+          } catch { return {} as Record<string, string> }
+        })(),
+      })
+      if (!res.ok) return null
+      const data = await res.json() as { token: string }
+      try { localStorage.setItem('token', data.token) } catch {
+        try { sessionStorage.setItem('token', data.token) } catch { /* ignore */ }
+      }
+      return data.token
+    } catch {
+      return null
+    } finally {
+      isRefreshing = false
+      refreshPromise = null
+    }
+  })()
+
+  return refreshPromise
 }
 
 // ─── Auth ─────────────────────────────────────────────────────────────────────
@@ -158,7 +242,6 @@ export const wishlist = {
     description?: string;
     url?: string;
     imageUrl?: string;
-    priority?: number;
   }) =>
     request<import('../types').WishlistItem>('/api/wishlist', {
       method: 'POST',
@@ -166,7 +249,7 @@ export const wishlist = {
     }),
   update: (
     itemId: string,
-    data: { title?: string; description?: string; url?: string; imageUrl?: string; priority?: number }
+    data: { title?: string; description?: string; url?: string; imageUrl?: string }
   ) =>
     request<import('../types').WishlistItem>(`/api/wishlist/${itemId}`, {
       method: 'PATCH',
