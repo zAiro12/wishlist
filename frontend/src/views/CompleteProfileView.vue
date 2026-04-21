@@ -1,20 +1,20 @@
 <template>
   <div class="complete-wrapper">
     <div class="card" style="width: 100%; max-width: 480px;">
-      <h2>Complete Your Profile</h2>
+      <h2>Completa il profilo</h2>
       <p style="color: var(--color-text-muted); margin-bottom: 1.5rem;">
-        We need a few details before you can join groups.
+        Abbiamo bisogno di qualche informazione prima che tu possa entrare nei gruppi.
       </p>
 
       <form @submit.prevent="handleSubmit">
         <div class="form-group">
-          <label for="givenName">First Name</label>
-          <input id="givenName" v-model="givenName" type="text" placeholder="First name" />
+          <label for="givenName">Nome</label>
+          <input id="givenName" v-model="givenName" type="text" placeholder="Nome" />
         </div>
 
         <div class="form-group">
-          <label for="familyName">Last Name</label>
-          <input id="familyName" v-model="familyName" type="text" placeholder="Last name" />
+          <label for="familyName">Cognome</label>
+          <input id="familyName" v-model="familyName" type="text" placeholder="Cognome" />
         </div>
 
         <div class="form-group">
@@ -27,8 +27,8 @@
             <input v-model="year" type="number" min="1900" max="2099" placeholder="YYYY" style="width:6.5rem;"
               required />
           </div>
-          <p style="font-size: 0.8rem; color: var(--color-text-muted); margin-top: 0.25rem;">
-            Your birthdate is used to calculate who to celebrate in groups.
+            <p style="font-size: 0.8rem; color: var(--color-text-muted); margin-top: 0.25rem;">
+            La tua data di nascita è usata per calcolare chi festeggiare nei gruppi.
           </p>
         </div>
 
@@ -36,7 +36,7 @@
 
         <button type="submit" class="btn-primary" :disabled="saving"
           style="width: 100%; padding: 0.75rem; margin-top: 0.5rem;">
-          {{ saving ? 'Saving…' : 'Save and Continue' }}
+          {{ saving ? 'Salvataggio…' : 'Salva e continua' }}
         </button>
       </form>
     </div>
@@ -70,7 +70,7 @@ const error = ref<string | null>(null);
 
 async function handleSubmit() {
   if (!day.value || !month.value || !year.value) {
-    error.value = 'Birthdate is required before you can use the app.';
+    error.value = 'La data di nascita è obbligatoria prima di poter usare l\'app.';
     return;
   }
   saving.value = true;
@@ -84,7 +84,7 @@ async function handleSubmit() {
     await auth.refreshUser();
     await router.replace('/');
   } catch (err) {
-    error.value = err instanceof ApiError ? err.message : 'An unexpected error occurred.';
+    error.value = err instanceof ApiError ? err.message : 'Errore imprevisto.';
   } finally {
     saving.value = false;
   }

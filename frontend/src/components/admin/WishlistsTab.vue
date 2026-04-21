@@ -1,6 +1,6 @@
 <template>
   <div>
-    <p style="color:var(--color-text-muted);font-size:0.875rem;margin-bottom:0.5rem;">{{ total }} items total</p>
+    <p style="color:var(--color-text-muted);font-size:0.875rem;margin-bottom:0.5rem;">{{ total }} elementi in totale</p>
     <p v-if="error" class="error-message">{{ error }}</p>
     <div v-if="loading" class="spinner" />
     <template v-else>
@@ -16,9 +16,9 @@
         </tbody>
       </table>
       <div style="display:flex;gap:0.5rem;margin-top:1rem;">
-        <button class="btn-secondary" :disabled="page === 1" @click="page--; load()">← Prev</button>
-        <span style="font-size:0.875rem;">Page {{ page }}</span>
-        <button class="btn-secondary" :disabled="page * 20 >= total" @click="page++; load()">Next →</button>
+        <button class="btn-secondary" :disabled="page === 1" @click="page--; load()">← Indietro</button>
+        <span style="font-size:0.875rem;">Pagina {{ page }}</span>
+        <button class="btn-secondary" :disabled="page * 20 >= total" @click="page++; load()">Avanti →</button>
       </div>
     </template>
   </div>
@@ -46,7 +46,7 @@ async function load() {
     items.value = res.items;
     total.value = res.total;
   } catch (err) {
-    error.value = err instanceof ApiError ? err.message : 'Failed to load wishlists';
+    error.value = err instanceof ApiError ? err.message : 'Errore nel caricamento delle Wishlist';
   } finally {
     loading.value = false;
   }

@@ -1,7 +1,7 @@
 <template>
     <div v-if="store.visible" class="modal-overlay" @click.self="onCancel">
         <dialog class="modal-card" aria-modal="true" :aria-labelledby="titleId" tabindex="-1" ref="cardRef">
-            <h3 :id="titleId">{{ store.preview?.name ?? 'Group' }}</h3>
+            <h3 :id="titleId">{{ store.preview?.name ?? 'Gruppo' }}</h3>
             <p v-if="store.preview?.description" style="color:var(--color-text-muted)">{{ store.preview?.description }}
             </p>
             <p style="margin-top:1rem;">Vuoi entrare?</p>
@@ -10,7 +10,7 @@
 
             <div style="display:flex;gap:0.5rem;margin-top:1rem;justify-content:flex-end;">
                 <button class="btn-secondary" @click="onCancel">Annulla</button>
-                <button class="btn-primary" :disabled="store.loading" @click="onConfirm">{{ store.loading ? 'Joining…' :
+                <button class="btn-primary" :disabled="store.loading" @click="onConfirm">{{ store.loading ? 'Entrando…' :
                     'Entra nel gruppo' }}</button>
             </div>
         </dialog>

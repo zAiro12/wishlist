@@ -1,13 +1,13 @@
 <template>
   <div class="complete-wrapper">
     <div class="card" style="width: 100%; max-width: 480px;">
-      <h2>Set Your Birthdate</h2>
-      <p style="color: var(--color-text-muted); margin-bottom: 1.5rem;">We need your birthdate to complete your profile.
+      <h2>Imposta la tua data di nascita</h2>
+      <p style="color: var(--color-text-muted); margin-bottom: 1.5rem;">Abbiamo bisogno della tua data di nascita per completare il profilo.
       </p>
 
       <form @submit.prevent="handleSubmit">
         <div class="form-group">
-          <label>Birthdate <span style="color: var(--color-danger);">*</span></label>
+          <label>Data di nascita <span style="color: var(--color-danger);">*</span></label>
           <div style="display:flex;gap:0.5rem;align-items:center;">
             <input v-model="day" type="number" min="1" max="31" placeholder="DD" style="width:4.5rem;" required />
             <input v-model="month" type="number" min="1" max="12" placeholder="MM" style="width:4.5rem;" required />
@@ -15,7 +15,7 @@
               required />
           </div>
           <p style="font-size: 0.8rem; color: var(--color-text-muted); margin-top: 0.25rem;">
-            Your birthdate is used to calculate who to celebrate in groups.
+            La tua data di nascita è usata per calcolare chi festeggiare nei gruppi.
           </p>
         </div>
 
@@ -23,7 +23,7 @@
 
         <button type="submit" class="btn-primary" :disabled="saving"
           style="width: 100%; padding: 0.75rem; margin-top: 0.5rem;">
-          {{ saving ? 'Saving…' : 'Confirm' }}
+          {{ saving ? 'Salvataggio…' : 'Conferma' }}
         </button>
       </form>
     </div>
@@ -59,7 +59,7 @@ const error = ref<string | null>(null);
 
 async function handleSubmit() {
   if (!composedIso.value) {
-    error.value = 'Birthdate is required.';
+    error.value = 'La data di nascita è obbligatoria.';
     return;
   }
   saving.value = true;
@@ -72,8 +72,8 @@ async function handleSubmit() {
     console.error('updateBirthdate failed', err);
     if (err instanceof ApiError) {
       error.value = err.data?.error ?? err.message;
-    } else {
-      error.value = 'An unexpected error occurred while saving your birthdate.';
+      } else {
+      error.value = 'Errore imprevisto durante il salvataggio della data di nascita.';
     }
     saving.value = false;
     return;
@@ -97,7 +97,7 @@ async function handleSubmit() {
   } catch (err) {
     console.error('fetchUser(true) failed after birthdate update', err);
     // Do not mark save as failed; inform user to reload if necessary
-    error.value = 'Profile updated but failed to refresh. Please reload the page.';
+    error.value = 'Profilo aggiornato ma aggiornamento fallito. Ricarica la pagina.';
   }
 
   try {

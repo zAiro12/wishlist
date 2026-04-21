@@ -1,22 +1,22 @@
 <template>
   <NavBar />
   <div class="page-container">
-    <h1>Welcome, {{ auth.user?.givenName ?? auth.user?.email }}!</h1>
+    <h1>Benvenuto, {{ auth.user?.givenName ?? auth.user?.email }}!</h1>
 
     <div class="grid">
       <RouterLink to="/wishlist" class="card-link">
         <div class="card dashboard-card">
           <div class="icon">🎁</div>
-          <h3>My Wishlist</h3>
-          <p>Manage your wishlist items</p>
+          <h3>La Wishlist</h3>
+          <p>Gestisci gli elementi della tua Wishlist</p>
         </div>
       </RouterLink>
 
       <RouterLink to="/groups" class="card-link">
         <div class="card dashboard-card">
           <div class="icon">👥</div>
-          <h3>Groups</h3>
-          <p>Join or manage friend groups</p>
+          <h3>Gruppi</h3>
+          <p>Entra o gestisci i gruppi di amici</p>
         </div>
       </RouterLink>
 
@@ -24,7 +24,7 @@
         <div class="card dashboard-card">
           <div class="icon">🛠</div>
           <h3>Admin</h3>
-          <p>Manage users and data</p>
+          <p>Gestisci utenti e dati</p>
         </div>
       </RouterLink>
     </div>

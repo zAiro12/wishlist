@@ -36,7 +36,7 @@ export const useInviteStore = defineStore('invite', () => {
       const p = await groupsApi.invitePreview(groupId);
       preview.value = p;
     } catch (err) {
-      error.value = err instanceof Error ? err.message : 'Failed to load preview';
+      error.value = err instanceof Error ? err.message : 'Errore caricamento anteprima';
       preview.value = null;
     } finally {
       loading.value = false;
@@ -51,7 +51,7 @@ export const useInviteStore = defineStore('invite', () => {
       hide();
       await router.replace(`/groups/${currentGroupId}`);
     } catch (err) {
-      error.value = err instanceof Error ? err.message : 'Failed to join group';
+      error.value = err instanceof Error ? err.message : 'Errore durante l\'ingresso nel gruppo';
     } finally {
       loading.value = false;
     }

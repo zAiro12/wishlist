@@ -9,12 +9,12 @@
                 tabindex="-1"
                 ref="cardRef"
             >
-                <h3 :id="titleId" class="modal-title">{{ request.title ?? 'Confirm' }}</h3>
-                <p class="modal-message">{{ request.message ?? 'Are you sure?' }}</p>
+                <h3 :id="titleId" class="modal-title">{{ request.title ?? 'Conferma' }}</h3>
+                <p class="modal-message">{{ request.message ?? 'Sei sicuro?' }}</p>
 
                 <div class="modal-actions">
                     <button class="btn-secondary" @click="onCancel">{{ request.cancelLabel ?? 'Annulla' }}</button>
-                    <button class="btn-danger" @click="onConfirm">{{ request.confirmLabel ?? 'Confirm' }}</button>
+                    <button class="btn-danger" @click="onConfirm">{{ request.confirmLabel ?? 'Conferma' }}</button>
                 </div>
             </div>
         </div>

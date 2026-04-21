@@ -1,8 +1,8 @@
 <template>
   <div>
     <div style="display:flex;gap:0.5rem;margin-bottom:1rem;">
-      <input v-model="search" type="text" placeholder="Search by email or name…" style="max-width:320px;" @keydown.enter="doSearch" />
-      <button class="btn-primary" @click="doSearch">Search</button>
+      <input v-model="search" type="text" placeholder="Cerca per email o nome…" style="max-width:320px;" @keydown.enter="doSearch" />
+      <button class="btn-primary" @click="doSearch">Cerca</button>
     </div>
 
     <p v-if="actionMsg" style="color:var(--color-primary);margin-bottom:0.5rem;">{{ actionMsg }}</p>
@@ -10,7 +10,7 @@
 
     <div v-if="loading" class="spinner" />
     <template v-else>
-      <p style="color:var(--color-text-muted);font-size:0.875rem;margin-bottom:0.5rem;">{{ total }} user{{ total !== 1 ? 's' : '' }} total</p>
+      <p style="color:var(--color-text-muted);font-size:0.875rem;margin-bottom:0.5rem;">{{ total }} utente{{ total !== 1 ? 'i' : '' }} in totale</p>
       <table>
         <thead><tr><th>Email</th><th>Name</th><th>Role</th><th>Status</th><th>Birthdate</th><th>Actions</th></tr></thead>
         <tbody>
@@ -34,9 +34,9 @@
         </tbody>
       </table>
       <div style="display:flex;gap:0.5rem;margin-top:1rem;align-items:center;">
-        <button class="btn-secondary" :disabled="page === 1" @click="page--; load()">← Prev</button>
-        <span style="font-size:0.875rem;">Page {{ page }}</span>
-        <button class="btn-secondary" :disabled="page * 20 >= total" @click="page++; load()">Next →</button>
+        <button class="btn-secondary" :disabled="page === 1" @click="page--; load()">← Indietro</button>
+        <span style="font-size:0.875rem;">Pagina {{ page }}</span>
+        <button class="btn-secondary" :disabled="page * 20 >= total" @click="page++; load()">Avanti →</button>
       </div>
     </template>
   </div>
@@ -66,7 +66,7 @@ async function load() {
     users.value = res.users;
     total.value = res.total;
   } catch (err) {
-    error.value = err instanceof ApiError ? err.message : 'Failed';
+    error.value = err instanceof ApiError ? err.message : 'Errore';
   } finally {
     loading.value = false;
   }
@@ -88,7 +88,7 @@ async function doAction(userId: string, action: 'ban' | 'unban' | 'disable' | 'e
     error.value = null;
     await load();
   } catch (err) {
-    error.value = err instanceof ApiError ? err.message : 'Failed';
+    error.value = err instanceof ApiError ? err.message : 'Errore';
     actionMsg.value = null;
   }
 }

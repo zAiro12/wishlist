@@ -15,8 +15,8 @@ const badgeClass = computed(() => {
 });
 
 const label = computed(() => {
-  if (props.status === 'PRENOTATO') return 'Reserved';
-  if (props.status === 'COMPRATO') return 'Purchased';
-  return 'Available';
+  if (props.status === 'PRENOTATO') return 'Prenotato';
+  if (props.status === 'COMPRATO') return 'Comprato';
+  return 'Disponibile';
 });
 </script>

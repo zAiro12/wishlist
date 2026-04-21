@@ -119,7 +119,7 @@ async function request<T>(
   } catch (e) {
     // Parsing failed — log for debugging and return undefined to treat as success
     // in callers that only care about the HTTP status.
-    console.error('Failed to parse JSON response for', path, e);
+    console.error('Errore nel parsing della risposta JSON per', path, e);
     return undefined as T;
   }
 }

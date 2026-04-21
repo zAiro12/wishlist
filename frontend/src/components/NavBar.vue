@@ -4,8 +4,8 @@
       <RouterLink to="/" style="color: var(--color-text); text-decoration: none;">🎁 Wishlist</RouterLink>
     </div>
     <div class="nav-links">
-      <RouterLink to="/wishlist">My Wishlist</RouterLink>
-      <RouterLink to="/groups">Groups</RouterLink>
+      <RouterLink to="/wishlist">La Wishlist</RouterLink>
+      <RouterLink to="/groups">Gruppi</RouterLink>
       <RouterLink v-if="auth.isAdmin" to="/admin">Admin</RouterLink>
       <span style="color: var(--color-text-muted); font-size: 0.875rem;">
         {{ auth.user?.givenName ?? auth.user?.email }}
@@ -16,7 +16,7 @@
         style="font-size: 0.8rem; padding: 0.3rem 0.75rem;"
         @click="$router.push('/login')"
       >
-        Login
+        Accedi
       </button>
       <button
         v-else
@@ -24,7 +24,7 @@
         style="font-size: 0.8rem; padding: 0.3rem 0.75rem;"
         @click="auth.logout()"
       >
-        Logout
+        Esci
       </button>
     </div>
   </nav>
