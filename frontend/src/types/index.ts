@@ -50,7 +50,6 @@ export interface WishlistItem {
   description: string | null;
   url: string | null;
   imageUrl: string | null;
-  priority: number;
   deletedAt: string | null;
   createdAt: string;
   updatedAt: string;

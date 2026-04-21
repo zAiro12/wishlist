@@ -37,7 +37,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
         if (parsed.description !== undefined) updateData['description'] = parsed.description;
         if (parsed.url !== undefined) updateData['url'] = parsed.url || null;
         if (parsed.imageUrl !== undefined) updateData['imageUrl'] = parsed.imageUrl || null;
-        if (parsed.priority !== undefined) updateData['priority'] = parsed.priority;
+        // priority intentionally ignored by API — keep DB column for compatibility but do not expose via handlers
 
         const updated = await prisma.wishlistItem.update({ where: { id: itemId }, data: updateData });
 

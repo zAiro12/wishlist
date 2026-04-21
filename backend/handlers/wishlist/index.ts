@@ -12,7 +12,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
     const userId = authedReq.user.userId;
 
     if (authedReq.method === 'GET') {
-      const items = await prisma.wishlistItem.findMany({ where: { ownerId: userId, deletedAt: null }, include: { status: true }, orderBy: [{ priority: 'desc' }, { createdAt: 'asc' }] });
+      const items = await prisma.wishlistItem.findMany({ where: { ownerId: userId, deletedAt: null }, include: { status: true }, orderBy: [{ createdAt: 'asc' }] });
       const maskedItems = items.map((item) => ({ ...item, status: null }));
       authedRes.status(200).json(maskedItems);
       return;
@@ -22,7 +22,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
       try {
         const parsed = CreateWishlistItemSchema.parse(authedReq.body);
 
-        const item = await prisma.wishlistItem.create({ data: { ownerId: userId, title: parsed.title, description: parsed.description, url: parsed.url || null, imageUrl: parsed.imageUrl || null, priority: parsed.priority } });
+        const item = await prisma.wishlistItem.create({ data: { ownerId: userId, title: parsed.title, description: parsed.description, url: parsed.url || null, imageUrl: parsed.imageUrl || null } });
 
         try {
           await prisma.adminAction.create({ data: { actorId: userId, action: 'ITEM_CREATED', details: { itemId: item.id, title: item.title } } });
