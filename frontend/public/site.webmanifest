@@ -1,0 +1,17 @@
+{
+  "name": "Wishlist",
+  "short_name": "Wishlist",
+  "description": "Share your wishlist with friends and family",
+  "start_url": "/wishlist/",
+  "display": "standalone",
+  "background_color": "#f9fafb",
+  "theme_color": "#6366f1",
+  "icons": [
+    {
+      "src": "/wishlist/favicon.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
