@@ -20,7 +20,7 @@
         </div>
 
         <div style="display:flex;gap:0.5rem;align-items:center;">
-          <RouterLink :to="`/groups/${groupId}/wishlists`" class="btn-primary">Vedi le Wishlist</RouterLink>
+          <RouterLink :to="`/groups/${groupId}/wishlists`" class="btn-primary">Visualizza le Wishlists</RouterLink>
           <button
             v-if="isMember"
             class="btn-secondary"
