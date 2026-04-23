@@ -11,7 +11,7 @@ on:
 
 jobs:
   backend:
-    name: Backend – typecheck & build
+    name: Backend - typecheck & build
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -35,7 +35,7 @@ jobs:
         run: npm run build
 
   frontend:
-    name: Frontend – typecheck, lint & build
+    name: Frontend - typecheck, lint & build
     runs-on: ubuntu-latest
     defaults:
       run:
