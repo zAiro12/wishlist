@@ -11,6 +11,14 @@ const FRONTEND_URL = (process.env.FRONTEND_URL ?? 'http://localhost:5173').repla
 export default async function handler(req: VercelRequest, res: VercelResponse): Promise<void> {
   if (setCors(req, res)) return;
 
+  // Verbose dev logging for this endpoint
+  if (process.env.NODE_ENV !== 'production' || process.env.DEBUG_REQUESTS === 'true') {
+    try {
+      const ip = (req.headers['x-forwarded-for'] as string) || req.socket.remoteAddress || ''
+      console.info(`[dev-login] request from ${ip} ${req.method} ${req.url}`)
+    } catch (e) {}
+  }
+
   if (req.method !== 'GET') {
     res.status(405).json({ error: 'Method not allowed' });
     return;

@@ -23,6 +23,63 @@ if (missingEnv.length) {
 import loginHandler from '../backend/handlers/auth/login'
 import logoutHandler from '../backend/handlers/auth/logout'
 import callbackHandler from '../backend/handlers/auth/callback'
+// Dev-login runtime helper: import compiled backend helpers from `backend/dist/lib` so
+// the handler works when `vercel dev` runs from the repo root and loads `api/index.ts`.
+import { prisma } from '../backend/dist/lib/prisma'
+import { signToken } from '../backend/dist/lib/jwt'
+import { setCors as setCorsLib } from '../backend/dist/lib/cors'
+
+const devLoginHandler: Handler = async (req, res) => {
+	if (setCorsLib(req as any, res as any)) return
+	if ((req.method || '').toUpperCase() !== 'GET') {
+		res.status(405).json({ error: 'Method not allowed' })
+		return
+	}
+	if (process.env.NODE_ENV === 'production') {
+		res.status(404).json({ error: 'Not found' })
+		return
+	}
+	if (process.env.DEV_AUTH_BYPASS !== 'true') {
+		res.status(403).json({ error: 'Dev auth bypass not enabled' })
+		return
+	}
+	const email = (process.env.DEV_AUTH_EMAIL ?? '').toLowerCase().trim()
+	if (!email) {
+		res.status(500).json({ error: 'DEV_AUTH_EMAIL not configured' })
+		return
+	}
+	try {
+		let user = await prisma.user.findUnique({ where: { email } })
+		if (!user) {
+			user = await prisma.user.create({
+				data: {
+					email,
+					emailVerified: true,
+					givenName: process.env.DEV_AUTH_GIVEN_NAME ?? 'Dev',
+					familyName: process.env.DEV_AUTH_FAMILY_NAME ?? 'User',
+					birthdateConfirmed: true,
+				},
+			})
+		}
+		const token = signToken({ userId: user.id, role: user.role })
+		const cookieParts = [
+			`auth_token=${encodeURIComponent(token)}`,
+			'HttpOnly',
+			// In production we require SameSite=None + Secure for cross-site cookies.
+			// For local development (http) use Lax so browsers accept the cookie on redirect.
+			process.env.NODE_ENV === 'production' ? 'SameSite=None' : 'SameSite=Lax',
+			'Path=/',
+			`Max-Age=${15 * 60}`,
+		]
+		if (process.env.NODE_ENV === 'production') cookieParts.push('Secure')
+		res.setHeader('Set-Cookie', cookieParts.join('; '))
+		const FRONTEND_URL = (process.env.FRONTEND_URL ?? 'http://localhost:5173').replace(/\/$/, '')
+		res.redirect(302, `${FRONTEND_URL}/auth/callback?token=${encodeURIComponent(token)}`)
+	} catch (err) {
+		console.error('Dev login error:', err)
+		res.status(500).json({ error: 'server_error' })
+	}
+}
 import meHandler from '../backend/handlers/users/me'
 import birthdateHandler from '../backend/handlers/users/me/birthdate'
 import groupsHandler from '../backend/handlers/groups/index'
@@ -50,8 +107,35 @@ function logRequest(req: VercelRequest) {
 		const method = req.method || 'GET'
 		const rawUrl = req.url || ''
 		console.info(`[api] ${method} ${rawUrl}`)
+
+		const devLogging = process.env.NODE_ENV !== 'production' || process.env.DEBUG_REQUESTS === 'true'
+		if (devLogging) {
+			const headers = req.headers || {}
+			const pick = {
+				origin: headers.origin,
+				'user-agent': headers['user-agent'],
+				'content-type': headers['content-type'],
+				authorization: headers.authorization ? '***' : undefined,
+				cookie: headers.cookie ? '***' : undefined,
+			}
+			console.debug('[api] headers:', JSON.stringify(pick))
+
+			try {
+				const rawUrlStr = req.url || ''
+				const qIdx = rawUrlStr.indexOf('?')
+				if (qIdx !== -1) console.debug('[api] query:', rawUrlStr.slice(qIdx + 1))
+			} catch {}
+
+			try {
+				// body may not be populated for all handlers, but log if present
+				const anyReq = req as any
+				if (anyReq && anyReq.body && Object.keys(anyReq.body).length > 0) {
+					console.debug('[api] body:', JSON.stringify(anyReq.body))
+				}
+			} catch {}
+		}
 	} catch (e) {
-		// best-effort logging, never throw
+		console.log('[api] logRequest error', { message: (e as Error)?.message })
 	}
 }
 
@@ -74,6 +158,7 @@ const routes: { pattern: string; handler: Handler }[] = [
 	{ pattern: '/auth/login',                        handler: loginHandler },
 	{ pattern: '/auth/logout',                       handler: logoutHandler },
 	{ pattern: '/auth/callback',                     handler: callbackHandler },
+	{ pattern: '/auth/dev-login',                    handler: devLoginHandler },
 
 	{ pattern: '/users/me',                          handler: meHandler },
 	{ pattern: '/users/me/birthdate',               handler: birthdateHandler },
