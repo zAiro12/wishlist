@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "start": "npx vercel dev",
+    "start": "npx vercel dev --listen 3000",
     "typecheck": "tsc --noEmit",
     "build": "tsc",
     "db:generate": "prisma generate",
