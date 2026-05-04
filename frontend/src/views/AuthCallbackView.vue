@@ -1,15 +1,15 @@
 <template>
   <div class="page-container" style="text-align: center; padding-top: 5rem;">
     <div v-if="errorMsg" class="card">
-      <h2 style="color: var(--color-danger);">Autenticazione fallita</h2>
-      <p style="margin-top: 0.5rem; color: var(--color-text-muted);">{{ errorMsg }}</p>
+      <h2 style="color: var(--color-error);">Autenticazione fallita</h2>
+      <p style="margin-top: 0.5rem; color: var(--color-on-surface-variant);">{{ errorMsg }}</p>
       <button class="btn-primary" style="margin-top: 1.5rem;" @click="router.push('/login')">
         Torna al login
       </button>
     </div>
     <div v-else>
       <div class="spinner" />
-      <p style="margin-top: 1rem; color: var(--color-text-muted);">Accesso in corso…</p>
+      <p style="margin-top: 1rem; color: var(--color-on-surface-variant);">Accesso in corso…</p>
     </div>
   </div>
 </template>

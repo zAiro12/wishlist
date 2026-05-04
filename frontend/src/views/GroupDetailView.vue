@@ -1,6 +1,6 @@
 <template>
   <NavBar />
-  <div class="page-container">
+  <div class="page-container with-sidebar">
     <div style="margin-bottom:1rem;">
       <RouterLink to="/groups">← Torna ai gruppi</RouterLink>
     </div>
@@ -15,8 +15,8 @@
       <div class="page-header">
         <div>
           <h1 style="margin:0;">{{ group.name }}</h1>
-          <p v-if="group.description" style="color:var(--color-text-muted);">{{ group.description }}</p>
-          <p style="font-size:0.8rem;color:var(--color-text-muted);">ID: <code>{{ group.id }}</code></p>
+          <p v-if="group.description" style="color:var(--color-on-surface-variant);">{{ group.description }}</p>
+          <p style="font-size:0.8rem;color:var(--color-on-surface-variant);">ID: <code>{{ group.id }}</code></p>
         </div>
 
         <div style="display:flex;gap:0.5rem;align-items:center;">
@@ -41,7 +41,7 @@
             tra {{ nextCelebrated.daysUntil }} giorn{{ nextCelebrated.daysUntil !== 1 ? 'i' : 'o' }}
           </span>
         </p>
-        <p v-if="nextCelebrated.users.length > 1" style="color:var(--color-text-muted);font-size:0.875rem;">
+        <p v-if="nextCelebrated.users.length > 1" style="color:var(--color-on-surface-variant);font-size:0.875rem;">
           Altri festeggiati:
           <span
             v-for="(u, idx) in nextCelebrated.users.slice(1)"
@@ -274,16 +274,17 @@ async function handleDeleteGroup() {
 
 .birthday-banner {
   margin-bottom: 1.5rem;
-  border-left: 4px solid var(--color-warning);
+  border-left: 4px solid var(--color-tertiary-fixed-dim);
 }
 
 .remove-btn {
   font-size: 0.75rem;
   padding: 0.2rem 0.5rem;
-  background: var(--color-danger);
-  color: white;
-  border-radius: 4px;
+  background: var(--color-error);
+  color: var(--color-on-error);
+  border-radius: var(--radius-md);
   border: none;
   cursor: pointer;
+  font-family: var(--font-body);
 }
 </style>

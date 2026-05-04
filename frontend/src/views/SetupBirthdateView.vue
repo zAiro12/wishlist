@@ -2,19 +2,19 @@
   <div class="complete-wrapper">
     <div class="card" style="width: 100%; max-width: 480px;">
       <h2>Imposta la tua data di nascita</h2>
-      <p style="color: var(--color-text-muted); margin-bottom: 1.5rem;">Abbiamo bisogno della tua data di nascita per completare il profilo.
+      <p style="color: var(--color-on-surface-variant); margin-bottom: 1.5rem;">Abbiamo bisogno della tua data di nascita per completare il profilo.
       </p>
 
       <form @submit.prevent="handleSubmit">
         <div class="form-group">
-          <label>Data di nascita <span style="color: var(--color-danger);">*</span></label>
+          <label>Data di nascita <span style="color: var(--color-error);">*</span></label>
           <div style="display:flex;gap:0.5rem;align-items:center;">
             <input v-model="day" type="number" min="1" max="31" placeholder="DD" style="width:4.5rem;" required />
             <input v-model="month" type="number" min="1" max="12" placeholder="MM" style="width:4.5rem;" required />
             <input v-model="year" type="number" min="1900" max="2099" placeholder="YYYY" style="width:6.5rem;"
               required />
           </div>
-          <p style="font-size: 0.8rem; color: var(--color-text-muted); margin-top: 0.25rem;">
+            <p style="font-size: 0.8rem; color: var(--color-on-surface-variant); margin-top: 0.25rem;">
             La tua data di nascita è usata per calcolare chi festeggiare nei gruppi.
           </p>
         </div>
@@ -128,5 +128,6 @@ async function handleSubmit() {
   align-items: center;
   justify-content: center;
   padding: 1rem;
+  background: var(--color-background);
 }
 </style>

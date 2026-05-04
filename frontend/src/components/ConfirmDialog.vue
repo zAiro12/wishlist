@@ -65,7 +65,7 @@ watch(
 .modal-overlay {
     position: fixed;
     inset: 0;
-    background: rgba(0, 0, 0, 0.45);
+    background: rgba(27, 28, 25, 0.45);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -74,24 +74,25 @@ watch(
 }
 
 .modal-card {
-    background: var(--color-card);
-    border: 1px solid var(--color-border);
-    border-radius: calc(var(--radius) * 1.5);
+    background: var(--color-surface-container-lowest);
+    border-radius: var(--radius-2xl);
     padding: 1.75rem;
     width: 100%;
     max-width: 420px;
-    box-shadow: 0 8px 32px rgb(0 0 0 / 0.18), 0 2px 8px rgb(0 0 0 / 0.08);
+    box-shadow: 0px 12px 32px rgba(27, 28, 25, 0.12);
+    outline: 1px solid rgba(192, 200, 199, 0.15);
 }
 
 .modal-title {
     font-size: 1.1rem;
     font-weight: 700;
-    color: var(--color-text);
+    font-family: var(--font-headline);
+    color: var(--color-on-surface);
     margin: 0 0 0.5rem 0;
 }
 
 .modal-message {
-    color: var(--color-text-muted);
+    color: var(--color-on-surface-variant);
     font-size: 0.925rem;
     line-height: 1.5;
     margin: 0 0 1.5rem 0;

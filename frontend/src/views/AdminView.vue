@@ -1,6 +1,6 @@
 <template>
   <NavBar />
-  <div class="page-container">
+  <div class="page-container with-sidebar">
     <h1>Admin Dashboard</h1>
 
     <div class="tabs">
@@ -35,7 +35,7 @@ const tab = ref<Tab>('users');
 </script>
 
 <style scoped>
-.tabs { display: flex; border-bottom: 1px solid var(--color-border); margin-bottom: 1.5rem; }
+.tabs { display: flex; border-bottom: 1px solid var(--color-surface-container-highest); margin-bottom: 1.5rem; }
 .tab-btn {
   padding: 0.5rem 1.25rem;
   border: none;
@@ -43,6 +43,9 @@ const tab = ref<Tab>('users');
   background: none;
   cursor: pointer;
   border-radius: 0;
+  font-family: var(--font-body);
+  font-weight: 500;
+  color: var(--color-on-surface-variant);
 }
-.tab-btn.active { border-bottom-color: var(--color-primary); color: var(--color-primary); font-weight: 600; }
+.tab-btn.active { border-bottom-color: var(--color-primary); color: var(--color-primary); font-weight: 700; }
 </style>

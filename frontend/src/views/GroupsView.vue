@@ -1,6 +1,6 @@
 <template>
   <NavBar />
-  <div class="page-container">
+  <div class="page-container with-sidebar">
     <div class="page-header">
       <h1 style="margin:0;">I miei gruppi</h1>
       <button class="btn-primary" @click="showCreate = !showCreate">+ Crea gruppo</button>
@@ -38,16 +38,16 @@
 
     <div v-if="loading" style="text-align:center;padding:3rem;"><div class="spinner" /></div>
     <p v-else-if="error" class="error-message">{{ error }}</p>
-    <div v-else-if="myGroups.length === 0" class="card" style="text-align:center;color:var(--color-text-muted);">
+    <div v-else-if="myGroups.length === 0" class="card" style="text-align:center;color:var(--color-on-surface-variant);">
       <p>Non sei ancora in nessun gruppo.</p>
     </div>
     <div v-else class="groups-grid">
       <RouterLink v-for="group in myGroups" :key="group.id" :to="`/groups/${group.id}`" class="card-link">
         <div class="card group-card">
           <h3 style="margin-bottom:0.25rem;">{{ group.name }}</h3>
-          <p v-if="group.description" style="color:var(--color-text-muted);font-size:0.875rem;margin-bottom:0.5rem;">{{ group.description }}</p>
-          <p style="font-size:0.8rem;color:var(--color-text-muted);">{{ group.memberCount ?? 0 }} membro{{ (group.memberCount ?? 0) !== 1 ? 'i' : '' }}</p>
-          <p style="font-size:0.75rem;color:var(--color-text-muted);margin-top:0.25rem;">ID: <code style="font-size:0.7rem;">{{ group.id }}</code></p>
+          <p v-if="group.description" style="color:var(--color-on-surface-variant);font-size:0.875rem;margin-bottom:0.5rem;">{{ group.description }}</p>
+          <p style="font-size:0.8rem;color:var(--color-on-surface-variant);">{{ group.memberCount ?? 0 }} membro{{ (group.memberCount ?? 0) !== 1 ? 'i' : '' }}</p>
+          <p style="font-size:0.75rem;color:var(--color-on-surface-variant);margin-top:0.25rem;">ID: <code style="font-size:0.7rem;">{{ group.id }}</code></p>
         </div>
       </RouterLink>
     </div>
