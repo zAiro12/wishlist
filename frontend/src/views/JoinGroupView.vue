@@ -1,17 +1,17 @@
 <template>
     <div class="page-container" style="text-align: center; padding-top: 4rem;">
         <div v-if="error" class="card">
-            <h2 style="color: var(--color-danger);">Impossibile entrare nel gruppo</h2>
-            <p style="color:var(--color-text-muted)">{{ error }}</p>
+            <h2 style="color: var(--color-error);">Impossibile entrare nel gruppo</h2>
+            <p style="color:var(--color-outline)">{{ error }}</p>
             <RouterLink to="/groups" class="btn-primary" style="margin-top:1rem;">Torna ai gruppi</RouterLink>
         </div>
         <div v-else class="card">
             <div v-if="loading">
                 <div class="spinner" />
-                <p style="margin-top:1rem;color:var(--color-text-muted);">Entrando nel gruppo…</p>
+                <p style="margin-top:1rem;color:var(--color-outline);">Entrando nel gruppo…</p>
             </div>
             <div v-else>
-                <p style="color:var(--color-text-muted);">Entrando nel gruppo…</p>
+                <p style="color:var(--color-outline);">Entrando nel gruppo…</p>
             </div>
         </div>
     </div>
