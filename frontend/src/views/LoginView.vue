@@ -63,7 +63,7 @@ const auth = useAuthStore();
 
 /* Decorative blobs */
 .hero-bg-top {
-  position: fixed;
+  position: absolute;
   top: -10%;
   right: -10%;
   width: 60%;
@@ -76,7 +76,7 @@ const auth = useAuthStore();
 }
 
 .hero-bg-bottom {
-  position: fixed;
+  position: absolute;
   bottom: -10%;
   left: -10%;
   width: 50%;
