@@ -36,14 +36,14 @@
         <div class="user-avatar">{{ initials }}</div>
         <span class="user-name">{{ displayName }}</span>
       </div>
-      <button class="icon-btn" @click="auth.logout()" title="Esci">
+      <button class="icon-btn" @click="auth.logout()" title="Esci" aria-label="Esci">
         <span class="material-symbols-outlined">logout</span>
       </button>
     </div>
   </aside>
 
   <!-- Top header -->
-  <header class="top-header"></header>
+  <div class="top-header"></div>
 </template>
 
 <script setup lang="ts">
