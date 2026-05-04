@@ -48,6 +48,8 @@
   --color-on-error: #ffffff;
   --color-error-container: #ffdad6;
   --color-on-error-container: #93000a;
+  --color-success: #22c55e;
+  --color-on-success: #ffffff;
   --color-inverse-surface: #30312e;
   --color-inverse-on-surface: #f2f1ec;
 

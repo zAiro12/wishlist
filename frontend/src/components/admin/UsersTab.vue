@@ -98,5 +98,5 @@ async function doAction(userId: string, action: 'ban' | 'unban' | 'disable' | 'e
 .mini-btn { font-size: 0.7rem; padding: 0.2rem 0.4rem; border-radius: var(--radius-sm); border: none; cursor: pointer; color: white; font-family: var(--font-body); }
 .mini-btn.danger  { background: var(--color-error); }
 .mini-btn.muted   { background: var(--color-outline); }
-.mini-btn.success { background: #22c55e; }
+.mini-btn.success { background: var(--color-success); }
 </style>

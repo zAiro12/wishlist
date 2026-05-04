@@ -43,14 +43,7 @@
   </aside>
 
   <!-- Top header -->
-  <header class="top-header">
-    <div class="header-inner">
-      <div class="search-wrapper">
-        <span class="material-symbols-outlined search-icon">search</span>
-        <input type="search" placeholder="Cerca…" class="search-input" />
-      </div>
-    </div>
-  </header>
+  <header class="top-header"></header>
 </template>
 
 <script setup lang="ts">
@@ -238,47 +231,6 @@ const initials = computed(() => {
   background: rgba(251, 249, 244, 0.8);
   border-bottom: 1px solid rgba(192, 200, 199, 0.15);
   z-index: 99;
-  display: flex;
-  align-items: center;
-  padding: 0 1.5rem;
 }
-
-.header-inner {
-  width: 100%;
-  display: flex;
-  align-items: center;
-}
-
-.search-wrapper {
-  position: relative;
-  display: flex;
-  align-items: center;
-  max-width: 320px;
-}
-
-.search-icon {
-  position: absolute;
-  left: 0.75rem;
-  color: var(--color-outline);
-  font-size: 1.1rem;
-  pointer-events: none;
-}
-
-.search-input {
-  width: 100%;
-  padding: 0.5rem 0.75rem 0.5rem 2.25rem;
-  border-radius: var(--radius-full);
-  background: var(--color-surface-container-high);
-  border: none;
-  font-size: 0.875rem;
-  font-family: var(--font-body);
-  color: var(--color-on-surface);
-  outline: none;
-}
-.search-input:focus {
-  outline: 2px solid var(--color-primary);
-  outline-offset: 0;
-}
-.search-input::placeholder { color: var(--color-outline); }
 </style>
 
