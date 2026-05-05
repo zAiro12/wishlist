@@ -141,3 +141,24 @@ th, td {
 }
 th { font-weight: 600; color: var(--color-on-surface-variant); background: var(--color-surface-container-low); }
 tr:hover td { background: var(--color-surface-container-low); }
+
+/* ─── Mobile breakpoints ─── */
+@media (max-width: 767px) {
+  .with-sidebar {
+    margin-left: 0;
+    padding: 80px 16px 24px;
+  }
+
+  h1 { font-size: 1.75rem; }
+
+  .card {
+    padding: 1rem;
+  }
+
+  /* Overflow-safe tables on mobile */
+  table {
+    display: block;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+}

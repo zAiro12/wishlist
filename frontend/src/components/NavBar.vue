@@ -1,31 +1,37 @@
 <template>
+  <!-- Mobile overlay -->
+  <div v-if="isMobileMenuOpen" class="overlay" aria-hidden="true" @click="closeMenu"></div>
+
   <!-- Sidebar -->
-  <aside class="sidebar">
+  <aside class="sidebar" :class="{ open: isMobileMenuOpen }">
     <div class="sidebar-header">
-      <RouterLink to="/" class="sidebar-brand">Wishlist</RouterLink>
+      <RouterLink to="/" class="sidebar-brand" @click="closeMenu">Wishlist</RouterLink>
+      <button class="close-btn icon-btn" aria-label="Chiudi menu" @click="closeMenu">
+        <span class="material-symbols-outlined">close</span>
+      </button>
     </div>
 
     <nav class="sidebar-nav">
-      <RouterLink to="/" class="nav-item" :class="{ active: route.path === '/' }">
+      <RouterLink to="/" class="nav-item" :class="{ active: route.path === '/' }" @click="closeMenu">
         <span class="material-symbols-outlined nav-icon">home</span>
         <span>Home</span>
       </RouterLink>
-      <RouterLink to="/wishlist" class="nav-item" :class="{ active: route.path === '/wishlist' }">
+      <RouterLink to="/wishlist" class="nav-item" :class="{ active: route.path === '/wishlist' }" @click="closeMenu">
         <span class="material-symbols-outlined nav-icon">card_giftcard</span>
         <span>La Wishlist</span>
       </RouterLink>
-      <RouterLink to="/groups" class="nav-item" :class="{ active: route.path.startsWith('/groups') }">
+      <RouterLink to="/groups" class="nav-item" :class="{ active: route.path.startsWith('/groups') }" @click="closeMenu">
         <span class="material-symbols-outlined nav-icon">group</span>
         <span>Gruppi</span>
       </RouterLink>
-      <RouterLink v-if="auth.isAdmin" to="/admin" class="nav-item" :class="{ active: route.path === '/admin' }">
+      <RouterLink v-if="auth.isAdmin" to="/admin" class="nav-item" :class="{ active: route.path === '/admin' }" @click="closeMenu">
         <span class="material-symbols-outlined nav-icon">admin_panel_settings</span>
         <span>Admin</span>
       </RouterLink>
     </nav>
 
     <div class="sidebar-cta">
-      <button class="cta-btn" @click="$router.push('/wishlist')">
+      <button class="cta-btn" @click="navigateToWishlist">
         <span class="material-symbols-outlined">add</span>
         Aggiungi desiderio
       </button>
@@ -36,23 +42,31 @@
         <div class="user-avatar">{{ initials }}</div>
         <span class="user-name">{{ displayName }}</span>
       </div>
-      <button class="icon-btn" @click="auth.logout()" title="Esci" aria-label="Esci">
+      <button class="icon-btn" title="Esci" aria-label="Esci" @click="auth.logout()">
         <span class="material-symbols-outlined">logout</span>
       </button>
     </div>
   </aside>
 
   <!-- Top header -->
-  <div class="top-header"></div>
+  <div class="top-header">
+    <button class="hamburger-btn icon-btn" aria-label="Apri menu" @click="isMobileMenuOpen = true">
+      <span class="material-symbols-outlined">menu</span>
+    </button>
+    <span class="header-brand">Wishlist</span>
+  </div>
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue';
-import { useRoute } from 'vue-router';
+import { ref, computed } from 'vue';
+import { useRoute, useRouter } from 'vue-router';
 import { useAuthStore } from '../stores/auth';
 
 const auth = useAuthStore();
 const route = useRoute();
+const router = useRouter();
+
+const isMobileMenuOpen = ref(false);
 
 const displayName = computed(() => auth.user?.givenName ?? auth.user?.email ?? '');
 
@@ -62,6 +76,15 @@ const initials = computed(() => {
   if (g || f) return `${g.charAt(0)}${f.charAt(0)}`.toUpperCase();
   return (auth.user?.email ?? '?').charAt(0).toUpperCase();
 });
+
+function closeMenu() {
+  isMobileMenuOpen.value = false;
+}
+
+function navigateToWishlist() {
+  router.push('/wishlist');
+  closeMenu();
+}
 </script>
 
 <style scoped>
@@ -81,6 +104,9 @@ const initials = computed(() => {
 }
 
 .sidebar-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
   padding: 0 1.25rem 1.5rem;
 }
 
@@ -108,6 +134,7 @@ const initials = computed(() => {
   align-items: center;
   gap: 0.75rem;
   padding: 0.625rem 0.75rem;
+  min-height: 44px;
   border-radius: var(--radius-xl);
   text-decoration: none;
   font-size: 0.9rem;
@@ -219,6 +246,11 @@ const initials = computed(() => {
   color: var(--color-primary);
 }
 
+/* ─── Close button (mobile only) ─── */
+.close-btn {
+  display: none;
+}
+
 /* ─── Top header ─── */
 .top-header {
   position: fixed;
@@ -226,11 +258,72 @@ const initials = computed(() => {
   left: 16rem;
   right: 0;
   height: 64px;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0 1rem;
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
   background: rgba(251, 249, 244, 0.8);
   border-bottom: 1px solid rgba(192, 200, 199, 0.15);
   z-index: 99;
+}
+
+/* ─── Hamburger button (hidden on desktop) ─── */
+.hamburger-btn {
+  display: none;
+}
+
+/* ─── Header brand text (hidden on desktop, shown on mobile) ─── */
+.header-brand {
+  display: none;
+  font-family: var(--font-headline);
+  font-style: italic;
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--color-primary);
+}
+
+/* ─── Mobile overlay ─── */
+.overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.3);
+  z-index: 150;
+}
+
+/* ─── Mobile breakpoint ─── */
+@media (max-width: 767px) {
+  .sidebar {
+    transform: translateX(-100%);
+    transition: transform 0.3s ease;
+    z-index: 200;
+    visibility: hidden;
+    pointer-events: none;
+  }
+
+  .sidebar.open {
+    transform: translateX(0);
+    visibility: visible;
+    pointer-events: auto;
+  }
+
+  .close-btn {
+    display: flex;
+  }
+
+  .top-header {
+    left: 0;
+    width: 100%;
+  }
+
+  .hamburger-btn {
+    display: flex;
+  }
+
+  .header-brand {
+    display: block;
+  }
 }
 </style>
 
