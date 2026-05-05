@@ -17,9 +17,8 @@
       </RouterLink>
       <p class="guest-hint">Accesso con Google, GitHub o Microsoft — nessuna password.</p>
     </div>
-
-    <!-- Authenticated: existing content -->
     <template v-else>
+      <!-- Authenticated: existing content -->
       <h1>Benvenuto, {{ auth.user?.givenName ?? auth.user?.email }}!</h1>
 
       <div class="grid">
