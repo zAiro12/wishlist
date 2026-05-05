@@ -174,5 +174,10 @@ async function handleDelete(item: WishlistItem) {
     flex-direction: column;
     gap: 0.75rem;
   }
+
+  .item-row > div[style*="margin-left:1rem"],
+  .item-row > div[style*="margin-left: 1rem"] {
+    margin-left: 0 !important;
+  }
 }
 </style>
