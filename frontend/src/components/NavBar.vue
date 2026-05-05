@@ -298,10 +298,14 @@ function navigateToWishlist() {
     transform: translateX(-100%);
     transition: transform 0.3s ease;
     z-index: 200;
+    visibility: hidden;
+    pointer-events: none;
   }
 
   .sidebar.open {
     transform: translateX(0);
+    visibility: visible;
+    pointer-events: auto;
   }
 
   .close-btn {
