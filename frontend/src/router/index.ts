@@ -94,7 +94,7 @@ router.beforeEach(async (to) => {
     return { name: 'Home' };
   }
 
-  if (auth.isAuthenticated && to.path !== '/setup-birthdate' && auth.needsBirthdate) {
+  if (auth.isAuthenticated && to.path !== '/setup-birthdate' && to.path !== '/complete-profile' && auth.needsBirthdate) {
     return { name: 'SetupBirthdate' };
   }
 
