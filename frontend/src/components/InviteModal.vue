@@ -52,6 +52,28 @@ async function onConfirm(): Promise<void> {
 function onKey(e: KeyboardEvent): void {
     if (e.key === 'Escape') {
         onCancel();
+        return;
+    }
+    if (e.key === 'Tab' && cardRef.value) {
+        const focusable = Array.from(
+            cardRef.value.querySelectorAll<HTMLElement>(
+                'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
+            )
+        );
+        if (focusable.length === 0) return;
+        const first = focusable[0];
+        const last = focusable[focusable.length - 1];
+        if (e.shiftKey) {
+            if (document.activeElement === first || document.activeElement === cardRef.value) {
+                e.preventDefault();
+                last.focus();
+            }
+        } else {
+            if (document.activeElement === last || document.activeElement === cardRef.value) {
+                e.preventDefault();
+                first.focus();
+            }
+        }
     }
 }
 
@@ -80,7 +102,7 @@ watch(
     display: flex;
     align-items: center;
     justify-content: center;
-    z-index: 50;
+    z-index: 1000;
 }
 
 .modal-card {

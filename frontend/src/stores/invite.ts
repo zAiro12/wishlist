@@ -45,11 +45,11 @@ export const useInviteStore = defineStore('invite', () => {
 
   async function confirmJoin(router: Router): Promise<void> {
     if (!currentGroupId) return;
+    const targetGroupId = currentGroupId; // capture before any async gap or hide()
     loading.value = true;
     error.value = null; // reset errore precedente
     try {
-      await groupsApi.members.join(currentGroupId); // FIX: era groupsApi.join
-      const targetGroupId = currentGroupId;
+      await groupsApi.members.join(targetGroupId); // FIX: era groupsApi.join
       hide();
       await router.replace(`/groups/${targetGroupId}`);
     } catch (err) {
