@@ -20,7 +20,7 @@
 
     <!-- Authenticated: existing content -->
     <template v-else>
-      <h1>Benvenuto, {{ auth.user.givenName ?? auth.user.email }}!</h1>
+      <h1>Benvenuto, {{ auth.user?.givenName ?? auth.user?.email }}!</h1>
 
       <div class="grid">
         <RouterLink to="/wishlist" class="card-link">
