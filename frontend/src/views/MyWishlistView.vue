@@ -1,6 +1,6 @@
 <template>
   <NavBar />
-  <div class="page-container">
+  <div class="page-container with-sidebar">
     <div class="page-header">
       <h1 style="margin:0;">La Wishlist</h1>
         <button class="btn-primary" @click="openCreate">+ Aggiungi elemento</button>
@@ -35,7 +35,7 @@
       <div class="spinner" />
     </div>
     <p v-else-if="error" class="error-message">{{ error }}</p>
-    <div v-else-if="items.length === 0" class="card" style="text-align:center;color:var(--color-text-muted);">
+    <div v-else-if="items.length === 0" class="card" style="text-align:center;color:var(--color-on-surface-variant);">
       <p>La tua Wishlist è vuota. Aggiungi il tuo primo elemento!</p>
     </div>
     <div v-else style="display:flex;flex-direction:column;gap:0.75rem;">
@@ -46,7 +46,7 @@
             <StatusBadge :status="item.status?.status ?? 'DISPONIBILE'" />
             <!-- priority display removed -->
           </div>
-          <p v-if="item.description" style="color:var(--color-text-muted);font-size:0.875rem;">{{ item.description }}
+          <p v-if="item.description" style="color:var(--color-on-surface-variant);font-size:0.875rem;">{{ item.description }}
           </p>
           <a v-if="item.url" :href="item.url" target="_blank" rel="noopener noreferrer" style="font-size:0.875rem;">Apri link</a>
         </div>

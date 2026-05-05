@@ -1,6 +1,6 @@
 <template>
   <div>
-    <p style="color:var(--color-text-muted);font-size:0.875rem;margin-bottom:0.5rem;">{{ total }} audit entries</p>
+    <p style="color:var(--color-on-surface-variant);font-size:0.875rem;margin-bottom:0.5rem;">{{ total }} audit entries</p>
     <p v-if="error" class="error-message">{{ error }}</p>
     <div v-if="loading" class="spinner" />
     <template v-else>

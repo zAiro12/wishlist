@@ -2,7 +2,7 @@
     <div v-if="store.visible" class="modal-overlay" @click.self="onCancel">
         <dialog class="modal-card" aria-modal="true" :aria-labelledby="titleId" tabindex="-1" ref="cardRef">
             <h3 :id="titleId">{{ store.preview?.name ?? 'Gruppo' }}</h3>
-            <p v-if="store.preview?.description" style="color:var(--color-text-muted)">{{ store.preview?.description }}
+            <p v-if="store.preview?.description" style="color:var(--color-on-surface-variant)">{{ store.preview?.description }}
             </p>
             <p style="margin-top:1rem;">Vuoi entrare?</p>
 
@@ -86,7 +86,7 @@ watch(
 .modal-overlay {
     position: fixed;
     inset: 0;
-    background: rgba(0, 0, 0, 0.4);
+    background: rgba(27, 28, 25, 0.4);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -94,10 +94,13 @@ watch(
 }
 
 .modal-card {
-    background: white;
-    padding: 1.25rem;
-    border-radius: 8px;
+    background: var(--color-surface-container-lowest);
+    padding: 1.75rem;
+    border-radius: var(--radius-2xl);
     width: 100%;
     max-width: 520px;
+    border: none;
+    box-shadow: 0px 12px 32px rgba(27, 28, 25, 0.1);
+    outline: 1px solid rgba(192, 200, 199, 0.15);
 }
 </style>

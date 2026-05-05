@@ -2,7 +2,7 @@
   <div class="complete-wrapper">
     <div class="card" style="width: 100%; max-width: 480px;">
       <h2>Completa il profilo</h2>
-      <p style="color: var(--color-text-muted); margin-bottom: 1.5rem;">
+      <p style="color: var(--color-on-surface-variant); margin-bottom: 1.5rem;">
         Abbiamo bisogno di qualche informazione prima che tu possa entrare nei gruppi.
       </p>
 
@@ -19,7 +19,7 @@
 
         <div class="form-group">
           <label>
-            Birthdate <span style="color: var(--color-danger);">*</span>
+            Birthdate <span style="color: var(--color-error);">*</span>
           </label>
           <div style="display:flex;gap:0.5rem;align-items:center;">
             <input v-model="day" type="number" min="1" max="31" placeholder="DD" style="width:4.5rem;" required />
@@ -27,7 +27,7 @@
             <input v-model="year" type="number" min="1900" max="2099" placeholder="YYYY" style="width:6.5rem;"
               required />
           </div>
-            <p style="font-size: 0.8rem; color: var(--color-text-muted); margin-top: 0.25rem;">
+            <p style="font-size: 0.8rem; color: var(--color-on-surface-variant); margin-top: 0.25rem;">
             La tua data di nascita è usata per calcolare chi festeggiare nei gruppi.
           </p>
         </div>
@@ -98,5 +98,6 @@ async function handleSubmit() {
   align-items: center;
   justify-content: center;
   padding: 1rem;
+  background: var(--color-background);
 }
 </style>

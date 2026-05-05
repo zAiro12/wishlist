@@ -1,18 +1,18 @@
 <template>
   <NavBar />
-  <div class="page-container">
+  <div class="page-container with-sidebar">
     <div style="margin-bottom:1rem;">
       <RouterLink :to="`/groups/${groupId}`">← Torna al gruppo</RouterLink>
     </div>
     <h1>Wishlist del gruppo</h1>
 
-    <div v-if="actionError" class="card" style="margin-bottom:1rem;border-left:4px solid var(--color-danger);">
+    <div v-if="actionError" class="card" style="margin-bottom:1rem;border-left:4px solid var(--color-error);">
       <p class="error-message" style="margin:0;">{{ actionError }}</p>
     </div>
 
     <div v-if="loading" style="text-align:center;padding:3rem;"><div class="spinner" /></div>
     <p v-else-if="error" class="error-message">{{ error }}</p>
-    <div v-else-if="Object.keys(byOwner).length === 0" class="card" style="text-align:center;color:var(--color-text-muted);">
+    <div v-else-if="Object.keys(byOwner).length === 0" class="card" style="text-align:center;color:var(--color-on-surface-variant);">
       <p>Nessun elemento nella Wishlist di questo gruppo.</p>
     </div>
     <template v-else>
@@ -20,7 +20,7 @@
           <h3 style="margin-bottom:1rem;">
           <span v-if="ownerId === currentUserId">🎁 La Wishlist</span>
           <span v-else>{{ ownerName(ownerItems[0]) }}</span>
-            <span v-if="ownerId === currentUserId" style="font-size:0.75rem;color:var(--color-text-muted);margin-left:0.5rem;">
+            <span v-if="ownerId === currentUserId" style="font-size:0.75rem;color:var(--color-on-surface-variant);margin-left:0.5rem;">
             (i tuoi elementi — stato nascosto)
           </span>
         </h3>
@@ -32,7 +32,7 @@
                 <span style="font-weight:500;">{{ item.title }}</span>
                 <StatusBadge :status="item.status?.status ?? 'DISPONIBILE'" />
               </div>
-              <p v-if="item.description" style="font-size:0.8rem;color:var(--color-text-muted);margin-top:0.2rem;">{{ item.description }}</p>
+              <p v-if="item.description" style="font-size:0.8rem;color:var(--color-on-surface-variant);margin-top:0.2rem;">{{ item.description }}</p>
               <a v-if="item.url" :href="item.url" target="_blank" rel="noopener noreferrer" style="font-size:0.8rem;">Apri link</a>
             </div>
 
@@ -45,7 +45,7 @@
                 <button v-if="itemStatus(item) === 'PRENOTATO'" class="action-btn buy" @click="setStatus(item, 'COMPRATO')">Segna come comprato</button>
                 <button class="action-btn clear" @click="clearStatus(item)">Azzera</button>
               </template>
-              <span v-else style="font-size:0.75rem;color:var(--color-text-muted);">Prenotato da un altro gruppo</span>
+              <span v-else style="font-size:0.75rem;color:var(--color-on-surface-variant);">Prenotato da un altro gruppo</span>
             </div>
           </div>
         </div>
@@ -136,8 +136,8 @@ async function clearStatus(item: WishlistItem) {
 <style scoped>
 .item-row {
   padding: 0.75rem;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius);
+  border: 1px solid var(--color-surface-container-highest);
+  border-radius: var(--radius-lg);
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -146,11 +146,12 @@ async function clearStatus(item: WishlistItem) {
 .action-btn {
   font-size: 0.75rem;
   padding: 0.3rem 0.6rem;
-  border-radius: var(--radius);
+  border-radius: var(--radius-lg);
   border: 1px solid;
   cursor: pointer;
+  font-family: var(--font-body);
 }
-.action-btn.reserve { background: #fef9c3; color: #854d0e; border-color: #fde047; }
-.action-btn.buy     { background: #fee2e2; color: #991b1b; border-color: #fca5a5; }
-.action-btn.clear   { background: var(--color-border); color: var(--color-text); border-color: var(--color-border); }
+.action-btn.reserve { background: var(--color-tertiary-fixed); color: var(--color-on-tertiary-fixed); border-color: var(--color-tertiary-fixed-dim); }
+.action-btn.buy     { background: var(--color-error-container); color: var(--color-on-error-container); border-color: var(--color-error-container); }
+.action-btn.clear   { background: var(--color-surface-container-high); color: var(--color-on-surface); border-color: var(--color-outline-variant); }
 </style>

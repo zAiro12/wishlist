@@ -53,8 +53,8 @@ onMounted(() => {
   min-width: 260px;
   max-width: 380px;
   padding: 0.75rem 1rem;
-  border-radius: var(--radius);
-  box-shadow: 0 4px 16px rgb(0 0 0 / 0.12);
+  border-radius: var(--radius-xl);
+  box-shadow: 0 4px 16px rgba(27, 28, 25, 0.12);
   pointer-events: auto;
   display: flex;
   align-items: center;
@@ -77,10 +77,10 @@ onMounted(() => {
 .toast-dismiss:hover { opacity: 1; }
 
 /* Variant colors */
-.success { background: #dcfce7; color: #166534; }
-.error   { background: #fee2e2; color: #991b1b; }
-.warning { background: #fef9c3; color: #854d0e; }
-.info    { background: #e0e7ff; color: #3730a3; }
+.success { background: var(--color-secondary-container); color: var(--color-on-secondary-fixed); }
+.error   { background: var(--color-error-container);     color: var(--color-on-error-container); }
+.warning { background: var(--color-tertiary-fixed);      color: var(--color-on-tertiary-fixed); }
+.info    { background: var(--color-primary-fixed);       color: var(--color-on-primary-fixed); }
 
 /* Transition */
 .toast-enter-active, .toast-leave-active {

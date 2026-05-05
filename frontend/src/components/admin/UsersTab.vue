@@ -10,7 +10,7 @@
 
     <div v-if="loading" class="spinner" />
     <template v-else>
-      <p style="color:var(--color-text-muted);font-size:0.875rem;margin-bottom:0.5rem;">{{ total }} utente{{ total !== 1 ? 'i' : '' }} in totale</p>
+      <p style="color:var(--color-on-surface-variant);font-size:0.875rem;margin-bottom:0.5rem;">{{ total }} utente{{ total !== 1 ? 'i' : '' }} in totale</p>
       <table>
         <thead><tr><th>Email</th><th>Name</th><th>Role</th><th>Status</th><th>Birthdate</th><th>Actions</th></tr></thead>
         <tbody>
@@ -95,8 +95,8 @@ async function doAction(userId: string, action: 'ban' | 'unban' | 'disable' | 'e
 </script>
 
 <style scoped>
-.mini-btn { font-size: 0.7rem; padding: 0.2rem 0.4rem; border-radius: 4px; border: none; cursor: pointer; color: white; }
-.mini-btn.danger  { background: var(--color-danger); }
-.mini-btn.muted   { background: #6b7280; }
+.mini-btn { font-size: 0.7rem; padding: 0.2rem 0.4rem; border-radius: var(--radius-sm); border: none; cursor: pointer; color: white; font-family: var(--font-body); }
+.mini-btn.danger  { background: var(--color-error); }
+.mini-btn.muted   { background: var(--color-outline); }
 .mini-btn.success { background: var(--color-success); }
 </style>

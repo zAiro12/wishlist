@@ -1,6 +1,6 @@
 <template>
   <NavBar />
-  <div class="page-container">
+  <div class="page-container with-sidebar">
     <h1>Benvenuto, {{ auth.user?.givenName ?? auth.user?.email }}!</h1>
 
     <div class="grid">
@@ -48,5 +48,5 @@ const auth = useAuthStore();
 .dashboard-card { text-align: center; cursor: pointer; }
 .icon { font-size: 2.5rem; }
 .dashboard-card h3 { margin-top: 0.5rem; }
-.dashboard-card p { color: var(--color-text-muted); font-size: 0.875rem; }
+.dashboard-card p { color: var(--color-on-surface-variant); font-size: 0.875rem; }
 </style>
