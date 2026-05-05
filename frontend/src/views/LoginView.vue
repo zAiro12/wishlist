@@ -163,5 +163,30 @@ const auth = useAuthStore();
   font-size: 1.1rem;
   flex-shrink: 0;
 }
+
+@media (max-width: 767px) {
+  .login-card {
+    max-width: 100%;
+    margin: 1rem;
+    padding: 1.5rem;
+    border-radius: var(--radius-xl);
+  }
+
+  .hero-bg-top {
+    width: 40%;
+    height: 40%;
+    filter: blur(60px);
+  }
+
+  .hero-bg-bottom {
+    width: 35%;
+    height: 35%;
+    filter: blur(50px);
+  }
+
+  .provider-btn {
+    min-height: 56px;
+  }
+}
 </style>
 

@@ -130,4 +130,11 @@ async function handleSubmit() {
   padding: 1rem;
   background: var(--color-background);
 }
+
+@media (max-width: 767px) {
+  .complete-wrapper {
+    align-items: flex-start;
+    padding-top: 2rem;
+  }
+}
 </style>

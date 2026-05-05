@@ -154,4 +154,11 @@ async function clearStatus(item: WishlistItem) {
 .action-btn.reserve { background: var(--color-tertiary-fixed); color: var(--color-on-tertiary-fixed); border-color: var(--color-tertiary-fixed-dim); }
 .action-btn.buy     { background: var(--color-error-container); color: var(--color-on-error-container); border-color: var(--color-error-container); }
 .action-btn.clear   { background: var(--color-surface-container-high); color: var(--color-on-surface); border-color: var(--color-outline-variant); }
+
+@media (max-width: 767px) {
+  .item-row {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}
 </style>

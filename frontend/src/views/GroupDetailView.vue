@@ -287,4 +287,12 @@ async function handleDeleteGroup() {
   cursor: pointer;
   font-family: var(--font-body);
 }
+
+@media (max-width: 767px) {
+  .page-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.75rem;
+  }
+}
 </style>

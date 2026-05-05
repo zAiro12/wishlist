@@ -49,4 +49,10 @@ const auth = useAuthStore();
 .icon { font-size: 2.5rem; }
 .dashboard-card h3 { margin-top: 0.5rem; }
 .dashboard-card p { color: var(--color-on-surface-variant); font-size: 0.875rem; }
+
+@media (max-width: 767px) {
+  .grid {
+    grid-template-columns: 1fr;
+  }
+}
 </style>

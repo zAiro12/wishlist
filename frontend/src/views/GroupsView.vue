@@ -121,4 +121,16 @@ async function handleJoin() {
 .groups-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 1rem; }
 .card-link { text-decoration: none; }
 .group-card { cursor: pointer; height: 100%; }
+
+@media (max-width: 767px) {
+  .page-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.75rem;
+  }
+
+  .groups-grid {
+    grid-template-columns: 1fr;
+  }
+}
 </style>
