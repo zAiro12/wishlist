@@ -49,7 +49,7 @@ export const useInviteStore = defineStore('invite', () => {
     loading.value = true;
     error.value = null; // reset errore precedente
     try {
-      await groupsApi.members.join(targetGroupId); // FIX: era groupsApi.join
+      await groupsApi.join(targetGroupId);
       hide();
       await router.replace(`/groups/${targetGroupId}`);
     } catch (err) {
