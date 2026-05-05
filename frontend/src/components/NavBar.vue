@@ -93,8 +93,10 @@ function navigateToWishlist() {
   position: fixed;
   left: 0;
   top: 0;
-  height: 100vh;
+  height: 100vh;   /* fallback for older browsers */
+  height: 100dvh;  /* fix iOS Safari: dynamic viewport height excludes browser chrome */
   width: 16rem;
+  padding-bottom: env(safe-area-inset-bottom, 1rem); /* clears iPhone home indicator */
   background: var(--color-surface-container);
   border-radius: 0 var(--radius-2xl) var(--radius-2xl) 0;
   display: flex;
@@ -192,6 +194,7 @@ function navigateToWishlist() {
 .sidebar-footer {
   display: flex;
   align-items: center;
+  flex-shrink: 0;
   gap: 0.5rem;
   padding: 0.75rem 0.75rem 0;
   border-top: 1px solid var(--color-surface-container-highest);
