@@ -105,7 +105,7 @@ export const useAuthStore = defineStore('auth', () => {
   function clearSession(): void {
     token.value = null;
     user.value = null;
-    initialized.value = false; // forza re-fetch al prossimo accesso
+    initialized.value = true; // keep the store in a stable logged-out state
     try { localStorage.removeItem('token'); } catch { /* ignore */ }
     try { sessionStorage.removeItem('token'); } catch { /* ignore */ }
   }
