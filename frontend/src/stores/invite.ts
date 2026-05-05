@@ -45,13 +45,16 @@ export const useInviteStore = defineStore('invite', () => {
 
   async function confirmJoin(router: Router): Promise<void> {
     if (!currentGroupId) return;
+    const targetGroupId = currentGroupId; // capture before any async gap or hide()
     loading.value = true;
+    error.value = null; // reset errore precedente
     try {
-      await groupsApi.join(currentGroupId);
+      await groupsApi.join(targetGroupId);
+      if (!visible.value || currentGroupId !== targetGroupId) return;
       hide();
-      await router.replace(`/groups/${currentGroupId}`);
+      await router.replace(`/groups/${targetGroupId}`);
     } catch (err) {
-      error.value = err instanceof Error ? err.message : 'Errore durante l\'ingresso nel gruppo';
+      error.value = err instanceof Error ? err.message : "Errore durante l'ingresso nel gruppo";
     } finally {
       loading.value = false;
     }

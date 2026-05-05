@@ -85,6 +85,13 @@ export const useAuthStore = defineStore('auth', () => {
       // ignore
     }
     clearSession();
+    // Full page reload to the app's login route so the browser re-evaluates
+    // the server session (cookie) from scratch. If the logout request failed
+    // and the cookie is still valid, main.ts will re-authenticate the user on
+    // reload; if it succeeded, fetchUser returns 401 and the user stays on
+    // /login.
+    const loginUrl = new URL('login', `${window.location.origin}${import.meta.env.BASE_URL}`);
+    window.location.href = loginUrl.toString();
   }
 
   // client-side token storage removed; cookie-based sessions are used.
@@ -105,6 +112,9 @@ export const useAuthStore = defineStore('auth', () => {
   function clearSession(): void {
     token.value = null;
     user.value = null;
+    initialized.value = false;
+    try { localStorage.removeItem('token'); } catch { /* ignore */ }
+    try { sessionStorage.removeItem('token'); } catch { /* ignore */ }
   }
 
   return {
