@@ -105,6 +105,9 @@ export const useAuthStore = defineStore('auth', () => {
   function clearSession(): void {
     token.value = null;
     user.value = null;
+    initialized.value = false; // forza re-fetch al prossimo accesso
+    try { localStorage.removeItem('token'); } catch { /* ignore */ }
+    try { sessionStorage.removeItem('token'); } catch { /* ignore */ }
   }
 
   return {

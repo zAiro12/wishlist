@@ -1,10 +1,10 @@
 <template>
     <div v-if="store.visible" class="modal-overlay" @click.self="onCancel">
-        <dialog class="modal-card" aria-modal="true" :aria-labelledby="titleId" tabindex="-1" ref="cardRef">
+        <div class="modal-card" role="dialog" aria-modal="true" :aria-labelledby="titleId" tabindex="-1" ref="cardRef">
             <h3 :id="titleId">{{ store.preview?.name ?? 'Gruppo' }}</h3>
             <p v-if="store.preview?.description" style="color:var(--color-on-surface-variant)">{{ store.preview?.description }}
             </p>
-            <p style="margin-top:1rem;">Vuoi entrare?</p>
+            <p style="margin-top:1rem;">Vuoi entrare in questo gruppo?</p>
 
             <p v-if="store.error" class="error-message">{{ store.error }}</p>
 
@@ -13,7 +13,7 @@
                 <button class="btn-primary" :disabled="store.loading" @click="onConfirm">{{ store.loading ? 'Entrando…' :
                     'Entra nel gruppo' }}</button>
             </div>
-        </dialog>
+        </div>
     </div>
 </template>
 
@@ -24,7 +24,7 @@ import { useInviteStore } from '../stores/invite';
 
 const store = useInviteStore();
 const router = useRouter();
-const cardRef = ref<HTMLDialogElement | null>(null);
+const cardRef = ref<HTMLDivElement | null>(null);
 const titleId = `invite-modal-title`;
 
 function removeJoinQueryAndReplace(): void {
@@ -66,17 +66,7 @@ watch(
     () => store.visible,
     (v) => {
         if (v) {
-            // focus the modal for accessibility and try native dialog open
-            setTimeout(() => {
-                if (cardRef.value && 'showModal' in cardRef.value && typeof cardRef.value.showModal === 'function') {
-                    try { cardRef.value.showModal(); } catch (e) { void e; }
-                }
-                cardRef.value?.focus();
-            }, 0);
-        } else {
-            if (cardRef.value && 'close' in cardRef.value && typeof cardRef.value.close === 'function') {
-                try { cardRef.value.close(); } catch (e) { void e; }
-            }
+            setTimeout(() => { cardRef.value?.focus(); }, 0);
         }
     }
 );
