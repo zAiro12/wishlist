@@ -32,23 +32,15 @@
         </div>
       </div>
 
-      <div v-if="nextCelebrated.users.length > 0" class="card birthday-banner">
-        <p style="font-weight:600;">
-          <span v-if="nextCelebrated.daysUntil === 0">🎂 Oggi è il compleanno di {{ nextCelebrated.users[0].givenName }}! 🎉</span>
-          <span v-else>
-            🎂 Prossimo compleanno: {{ nextCelebrated.users[0].givenName }} {{ nextCelebrated.users[0].familyName }}
-            tra {{ nextCelebrated.daysUntil }} giorn{{ nextCelebrated.daysUntil !== 1 ? 'i' : 'o' }}
-          </span>
-        </p>
-        <p v-if="nextCelebrated.users.length > 1" style="color:var(--color-on-surface-variant);font-size:0.875rem;">
-          Altri festeggiati:
-          <span
-            v-for="(u, idx) in nextCelebrated.users.slice(1)"
-            :key="u.id"
-          >
-            {{ u.givenName }} {{ u.familyName }}<span v-if="idx < nextCelebrated.users.slice(1).length - 1">, </span>
-          </span>
-        </p>
+      <div v-if="allBirthdays.length > 0" class="card birthday-banner">
+        <p style="font-weight:600;margin-bottom:0.5rem;">🎂 Compleanni</p>
+        <ul class="birthday-list">
+          <li v-for="b in allBirthdays" :key="b.userId">
+            <span class="birthday-name">{{ b.givenName }} {{ b.familyName }}</span>
+            <span v-if="b.daysUntil === 0" class="birthday-days today">🎉 oggi!</span>
+            <span v-else class="birthday-days">tra {{ b.daysUntil }} giorn{{ b.daysUntil !== 1 ? 'i' : 'o' }}</span>
+          </li>
+        </ul>
       </div>
 
       <p v-if="actionMsg" style="color:var(--color-primary);margin-bottom:1rem;">{{ actionMsg }}</p>
@@ -114,7 +106,7 @@ import { useRoute, useRouter } from 'vue-router';
 import NavBar from '../components/NavBar.vue';
 import { groups as groupsApi, ApiError } from '../api/client';
 import { useAuthStore } from '../stores/auth';
-import type { Group, GroupMember, User } from '../types';
+import type { Group, GroupMember } from '../types';
 import { useToast } from '../composables/useToast';
 
 type SharePayload = {
@@ -138,7 +130,6 @@ const { showToast } = useToast();
 const groupId = route.params['groupId'] as string;
 
 const group = ref<Group | null>(null);
-const nextCelebrated = ref<{ users: User[]; daysUntil: number | null }>({ users: [], daysUntil: null });
 const loading = ref(true);
 const error = ref<string | null>(null);
 const actionMsg = ref<string | null>(null);
@@ -153,9 +144,35 @@ function formatBirthday(dateStr: string): string {
   return `${day}/${month}`;
 }
 
+function daysUntilBirthday(dateStr: string): number {
+  const parts = dateStr.split('-');
+  if (parts.length !== 3) return 0;
+  const today = new Date();
+  const todayUtc = Date.UTC(today.getFullYear(), today.getMonth(), today.getDate());
+  const month = parseInt(parts[1], 10) - 1;
+  const day = parseInt(parts[2], 10);
+  let next = Date.UTC(today.getFullYear(), month, day);
+  if (next < todayUtc) next = Date.UTC(today.getFullYear() + 1, month, day);
+  return Math.floor((next - todayUtc) / 86400000);
+}
+
 const isOwner = computed(() => group.value?.ownerId === authStore.user?.id);
 const activeMembers = computed(() => group.value?.members?.filter((m) => m.removedAt === null) ?? []);
 const isMember = computed(() => activeMembers.value.some((m) => m.userId === authStore.user?.id));
+const allBirthdays = computed(() =>
+  activeMembers.value
+    .filter((m) => m.user?.birthdate)
+    .map((m) => {
+      const u = m.user!;
+      return {
+        userId: m.userId,
+        givenName: u.givenName,
+        familyName: u.familyName,
+        daysUntil: daysUntilBirthday(u.birthdate!),
+      };
+    })
+    .sort((a, b) => a.daysUntil - b.daysUntil)
+);
 
 function buildInviteLink(): string {
   const base = import.meta.env.BASE_URL ?? '/';
@@ -201,12 +218,6 @@ onMounted(async () => {
   loading.value = true;
   try {
     group.value = await groupsApi.get(groupId);
-    try {
-      const nc = await groupsApi.nextCelebrated(groupId);
-      nextCelebrated.value = { users: nc.nextCelebrated, daysUntil: nc.daysUntil };
-    } catch {
-      nextCelebrated.value = { users: [], daysUntil: null };
-    }
   } catch (err) {
     error.value = err instanceof ApiError ? err.message : 'Errore caricamento gruppo';
   } finally {
@@ -310,5 +321,34 @@ async function handleDeleteGroup() {
 .member-birthdate {
   color: var(--color-on-surface-variant);
   font-size: 0.8rem;
+}
+
+.birthday-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.birthday-list li {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.birthday-name {
+  font-weight: 500;
+}
+
+.birthday-days {
+  color: var(--color-on-surface-variant);
+  font-size: 0.875rem;
+}
+
+.birthday-days.today {
+  color: var(--color-primary);
+  font-weight: 600;
 }
 </style>
