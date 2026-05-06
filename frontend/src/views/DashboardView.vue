@@ -25,7 +25,7 @@
         <RouterLink to="/wishlist" class="card-link">
           <div class="card dashboard-card">
             <div class="icon">🎁</div>
-            <h3>La Wishlist</h3>
+            <h3>La mia Wishlist</h3>
             <p>Gestisci gli elementi della tua Wishlist</p>
           </div>
         </RouterLink>

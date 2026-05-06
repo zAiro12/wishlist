@@ -2,7 +2,7 @@
   <NavBar />
   <div class="page-container with-sidebar">
     <div class="page-header">
-      <h1 style="margin:0;">La Wishlist</h1>
+      <h1 style="margin:0;">La mia Wishlist</h1>
         <button class="btn-primary" @click="openCreate">+ Aggiungi elemento</button>
     </div>
 

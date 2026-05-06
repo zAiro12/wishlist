@@ -18,7 +18,7 @@
     <template v-else>
       <div v-for="[ownerId, ownerItems] in Object.entries(byOwner)" :key="ownerId" class="card" style="margin-bottom:1.5rem;">
           <h3 style="margin-bottom:1rem;">
-          <span v-if="ownerId === currentUserId">🎁 La Wishlist</span>
+          <span v-if="ownerId === currentUserId">🎁 La mia Wishlist</span>
           <span v-else>{{ ownerName(ownerItems[0]) }}</span>
             <span v-if="ownerId === currentUserId" style="font-size:0.75rem;color:var(--color-on-surface-variant);margin-left:0.5rem;">
             (i tuoi elementi — stato nascosto)
