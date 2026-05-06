@@ -91,7 +91,7 @@ async function handleSubmit() {
       ...(needsName ? { givenName: givenName.value.trim(), familyName: familyName.value.trim() } : {}),
       ...(needsBirthdate && composedIso.value ? { birthdate: composedIso.value } : {}),
     });
-    await auth.refreshUser();
+    await auth.fetchUser(true);
     const rawRedirect = route.query.redirect as string | string[] | null | undefined;
     const target = sanitizeRedirectTarget(rawRedirect);
     await router.replace(target);
