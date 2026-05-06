@@ -26,7 +26,6 @@
             class="btn-secondary"
             @click="shareInviteLink"
             :aria-label="copied ? 'Link copiato' : 'Condividi invito'"
-            style="padding:0.5rem 0.75rem;"
           >
             {{ copied ? '✓ Link copiato!' : 'Condividi invito' }}
           </button>
