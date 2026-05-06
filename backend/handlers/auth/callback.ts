@@ -163,6 +163,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
     const token = signToken({ userId: user.id, role: user.role });
 
     const needsBirthdate = !user.birthdate || !user.birthdateConfirmed;
+    const needsName = !user.givenName || !user.familyName;
 
     const cookieParts = [
       `auth_token=${encodeURIComponent(token)}`,
@@ -176,20 +177,18 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
     res.setHeader('Set-Cookie', cookieParts.join('; '));
 
     // Redirect to frontend and include the token as a query parameter so the
-    // frontend can read it and persist it to local/session storage. Use
-    // `needsBirthdate` as a query param as well.
-    const encodedToken = encodeURIComponent(token);
+    // frontend can read it and persist it to local/session storage.
+    // Pass raw token to URLSearchParams — it handles encoding internally.
     // Forward any stored oauth_redirect cookie to the frontend callback so the
     // frontend can perform a post-login redirect (e.g. to /join/:groupId).
     const redirectCookie = cookies['oauth_redirect'] ? String(cookies['oauth_redirect']) : '';
-    const encodedRedirect = redirectCookie ? `&redirect=${encodeURIComponent(redirectCookie)}` : '';
 
-    const targetBase = needsBirthdate
-      ? `${FRONTEND_URL}/auth/callback?needsBirthdate=true&token=${encodedToken}`
-      : `${FRONTEND_URL}/auth/callback?token=${encodedToken}`;
+    const params = new URLSearchParams({ token });
+    if (needsBirthdate) params.set('needsBirthdate', 'true');
+    if (needsName) params.set('needsName', 'true');
+    if (redirectCookie) params.set('redirect', redirectCookie);
 
-    const target = `${targetBase}${encodedRedirect}`;
-    res.redirect(302, target);
+    res.redirect(302, `${FRONTEND_URL}/auth/callback?${params.toString()}`);
   } catch (err) {
     console.error('OAuth callback error:', err);
     redirectError(res, 'server_error');

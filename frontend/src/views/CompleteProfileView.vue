@@ -7,19 +7,21 @@
       </p>
 
       <form @submit.prevent="handleSubmit">
-        <div class="form-group">
-          <label for="givenName">Nome</label>
-          <input id="givenName" v-model="givenName" type="text" placeholder="Nome" />
-        </div>
+        <template v-if="needsName">
+          <div class="form-group">
+            <label for="givenName">Nome <span style="color: var(--color-error);">*</span></label>
+            <input id="givenName" v-model="givenName" type="text" placeholder="Nome" required />
+          </div>
 
-        <div class="form-group">
-          <label for="familyName">Cognome</label>
-          <input id="familyName" v-model="familyName" type="text" placeholder="Cognome" />
-        </div>
+          <div class="form-group">
+            <label for="familyName">Cognome <span style="color: var(--color-error);">*</span></label>
+            <input id="familyName" v-model="familyName" type="text" placeholder="Cognome" required />
+          </div>
+        </template>
 
-        <div class="form-group">
+        <div v-if="needsBirthdate" class="form-group">
           <label>
-            Birthdate <span style="color: var(--color-error);">*</span>
+            Data di nascita <span style="color: var(--color-error);">*</span>
           </label>
           <div style="display:flex;gap:0.5rem;align-items:center;">
             <input v-model="day" type="number" min="1" max="31" placeholder="DD" style="width:4.5rem;" required />
@@ -27,7 +29,7 @@
             <input v-model="year" type="number" min="1900" max="2099" placeholder="YYYY" style="width:6.5rem;"
               required />
           </div>
-            <p style="font-size: 0.8rem; color: var(--color-on-surface-variant); margin-top: 0.25rem;">
+          <p style="font-size: 0.8rem; color: var(--color-on-surface-variant); margin-top: 0.25rem;">
             La tua data di nascita è usata per calcolare chi festeggiare nei gruppi.
           </p>
         </div>
@@ -45,12 +47,17 @@
 
 <script setup lang="ts">
 import { ref, computed } from 'vue';
-import { useRouter } from 'vue-router';
+import { useRouter, useRoute } from 'vue-router';
 import { useAuthStore } from '../stores/auth';
 import { users as usersApi, ApiError } from '../api/client';
+import sanitizeRedirectTarget from '../utils/sanitizeRedirect';
 
 const router = useRouter();
+const route = useRoute();
 const auth = useAuthStore();
+
+const needsName = computed(() => route.query.needsName === 'true');
+const needsBirthdate = computed(() => route.query.needsBirthdate === 'true');
 
 const givenName = ref(auth.user?.givenName ?? '');
 const familyName = ref(auth.user?.familyName ?? '');
@@ -69,7 +76,17 @@ const saving = ref(false);
 const error = ref<string | null>(null);
 
 async function handleSubmit() {
-  if (!day.value || !month.value || !year.value) {
+  if (!needsName.value && !needsBirthdate.value) {
+    // Nothing to update — redirect straight away.
+    const rawRedirect = route.query.redirect as string | string[] | null | undefined;
+    await router.replace(sanitizeRedirectTarget(rawRedirect));
+    return;
+  }
+  if (needsName.value && (!givenName.value.trim() || !familyName.value.trim())) {
+    error.value = 'Nome e cognome sono obbligatori.';
+    return;
+  }
+  if (needsBirthdate.value && (!day.value || !month.value || !year.value)) {
     error.value = 'La data di nascita è obbligatoria prima di poter usare l\'app.';
     return;
   }
@@ -77,12 +94,13 @@ async function handleSubmit() {
   error.value = null;
   try {
     await usersApi.updateProfile({
-      givenName: givenName.value || undefined,
-      familyName: familyName.value || undefined,
-      birthdate: composedIso.value,
+      ...(needsName.value ? { givenName: givenName.value.trim(), familyName: familyName.value.trim() } : {}),
+      ...(needsBirthdate.value && composedIso.value ? { birthdate: composedIso.value } : {}),
     });
-    await auth.refreshUser();
-    await router.replace('/');
+    await auth.fetchUser(true);
+    const rawRedirect = route.query.redirect as string | string[] | null | undefined;
+    const target = sanitizeRedirectTarget(rawRedirect);
+    await router.replace(target);
   } catch (err) {
     error.value = err instanceof ApiError ? err.message : 'Errore imprevisto.';
   } finally {

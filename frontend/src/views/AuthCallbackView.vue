@@ -37,6 +37,7 @@ const ERROR_MESSAGES: Record<string, string> = {
 onMounted(async () => {
   // Read non-sensitive params from the query string
   const needsBirthdate = route.query.needsBirthdate === 'true';
+  const needsName = route.query.needsName === 'true';
   const tokenFromQuery = (route.query.token as string | undefined) ?? undefined;
   const err = route.query['error'] as string | undefined;
   const redirectPath = (route.query.redirect as string | undefined) ?? undefined;
@@ -87,13 +88,12 @@ onMounted(async () => {
     // ignore fetch errors here; we'll redirect based on what we know
   }
 
-  if (needsBirthdate || auth.needsBirthdate) {
-    // Preserve redirect for post-birthdate completion
-    if (redirectPath) {
-      await router.replace({ name: 'SetupBirthdate', query: { redirect: redirectPath } });
-    } else {
-      await router.replace({ name: 'SetupBirthdate' });
-    }
+  if (needsBirthdate || needsName || auth.needsBirthdate) {
+    const profileParams: Record<string, string> = {};
+    if (needsBirthdate || auth.needsBirthdate) profileParams.needsBirthdate = 'true';
+    if (needsName) profileParams.needsName = 'true';
+    if (redirectPath) profileParams.redirect = redirectPath;
+    await router.replace({ path: '/complete-profile', query: profileParams });
   } else {
     if (redirectPath) {
       await router.replace({ path: redirectPath });
