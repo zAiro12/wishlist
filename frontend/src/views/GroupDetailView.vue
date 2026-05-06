@@ -147,9 +147,10 @@ const transferUserId = ref('');
 const copied = ref(false);
 
 function formatBirthday(dateStr: string): string {
-  const parts = dateStr.split('-');
-  if (parts.length < 3) return '';
-  return `${parts[2]}/${parts[1]}`;
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(dateStr);
+  if (!match) return dateStr;
+  const [, , month, day] = match;
+  return `${day}/${month}`;
 }
 
 const isOwner = computed(() => group.value?.ownerId === authStore.user?.id);
