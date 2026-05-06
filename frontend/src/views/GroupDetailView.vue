@@ -14,9 +14,43 @@
     <template v-else-if="group">
       <div class="page-header">
         <div>
-          <h1 style="margin:0;">{{ group.name }}</h1>
-          <p v-if="group.description" style="color:var(--color-on-surface-variant);">{{ group.description }}</p>
-          <p style="font-size:0.8rem;color:var(--color-on-surface-variant);">ID: <code>{{ group.id }}</code></p>
+          <div class="editable-field">
+            <template v-if="editingName">
+              <input
+                v-model="editNameValue"
+                class="edit-input"
+                maxlength="100"
+                @keyup.enter="saveGroupName"
+                @keyup.escape="cancelEditName"
+              />
+              <button class="icon-btn confirm-btn" @click="saveGroupName" aria-label="Salva nome">✓</button>
+              <button class="icon-btn cancel-btn" @click="cancelEditName" aria-label="Annulla">✕</button>
+            </template>
+            <template v-else>
+              <h1 style="margin:0;">{{ group.name }}</h1>
+              <button v-if="isOwner" class="icon-btn pencil-btn" @click="startEditName" aria-label="Modifica nome">✏️</button>
+            </template>
+          </div>
+
+          <div class="editable-field">
+            <template v-if="editingDescription">
+              <textarea
+                v-model="editDescriptionValue"
+                class="edit-input edit-textarea"
+                maxlength="500"
+                rows="2"
+                @keyup.escape="cancelEditDescription"
+              />
+              <button class="icon-btn confirm-btn" @click="saveGroupDescription" aria-label="Salva descrizione">✓</button>
+              <button class="icon-btn cancel-btn" @click="cancelEditDescription" aria-label="Annulla">✕</button>
+            </template>
+            <template v-else>
+              <p style="color:var(--color-on-surface-variant);margin:0.25rem 0 0;">{{ displayDescription }}</p>
+              <button v-if="isOwner" class="icon-btn pencil-btn" @click="startEditDescription" aria-label="Modifica descrizione">✏️</button>
+            </template>
+          </div>
+
+          <p style="font-size:0.8rem;color:var(--color-on-surface-variant);margin-top:0.4rem;">ID: <code>{{ group.id }}</code></p>
         </div>
 
         <div style="display:flex;gap:0.5rem;align-items:center;">
@@ -137,6 +171,62 @@ const actionError = ref<string | null>(null);
 const transferUserId = ref('');
 const copied = ref(false);
 
+const editingName = ref(false);
+const editNameValue = ref('');
+const editingDescription = ref(false);
+const editDescriptionValue = ref('');
+
+function startEditName() {
+  editNameValue.value = group.value?.name ?? '';
+  editingName.value = true;
+}
+
+function cancelEditName() {
+  editingName.value = false;
+}
+
+async function saveGroupName() {
+  const name = editNameValue.value.trim();
+  if (!name || name.length < 2) {
+    actionError.value = 'Il nome deve contenere almeno 2 caratteri';
+    actionMsg.value = null;
+    return;
+  }
+  try {
+    const updated = await groupsApi.update(groupId, { name });
+    if (group.value) group.value.name = updated.name;
+    editingName.value = false;
+    actionMsg.value = 'Nome aggiornato.';
+    actionError.value = null;
+  } catch (err) {
+    actionError.value = err instanceof ApiError ? err.message : 'Errore durante il salvataggio del nome';
+    actionMsg.value = null;
+  }
+}
+
+function startEditDescription() {
+  editDescriptionValue.value = group.value?.description ?? '';
+  editingDescription.value = true;
+}
+
+function cancelEditDescription() {
+  editingDescription.value = false;
+}
+
+async function saveGroupDescription() {
+  const description = editDescriptionValue.value.trim();
+  try {
+    const updated = await groupsApi.update(groupId, { description });
+    if (group.value) group.value.description = updated.description;
+    editingDescription.value = false;
+    actionMsg.value = 'Descrizione aggiornata.';
+    actionError.value = null;
+  } catch (err) {
+    actionError.value = err instanceof ApiError ? err.message : 'Errore durante il salvataggio della descrizione';
+    actionMsg.value = null;
+  }
+}
+
 function formatBirthday(dateStr: string): string {
   const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(dateStr);
   if (!match) return dateStr;
@@ -159,6 +249,9 @@ function daysUntilBirthday(dateStr: string): number {
 const isOwner = computed(() => group.value?.ownerId === authStore.user?.id);
 const activeMembers = computed(() => group.value?.members?.filter((m) => m.removedAt === null) ?? []);
 const isMember = computed(() => activeMembers.value.some((m) => m.userId === authStore.user?.id));
+const displayDescription = computed(() =>
+  group.value?.description || (isOwner.value ? 'Nessuna descrizione' : '')
+);
 const allBirthdays = computed(() =>
   activeMembers.value
     .filter((m) => m.user?.birthdate)
@@ -350,5 +443,60 @@ async function handleDeleteGroup() {
 .birthday-days.today {
   color: var(--color-primary);
   font-weight: 600;
+}
+
+.editable-field {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  flex-wrap: wrap;
+}
+
+.pencil-btn {
+  font-size: 0.85rem;
+  opacity: 0.6;
+  transition: opacity 0.15s;
+}
+
+.pencil-btn:hover {
+  opacity: 1;
+}
+
+.icon-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0.1rem 0.3rem;
+  font-family: var(--font-body);
+  font-size: 0.9rem;
+  line-height: 1;
+  border-radius: var(--radius-sm, 4px);
+}
+
+.confirm-btn {
+  color: var(--color-primary);
+  font-weight: 700;
+}
+
+.cancel-btn {
+  color: var(--color-error);
+  font-weight: 700;
+}
+
+.edit-input {
+  border: 1px solid var(--color-outline, #aaa);
+  border-radius: var(--radius-md, 6px);
+  padding: 0.25rem 0.5rem;
+  font-family: var(--font-body);
+  font-size: 1rem;
+  background: var(--color-surface, #fff);
+  color: var(--color-on-surface, #000);
+  min-width: 12rem;
+}
+
+.edit-textarea {
+  font-size: 0.9rem;
+  min-width: 16rem;
+  resize: vertical;
 }
 </style>
