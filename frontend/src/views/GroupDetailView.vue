@@ -67,9 +67,14 @@
           </thead>
           <tbody>
             <tr v-for="m in activeMembers" :key="m.id">
-              <td>{{ m.user?.givenName }} {{ m.user?.familyName }}</td>
+              <td>
+                {{ m.user?.givenName }} {{ m.user?.familyName }}
+                <span v-if="m.user?.birthdate" style="color:var(--color-on-surface-variant);font-size:0.8rem;">
+                  ({{ formatBirthday(m.user.birthdate) }})
+                </span>
+              </td>
               <td>{{ m.user?.email }}</td>
-              <td>{{ m.userId === group.ownerId ? '👑 Proprietario' : 'Membro' }}</td>
+              <td>{{ m.userId === group.ownerId ? '👑 Proprietario' : m.user?.email === 'giada.galli18@hotmail.com' ? '👸 Principessa' : 'Membro' }}</td>
               <td v-if="isOwner">
                 <button v-if="m.userId !== authStore.user?.id" class="remove-btn" @click="handleRemove(m)">Rimuovi</button>
               </td>
@@ -140,6 +145,12 @@ const actionMsg = ref<string | null>(null);
 const actionError = ref<string | null>(null);
 const transferUserId = ref('');
 const copied = ref(false);
+
+function formatBirthday(dateStr: string): string {
+  const parts = dateStr.split('-');
+  if (parts.length < 3) return '';
+  return `${parts[2]}/${parts[1]}`;
+}
 
 const isOwner = computed(() => group.value?.ownerId === authStore.user?.id);
 const activeMembers = computed(() => group.value?.members?.filter((m) => m.removedAt === null) ?? []);
