@@ -50,6 +50,7 @@ import { ref, computed } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
 import { useAuthStore } from '../stores/auth';
 import { users as usersApi, ApiError } from '../api/client';
+import sanitizeRedirectTarget from '../utils/sanitizeRedirect';
 
 const router = useRouter();
 const route = useRoute();
@@ -92,10 +93,8 @@ async function handleSubmit() {
     });
     await auth.refreshUser();
     const rawRedirect = route.query.redirect as string | string[] | null | undefined;
-    let redirect: string | undefined;
-    if (Array.isArray(rawRedirect)) redirect = rawRedirect[0];
-    else if (typeof rawRedirect === 'string') redirect = rawRedirect.trim() || undefined;
-    await router.replace(redirect ?? '/');
+    const target = sanitizeRedirectTarget(rawRedirect);
+    await router.replace(target);
   } catch (err) {
     error.value = err instanceof ApiError ? err.message : 'Errore imprevisto.';
   } finally {
