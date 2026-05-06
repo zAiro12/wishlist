@@ -178,12 +178,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
 
     // Redirect to frontend and include the token as a query parameter so the
     // frontend can read it and persist it to local/session storage.
-    const encodedToken = encodeURIComponent(token);
+    // Pass raw token to URLSearchParams — it handles encoding internally.
     // Forward any stored oauth_redirect cookie to the frontend callback so the
     // frontend can perform a post-login redirect (e.g. to /join/:groupId).
     const redirectCookie = cookies['oauth_redirect'] ? String(cookies['oauth_redirect']) : '';
 
-    const params = new URLSearchParams({ token: encodedToken });
+    const params = new URLSearchParams({ token });
     if (needsBirthdate) params.set('needsBirthdate', 'true');
     if (needsName) params.set('needsName', 'true');
     if (redirectCookie) params.set('redirect', redirectCookie);

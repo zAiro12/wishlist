@@ -76,6 +76,12 @@ const saving = ref(false);
 const error = ref<string | null>(null);
 
 async function handleSubmit() {
+  if (!needsName.value && !needsBirthdate.value) {
+    // Nothing to update — redirect straight away.
+    const rawRedirect = route.query.redirect as string | string[] | null | undefined;
+    await router.replace(sanitizeRedirectTarget(rawRedirect));
+    return;
+  }
   if (needsName.value && (!givenName.value.trim() || !familyName.value.trim())) {
     error.value = 'Nome e cognome sono obbligatori.';
     return;
