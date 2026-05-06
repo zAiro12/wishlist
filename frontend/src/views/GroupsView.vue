@@ -46,7 +46,7 @@
         <div class="card group-card">
           <h3 style="margin-bottom:0.25rem;">{{ group.name }}</h3>
           <p v-if="group.description" style="color:var(--color-on-surface-variant);font-size:0.875rem;margin-bottom:0.5rem;">{{ group.description }}</p>
-          <p style="font-size:0.8rem;color:var(--color-on-surface-variant);">{{ group.memberCount ?? 0 }} membro{{ (group.memberCount ?? 0) !== 1 ? 'i' : '' }}</p>
+          <p style="font-size:0.8rem;color:var(--color-on-surface-variant);">{{ group.memberCount ?? 0 }} membr{{ (group.memberCount ?? 0) !== 1 ? 'i' : 'o' }}</p>
           <p style="font-size:0.75rem;color:var(--color-on-surface-variant);margin-top:0.25rem;">ID: <code style="font-size:0.7rem;">{{ group.id }}</code></p>
         </div>
       </RouterLink>
