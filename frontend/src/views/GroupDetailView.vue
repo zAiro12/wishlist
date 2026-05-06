@@ -69,7 +69,7 @@
             <tr v-for="m in activeMembers" :key="m.id">
               <td>
                 {{ m.user?.givenName }} {{ m.user?.familyName }}
-                <span v-if="m.user?.birthdate" style="color:var(--color-on-surface-variant);font-size:0.8rem;">
+                <span v-if="m.user?.birthdate" class="member-birthdate">
                   ({{ formatBirthday(m.user.birthdate) }})
                 </span>
               </td>
@@ -305,5 +305,10 @@ async function handleDeleteGroup() {
     align-items: flex-start;
     gap: 0.75rem;
   }
+}
+
+.member-birthdate {
+  color: var(--color-on-surface-variant);
+  font-size: 0.8rem;
 }
 </style>
