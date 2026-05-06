@@ -145,14 +145,15 @@ function formatBirthday(dateStr: string): string {
 }
 
 function daysUntilBirthday(dateStr: string): number {
+  const parts = dateStr.split('-');
+  if (parts.length !== 3) return 0;
   const today = new Date();
   const todayUtc = Date.UTC(today.getFullYear(), today.getMonth(), today.getDate());
-  const parts = dateStr.split('-');
   const month = parseInt(parts[1], 10) - 1;
   const day = parseInt(parts[2], 10);
   let next = Date.UTC(today.getFullYear(), month, day);
   if (next < todayUtc) next = Date.UTC(today.getFullYear() + 1, month, day);
-  return Math.round((next - todayUtc) / 86400000);
+  return Math.floor((next - todayUtc) / 86400000);
 }
 
 const isOwner = computed(() => group.value?.ownerId === authStore.user?.id);
@@ -161,12 +162,15 @@ const isMember = computed(() => activeMembers.value.some((m) => m.userId === aut
 const allBirthdays = computed(() =>
   activeMembers.value
     .filter((m) => m.user?.birthdate)
-    .map((m) => ({
-      userId: m.userId,
-      givenName: m.user!.givenName,
-      familyName: m.user!.familyName,
-      daysUntil: daysUntilBirthday(m.user!.birthdate!),
-    }))
+    .map((m) => {
+      const u = m.user!;
+      return {
+        userId: m.userId,
+        givenName: u.givenName,
+        familyName: u.familyName,
+        daysUntil: daysUntilBirthday(u.birthdate!),
+      };
+    })
     .sort((a, b) => a.daysUntil - b.daysUntil)
 );
 
