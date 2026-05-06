@@ -56,8 +56,8 @@ const router = useRouter();
 const route = useRoute();
 const auth = useAuthStore();
 
-const needsName = route.query.needsName === 'true';
-const needsBirthdate = route.query.needsBirthdate === 'true';
+const needsName = computed(() => route.query.needsName === 'true');
+const needsBirthdate = computed(() => route.query.needsBirthdate === 'true');
 
 const givenName = ref(auth.user?.givenName ?? '');
 const familyName = ref(auth.user?.familyName ?? '');
@@ -76,11 +76,11 @@ const saving = ref(false);
 const error = ref<string | null>(null);
 
 async function handleSubmit() {
-  if (needsName && (!givenName.value.trim() || !familyName.value.trim())) {
+  if (needsName.value && (!givenName.value.trim() || !familyName.value.trim())) {
     error.value = 'Nome e cognome sono obbligatori.';
     return;
   }
-  if (needsBirthdate && (!day.value || !month.value || !year.value)) {
+  if (needsBirthdate.value && (!day.value || !month.value || !year.value)) {
     error.value = 'La data di nascita è obbligatoria prima di poter usare l\'app.';
     return;
   }
@@ -88,8 +88,8 @@ async function handleSubmit() {
   error.value = null;
   try {
     await usersApi.updateProfile({
-      ...(needsName ? { givenName: givenName.value.trim(), familyName: familyName.value.trim() } : {}),
-      ...(needsBirthdate && composedIso.value ? { birthdate: composedIso.value } : {}),
+      ...(needsName.value ? { givenName: givenName.value.trim(), familyName: familyName.value.trim() } : {}),
+      ...(needsBirthdate.value && composedIso.value ? { birthdate: composedIso.value } : {}),
     });
     await auth.fetchUser(true);
     const rawRedirect = route.query.redirect as string | string[] | null | undefined;
