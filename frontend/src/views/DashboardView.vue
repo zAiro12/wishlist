@@ -64,8 +64,8 @@ const auth = useAuthStore();
   grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
   gap: 1rem;
 }
-.card-link { text-decoration: none; }
-.dashboard-card { text-align: center; cursor: pointer; height: 100%; }
+.card-link { text-decoration: none; display: flex; }
+.dashboard-card { text-align: center; cursor: pointer; flex: 1; }
 .icon { font-size: 2.5rem; }
 .dashboard-card h3 { margin-top: 0.5rem; }
 .dashboard-card p { color: var(--color-on-surface-variant); font-size: 0.875rem; }
