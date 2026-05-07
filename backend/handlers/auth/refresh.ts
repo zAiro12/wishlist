@@ -29,15 +29,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
   const bearer = req.headers.authorization?.startsWith('Bearer ')
     ? req.headers.authorization.slice(7)
     : null;
-  let raw = bearer;
-  if (!raw) {
+  const raw = bearer ?? (() => {
     try {
       const cookies = parseCookies(req.headers.cookie ?? '');
-      raw = cookies['auth_token'] ?? null;
+      return cookies['auth_token'] ?? null;
     } catch {
-      raw = null;
+      // Intentionally ignore malformed cookie headers and continue as unauthenticated.
+      return null;
     }
-  }
+  })();
   if (!raw) {
     res.status(401).json({ error: 'No token provided' });
     return;
