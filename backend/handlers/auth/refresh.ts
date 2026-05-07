@@ -33,8 +33,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
     try {
       const cookies = parseCookies(req.headers.cookie ?? '');
       return cookies['auth_token'] ?? null;
-    } catch {
+    } catch (err) {
       // Intentionally ignore malformed cookie headers and continue as unauthenticated.
+      console.warn('auth/refresh: failed to parse Cookie header', {
+        message: err instanceof Error ? err.message : 'unknown',
+      });
       return null;
     }
   })();
