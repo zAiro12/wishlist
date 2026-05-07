@@ -174,14 +174,23 @@ async function saveEdit() {
     error.value = 'Data di nascita non valida. Usa YYYY-MM-DD.';
     return;
   }
+  const givenName = editGivenName.value.trim();
+  const familyName = editFamilyName.value.trim();
+  const payload: {
+    givenName?: string;
+    familyName?: string;
+    birthdate: string;
+    avatarUrl: string;
+    role: typeof editRole.value;
+  } = {
+    birthdate,
+    avatarUrl: editAvatarUrl.value.trim(),
+    role: editRole.value,
+  };
+  if (givenName) payload.givenName = givenName;
+  if (familyName) payload.familyName = familyName;
   try {
-    await adminApi.users.update(editingUser.value.id, {
-      givenName: editGivenName.value.trim(),
-      familyName: editFamilyName.value.trim(),
-      birthdate,
-      avatarUrl: editAvatarUrl.value.trim(),
-      role: editRole.value,
-    });
+    await adminApi.users.update(editingUser.value.id, payload);
     actionMsg.value = 'Utente aggiornato con successo.';
     error.value = null;
     cancelEdit();
