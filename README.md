@@ -86,6 +86,7 @@ cd frontend && npm run build
 1. Import the `backend/` directory as a Vercel project.
 2. Set all environment variables in the Vercel dashboard.
 3. Vercel automatically serves each file under `api/` as a serverless function.
+4. The root `vercel.json` build command runs `prisma migrate deploy` before TypeScript build, so pending Prisma migrations are applied during deployment.
 
 ### Frontend → GitHub Pages
 
@@ -228,6 +229,5 @@ Push to `main` to trigger CI and deploy:
 ```bash
 git push origin main
 ```
-
 
 
