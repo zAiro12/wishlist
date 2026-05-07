@@ -29,14 +29,18 @@ function parseCookies(header = ''): Record<string, string> {
 }
 
 function getAuthToken(req: VercelRequest): string | null {
-  const cookies = parseCookies(req.headers.cookie ?? '');
-  const cookieToken = cookies['auth_token'];
-
-  if (cookieToken) return cookieToken;
-
   const authHeader = req.headers.authorization;
   if (authHeader?.startsWith('Bearer ')) {
     return authHeader.slice(7);
+  }
+
+  try {
+    const cookies = parseCookies(req.headers.cookie ?? '');
+    const cookieToken = cookies['auth_token'];
+
+    if (cookieToken) return cookieToken;
+  } catch {
+    return null;
   }
 
   return null;
