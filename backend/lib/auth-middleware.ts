@@ -34,10 +34,14 @@ function getAuthToken(req: VercelRequest): string | null {
     return authHeader.slice(7);
   }
 
-  const cookies = parseCookies(req.headers.cookie ?? '');
-  const cookieToken = cookies['auth_token'];
+  try {
+    const cookies = parseCookies(req.headers.cookie ?? '');
+    const cookieToken = cookies['auth_token'];
 
-  if (cookieToken) return cookieToken;
+    if (cookieToken) return cookieToken;
+  } catch {
+    return null;
+  }
 
   return null;
 }
