@@ -82,6 +82,19 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
           return;
         }
 
+        if (role !== undefined && targetId === authedReq.user.userId) {
+          authedRes.status(400).json({ error: 'You cannot change your own role' });
+          return;
+        }
+
+        if (role !== undefined && target.role === 'ADMIN' && role !== 'ADMIN') {
+          const adminCount = await prisma.user.count({ where: { role: 'ADMIN' } });
+          if (adminCount <= 1) {
+            authedRes.status(400).json({ error: 'You cannot demote the last remaining admin' });
+            return;
+          }
+        }
+
         let updateData: Record<string, unknown> = {};
         if (action) {
           if (action === 'ban') {
