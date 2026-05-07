@@ -30,6 +30,7 @@ model User {
   emailVerified      Boolean    @default(false)
   givenName          String?
   familyName         String?
+  avatarUrl          String?
   birthdate          String?    // YYYY-MM-DD
   birthdateConfirmed Boolean    @default(false)
   role               UserRole   @default(USER)

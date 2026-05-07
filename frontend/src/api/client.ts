@@ -173,7 +173,7 @@ export const auth = {
 
 export const users = {
   me: () => request<import('../types').User>('/api/users/me'),
-  updateProfile: (data: { givenName?: string; familyName?: string; birthdate?: string }) =>
+  updateProfile: (data: { givenName?: string; familyName?: string; avatarUrl?: string; birthdate?: string }) =>
     request<import('../types').User>('/api/users/me', {
       method: 'PATCH',
       body: JSON.stringify(data),
@@ -290,7 +290,15 @@ export const admin = {
         `/api/admin/users?${q.toString()}`
       );
     },
-    update: (userId: string, data: { action: 'ban' | 'unban' | 'disable' | 'enable'; reason?: string }) =>
+    update: (userId: string, data: {
+      action?: 'ban' | 'unban' | 'disable' | 'enable';
+      reason?: string;
+      givenName?: string;
+      familyName?: string;
+      avatarUrl?: string;
+      birthdate?: string;
+      role?: 'USER' | 'ADMIN';
+    }) =>
       request<import('../types').User>(`/api/admin/users?id=${userId}`, {
         method: 'PATCH',
         body: JSON.stringify(data),

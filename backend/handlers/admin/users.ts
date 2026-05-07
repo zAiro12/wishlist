@@ -36,6 +36,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
               emailVerified: true,
               givenName: true,
               familyName: true,
+              avatarUrl: true,
               birthdate: true,
               role: true,
               status: true,
@@ -68,7 +69,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
       }
 
       try {
-        const { action, reason } = AdminUpdateUserSchema.parse(authedReq.body);
+        const { action, reason, givenName, familyName, avatarUrl, birthdate, role } = AdminUpdateUserSchema.parse(authedReq.body);
 
         const target = await prisma.user.findUnique({ where: { id: targetId } });
         if (!target) {
@@ -76,28 +77,55 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
           return;
         }
 
-        if (targetId === authedReq.user.userId) {
+        if (action && targetId === authedReq.user.userId) {
           authedRes.status(400).json({ error: 'You cannot modify your own account status' });
           return;
         }
 
-        let updateData: Record<string, unknown> = {};
-        if (action === 'ban') {
-          updateData = { status: 'BANNED', bannedAt: new Date(), bannedReason: reason ?? null };
-        } else if (action === 'unban') {
-          updateData = { status: 'ACTIVE', bannedAt: null, bannedReason: null };
-        } else if (action === 'disable') {
-          updateData = { status: 'DISABLED' };
-        } else if (action === 'enable') {
-          updateData = { status: 'ACTIVE' };
+        if (role !== undefined && targetId === authedReq.user.userId) {
+          authedRes.status(400).json({ error: 'You cannot change your own role' });
+          return;
         }
+
+        if (role !== undefined && target.role === 'ADMIN' && role !== 'ADMIN') {
+          const adminCount = await prisma.user.count({ where: { role: 'ADMIN' } });
+          if (adminCount <= 1) {
+            authedRes.status(400).json({ error: 'You cannot demote the last remaining admin' });
+            return;
+          }
+        }
+
+        let updateData: Record<string, unknown> = {};
+        if (action) {
+          if (action === 'ban') {
+            updateData = { ...updateData, status: 'BANNED', bannedAt: new Date(), bannedReason: reason ?? null };
+          } else if (action === 'unban') {
+            updateData = { ...updateData, status: 'ACTIVE', bannedAt: null, bannedReason: null };
+          } else if (action === 'disable') {
+            updateData = { ...updateData, status: 'DISABLED' };
+          } else if (action === 'enable') {
+            updateData = { ...updateData, status: 'ACTIVE' };
+          }
+        }
+        if (givenName !== undefined) updateData['givenName'] = givenName;
+        if (familyName !== undefined) updateData['familyName'] = familyName;
+        if (avatarUrl !== undefined) updateData['avatarUrl'] = avatarUrl || null;
+        if (birthdate !== undefined) {
+          updateData['birthdate'] = birthdate || null;
+          updateData['birthdateConfirmed'] = Boolean(birthdate);
+        }
+        if (role !== undefined) updateData['role'] = role;
 
         const mappedAction =
           action === 'ban'
             ? 'USER_BANNED'
             : action === 'unban'
             ? 'USER_UNBANNED'
-            : 'ADMIN_ACTION';
+            : action === 'disable'
+            ? 'USER_DISABLED'
+            : action === 'enable'
+            ? 'USER_ENABLED'
+            : 'USER_UPDATED';
 
         const [updated] = await prisma.$transaction([
           prisma.user.update({ where: { id: targetId }, data: updateData }),

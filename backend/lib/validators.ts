@@ -1,10 +1,26 @@
 import { z } from 'zod';
 
+function isHttpUrl(value: string): boolean {
+  try {
+    const parsed = new URL(value);
+    return parsed.protocol === 'http:' || parsed.protocol === 'https:';
+  } catch {
+    return false;
+  }
+}
+
 // ─── Profile ───────────────────────────────────────────────────────────────────
 
 export const UpdateProfileSchema = z.object({
   givenName: z.string().min(1).max(100).optional(),
   familyName: z.string().min(1).max(100).optional(),
+  avatarUrl: z
+    .string()
+    .url('Must be a valid URL')
+    .max(1000)
+    .refine(isHttpUrl, 'Avatar URL must use http or https')
+    .optional()
+    .or(z.literal('')),
   birthdate: z
     .string()
     .regex(/^\d{4}-\d{2}-\d{2}$/, 'Birthdate must be in YYYY-MM-DD format')
@@ -69,9 +85,42 @@ export const ClearStatusSchema = z.object({
 // ─── Admin ─────────────────────────────────────────────────────────────────────
 
 export const AdminUpdateUserSchema = z.object({
-  action: z.enum(['ban', 'unban', 'disable', 'enable']),
+  action: z.enum(['ban', 'unban', 'disable', 'enable']).optional(),
+  givenName: z.string().min(1).max(100).optional(),
+  familyName: z.string().min(1).max(100).optional(),
+  avatarUrl: z
+    .string()
+    .url('Must be a valid URL')
+    .max(1000)
+    .refine(isHttpUrl, 'Avatar URL must use http or https')
+    .optional()
+    .or(z.literal('')),
+  birthdate: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/, 'Birthdate must be in YYYY-MM-DD format')
+    .refine((val) => {
+      const date = new Date(val);
+      return !isNaN(date.getTime()) && val === date.toISOString().slice(0, 10);
+    }, 'Invalid date')
+    .refine((val) => {
+      const date = new Date(val);
+      const now = new Date();
+      return date <= now;
+    }, 'Birthdate cannot be in the future')
+    .optional()
+    .or(z.literal('')),
+  role: z.enum(['USER', 'ADMIN']).optional(),
   reason: z.string().max(500).optional(),
-});
+}).refine(
+  (val) =>
+    val.action !== undefined ||
+    val.givenName !== undefined ||
+    val.familyName !== undefined ||
+    val.avatarUrl !== undefined ||
+    val.birthdate !== undefined ||
+    val.role !== undefined,
+  { message: 'At least one editable field is required' }
+);
 
 // ─── Pagination ────────────────────────────────────────────────────────────────
 

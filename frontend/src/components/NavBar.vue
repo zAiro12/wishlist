@@ -38,10 +38,11 @@
     </div>
 
     <div class="sidebar-footer">
-      <div class="sidebar-user">
-        <div class="user-avatar">{{ initials }}</div>
+      <button class="sidebar-user" type="button" @click="navigateToProfile">
+        <img v-if="safeAvatarUrl" :src="safeAvatarUrl" alt="Avatar utente" class="user-avatar-image" />
+        <div v-else class="user-avatar">{{ initials }}</div>
         <span class="user-name">{{ displayName }}</span>
-      </div>
+      </button>
       <button class="icon-btn" title="Esci" aria-label="Esci" @click="auth.logout()">
         <span class="material-symbols-outlined">logout</span>
       </button>
@@ -61,6 +62,7 @@
 import { ref, computed } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useAuthStore } from '../stores/auth';
+import { sanitizeAvatarUrl } from '../utils/avatarUrl';
 
 const auth = useAuthStore();
 const route = useRoute();
@@ -69,6 +71,7 @@ const router = useRouter();
 const isMobileMenuOpen = ref(false);
 
 const displayName = computed(() => auth.user?.givenName ?? auth.user?.email ?? '');
+const safeAvatarUrl = computed(() => sanitizeAvatarUrl(auth.user?.avatarUrl));
 
 const initials = computed(() => {
   const g = auth.user?.givenName ?? '';
@@ -83,6 +86,11 @@ function closeMenu() {
 
 function navigateToWishlist() {
   router.push('/wishlist');
+  closeMenu();
+}
+
+function navigateToProfile() {
+  router.push('/profile');
   closeMenu();
 }
 </script>
@@ -207,6 +215,16 @@ function navigateToWishlist() {
   gap: 0.625rem;
   flex: 1;
   min-width: 0;
+  background: transparent;
+  border: none;
+  text-align: left;
+  cursor: pointer;
+  padding: 0.25rem;
+  border-radius: var(--radius-lg);
+}
+
+.sidebar-user:hover {
+  background: var(--color-surface-container-high);
 }
 
 .user-avatar {
@@ -220,6 +238,14 @@ function navigateToWishlist() {
   justify-content: center;
   font-size: 0.75rem;
   font-weight: 700;
+  flex-shrink: 0;
+}
+
+.user-avatar-image {
+  width: 2rem;
+  height: 2rem;
+  border-radius: var(--radius-full);
+  object-fit: cover;
   flex-shrink: 0;
 }
 
@@ -329,4 +355,3 @@ function navigateToWishlist() {
   }
 }
 </style>
-
