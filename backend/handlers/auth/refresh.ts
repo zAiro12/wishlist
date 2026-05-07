@@ -24,9 +24,20 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
     return;
   }
 
-  // Prefer explicit Authorization token, fallback to cookie token
-  const cookies = parseCookies(req.headers.cookie ?? '');
-  const raw = (req.headers.authorization?.startsWith('Bearer ') ? req.headers.authorization!.slice(7) : null) ?? cookies['auth_token'];
+  // Prefer explicit Authorization token, fallback to cookie token.
+  // Parse cookies only when needed so malformed cookie headers do not shadow a valid bearer token.
+  const bearer = req.headers.authorization?.startsWith('Bearer ')
+    ? req.headers.authorization.slice(7)
+    : null;
+  let raw = bearer;
+  if (!raw) {
+    try {
+      const cookies = parseCookies(req.headers.cookie ?? '');
+      raw = cookies['auth_token'] ?? null;
+    } catch {
+      raw = null;
+    }
+  }
   if (!raw) {
     res.status(401).json({ error: 'No token provided' });
     return;
