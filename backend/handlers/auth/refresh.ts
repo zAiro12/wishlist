@@ -24,9 +24,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
     return;
   }
 
-  // Prefer cookie-based token, fallback to Authorization header
+  // Prefer explicit Authorization token, fallback to cookie token
   const cookies = parseCookies(req.headers.cookie ?? '');
-  const raw = cookies['auth_token'] ?? (req.headers.authorization?.startsWith('Bearer ') ? req.headers.authorization!.slice(7) : null);
+  const raw = (req.headers.authorization?.startsWith('Bearer ') ? req.headers.authorization!.slice(7) : null) ?? cookies['auth_token'];
   if (!raw) {
     res.status(401).json({ error: 'No token provided' });
     return;
