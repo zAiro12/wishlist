@@ -83,10 +83,10 @@ cd frontend && npm run build
 
 ### Backend → Vercel
 
-1. Import the `backend/` directory as a Vercel project.
+1. Import the repository root (`wishlist/`) as the Vercel project so the root `vercel.json` is applied. If you configure a Vercel **Root Directory**, do not set it to `backend/`.
 2. Set all environment variables in the Vercel dashboard.
-3. Vercel automatically serves each file under `api/` as a serverless function.
-4. The root `vercel.json` build command runs `prisma migrate deploy` before TypeScript build, so pending Prisma migrations are applied during deployment.
+3. Vercel automatically serves each file under `backend/api/` as a serverless function.
+4. The root `vercel.json` build command runs `prisma migrate deploy` before the TypeScript build, so pending Prisma migrations are applied during deployment.
 
 ### Frontend → GitHub Pages
 
