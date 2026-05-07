@@ -10,6 +10,7 @@ export interface User {
   emailVerified: boolean;
   givenName: string | null;
   familyName: string | null;
+  avatarUrl: string | null;
   birthdate: string | null;
   birthdateConfirmed: boolean;
   role: UserRole;

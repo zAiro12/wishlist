@@ -15,6 +15,7 @@ function safeUser(user: {
   emailVerified: boolean;
   givenName: string | null;
   familyName: string | null;
+  avatarUrl: string | null;
   birthdate: string | null;
   birthdateConfirmed: boolean;
   role: string;
@@ -28,6 +29,7 @@ function safeUser(user: {
     emailVerified: user.emailVerified,
     givenName: user.givenName,
     familyName: user.familyName,
+    avatarUrl: user.avatarUrl,
     birthdate: user.birthdate,
     birthdateConfirmed: user.birthdateConfirmed,
     role: user.role,
@@ -58,6 +60,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
 
         if (parsed.givenName !== undefined) updateData['givenName'] = parsed.givenName;
         if (parsed.familyName !== undefined) updateData['familyName'] = parsed.familyName;
+        if (parsed.avatarUrl !== undefined) updateData['avatarUrl'] = parsed.avatarUrl || null;
         if (parsed.birthdate !== undefined) {
           updateData['birthdate'] = parsed.birthdate;
           updateData['birthdateConfirmed'] = true;

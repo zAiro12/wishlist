@@ -115,6 +115,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
           emailVerified: userInfo.emailVerified,
           givenName: userInfo.givenName,
           familyName: userInfo.familyName,
+          avatarUrl: userInfo.avatarUrl,
           birthdate: userInfo.birthdate,
           birthdateConfirmed: Boolean(userInfo.birthdate),
         },
@@ -124,6 +125,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
       if (!user.emailVerified && userInfo.emailVerified) updates['emailVerified'] = true;
       if (!user.givenName && userInfo.givenName) updates['givenName'] = userInfo.givenName;
       if (!user.familyName && userInfo.familyName) updates['familyName'] = userInfo.familyName;
+      if (!user.avatarUrl && userInfo.avatarUrl) updates['avatarUrl'] = userInfo.avatarUrl;
       if (!user.birthdate && userInfo.birthdate) {
         updates['birthdate'] = userInfo.birthdate;
         updates['birthdateConfirmed'] = true;

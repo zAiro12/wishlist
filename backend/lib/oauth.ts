@@ -4,6 +4,7 @@ interface OAuthUserInfo {
   emailVerified: boolean;
   givenName?: string;
   familyName?: string;
+  avatarUrl?: string;
   birthdate?: string;
 }
 
@@ -43,6 +44,7 @@ const PROVIDERS: Record<string, OAuthProvider> = {
         emailVerified: Boolean(data['email_verified']),
         givenName: data['given_name'] ? String(data['given_name']) : undefined,
         familyName: data['family_name'] ? String(data['family_name']) : undefined,
+        avatarUrl: data['picture'] ? String(data['picture']) : undefined,
         birthdate: data['birthdate'] ? String(data['birthdate']) : undefined,
       };
     },
@@ -97,6 +99,7 @@ const PROVIDERS: Record<string, OAuthProvider> = {
         emailVerified,
         givenName: givenName || undefined,
         familyName: familyName || undefined,
+        avatarUrl: user['avatar_url'] ? String(user['avatar_url']) : undefined,
         // GitHub does not provide birthdate
         birthdate: undefined,
       };
@@ -123,6 +126,7 @@ const PROVIDERS: Record<string, OAuthProvider> = {
         emailVerified: email.length > 0,
         givenName: data['givenName'] ? String(data['givenName']) : undefined,
         familyName: data['surname'] ? String(data['surname']) : undefined,
+        avatarUrl: undefined,
         birthdate: undefined,
       };
     },

@@ -15,6 +15,7 @@ const routes = [
 
   // Protected
   { name: 'Home', path: '/', component: () => import('../views/DashboardView.vue'), meta: { requiresAuth: true } },
+  { name: 'Profile', path: '/profile', component: () => import('../views/ProfileView.vue'), meta: { requiresAuth: true } },
   { name: 'MyWishlist', path: '/wishlist', component: () => import('../views/MyWishlistView.vue'), meta: { requiresAuth: true } },
   { name: 'Groups', path: '/groups', component: () => import('../views/GroupsView.vue'), meta: { requiresAuth: true } },
   { name: 'GroupDetail', path: '/groups/:groupId', component: () => import('../views/GroupDetailView.vue'), meta: { requiresAuth: true } },

@@ -12,9 +12,13 @@
     <template v-else>
       <p style="color:var(--color-on-surface-variant);font-size:0.875rem;margin-bottom:0.5rem;">{{ total }} utente{{ total !== 1 ? 'i' : '' }} in totale</p>
       <table>
-        <thead><tr><th>Email</th><th>Name</th><th>Role</th><th>Status</th><th>Birthdate</th><th>Actions</th></tr></thead>
+        <thead><tr><th>Avatar</th><th>Email</th><th>Name</th><th>Role</th><th>Status</th><th>Birthdate</th><th>Actions</th></tr></thead>
         <tbody>
           <tr v-for="u in users" :key="u.id">
+            <td>
+              <img v-if="u.avatarUrl" :src="u.avatarUrl" alt="Avatar utente" class="avatar-mini" />
+              <div v-else class="avatar-mini fallback">{{ userInitials(u) }}</div>
+            </td>
             <td>{{ u.email }}</td>
             <td>{{ u.givenName }} {{ u.familyName }}</td>
             <td>{{ u.role }}</td>
@@ -28,11 +32,46 @@
                 </template>
                 <button v-if="u.status === 'BANNED'" class="mini-btn success" @click="doAction(u.id, 'unban')">Unban</button>
                 <button v-if="u.status === 'DISABLED'" class="mini-btn success" @click="doAction(u.id, 'enable')">Enable</button>
+                <button class="mini-btn primary" @click="startEdit(u)">Modifica</button>
               </div>
             </td>
           </tr>
         </tbody>
       </table>
+
+      <div v-if="editingUser" class="edit-card card" style="margin-top: 1rem;">
+        <h3>Modifica utente</h3>
+        <p style="margin-top: 0.2rem; color: var(--color-on-surface-variant);">{{ editingUser.email }}</p>
+        <div class="edit-grid">
+          <div class="form-group">
+            <label>Nome</label>
+            <input v-model="editGivenName" type="text" />
+          </div>
+          <div class="form-group">
+            <label>Cognome</label>
+            <input v-model="editFamilyName" type="text" />
+          </div>
+          <div class="form-group">
+            <label>Data di nascita (YYYY-MM-DD)</label>
+            <input v-model="editBirthdate" type="text" placeholder="1990-12-31" />
+          </div>
+          <div class="form-group">
+            <label>Avatar URL</label>
+            <input v-model="editAvatarUrl" type="url" placeholder="https://..." />
+          </div>
+          <div class="form-group">
+            <label>Ruolo</label>
+            <select v-model="editRole">
+              <option value="USER">USER</option>
+              <option value="ADMIN">ADMIN</option>
+            </select>
+          </div>
+        </div>
+        <div style="display: flex; gap: 0.5rem;">
+          <button class="btn-primary" @click="saveEdit">Salva utente</button>
+          <button class="btn-secondary" @click="cancelEdit">Annulla</button>
+        </div>
+      </div>
       <div style="display:flex;gap:0.5rem;margin-top:1rem;align-items:center;">
         <button class="btn-secondary" :disabled="page === 1" @click="page--; load()">← Indietro</button>
         <span style="font-size:0.875rem;">Pagina {{ page }}</span>
@@ -55,6 +94,12 @@ const search = ref('');
 const loading = ref(false);
 const error = ref<string | null>(null);
 const actionMsg = ref<string | null>(null);
+const editingUser = ref<User | null>(null);
+const editGivenName = ref('');
+const editFamilyName = ref('');
+const editBirthdate = ref('');
+const editAvatarUrl = ref('');
+const editRole = ref<'USER' | 'ADMIN'>('USER');
 
 onMounted(load);
 
@@ -92,6 +137,59 @@ async function doAction(userId: string, action: 'ban' | 'unban' | 'disable' | 'e
     actionMsg.value = null;
   }
 }
+
+function userInitials(user: User): string {
+  const g = (user.givenName ?? '').trim();
+  const f = (user.familyName ?? '').trim();
+  if (g || f) return `${g.charAt(0)}${f.charAt(0)}`.toUpperCase();
+  return user.email.charAt(0).toUpperCase();
+}
+
+function startEdit(user: User) {
+  editingUser.value = user;
+  editGivenName.value = user.givenName ?? '';
+  editFamilyName.value = user.familyName ?? '';
+  editBirthdate.value = user.birthdate ?? '';
+  editAvatarUrl.value = user.avatarUrl ?? '';
+  editRole.value = user.role;
+}
+
+function cancelEdit() {
+  editingUser.value = null;
+}
+
+function isValidBirthdateIso(input: string): boolean {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(input)) return false;
+  const date = new Date(input);
+  if (Number.isNaN(date.getTime())) return false;
+  if (input !== date.toISOString().slice(0, 10)) return false;
+  return date <= new Date();
+}
+
+async function saveEdit() {
+  if (!editingUser.value) return;
+  const birthdate = editBirthdate.value.trim();
+  if (birthdate && !isValidBirthdateIso(birthdate)) {
+    error.value = 'Data di nascita non valida. Usa YYYY-MM-DD.';
+    return;
+  }
+  try {
+    await adminApi.users.update(editingUser.value.id, {
+      givenName: editGivenName.value.trim(),
+      familyName: editFamilyName.value.trim(),
+      birthdate,
+      avatarUrl: editAvatarUrl.value.trim(),
+      role: editRole.value,
+    });
+    actionMsg.value = 'Utente aggiornato con successo.';
+    error.value = null;
+    cancelEdit();
+    await load();
+  } catch (err) {
+    error.value = err instanceof ApiError ? err.message : 'Errore';
+    actionMsg.value = null;
+  }
+}
 </script>
 
 <style scoped>
@@ -99,4 +197,16 @@ async function doAction(userId: string, action: 'ban' | 'unban' | 'disable' | 'e
 .mini-btn.danger  { background: var(--color-error); }
 .mini-btn.muted   { background: var(--color-outline); }
 .mini-btn.success { background: var(--color-success); }
+.mini-btn.primary { background: var(--color-primary); }
+.avatar-mini { width: 1.75rem; height: 1.75rem; border-radius: var(--radius-full); object-fit: cover; }
+.avatar-mini.fallback {
+  background: var(--color-primary-container);
+  color: var(--color-on-primary-container);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.65rem;
+  font-weight: 700;
+}
+.edit-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.75rem; margin: 1rem 0; }
 </style>
