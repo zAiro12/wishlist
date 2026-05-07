@@ -4,7 +4,7 @@
     <h1>Modifica profilo</h1>
     <form class="card form" @submit.prevent="save">
       <div class="avatar-preview">
-        <img v-if="avatarUrl.trim()" :src="avatarUrl.trim()" alt="Avatar utente" />
+        <img v-if="safeAvatarUrl" :src="safeAvatarUrl" alt="Avatar utente" />
         <div v-else class="avatar-fallback">{{ initials }}</div>
       </div>
 
@@ -52,6 +52,7 @@ import NavBar from '../components/NavBar.vue';
 import { users as usersApi, ApiError } from '../api/client';
 import { useAuthStore } from '../stores/auth';
 import { useDateInput } from '../composables/useDateInput';
+import { sanitizeAvatarUrl } from '../utils/avatarUrl';
 
 const auth = useAuthStore();
 const givenName = ref(auth.user?.givenName ?? '');
@@ -61,6 +62,7 @@ const { day, month, year, dateInput, composedIso, handleDateInput, validateDate 
 const saving = ref(false);
 const error = ref<string | null>(null);
 const success = ref<string | null>(null);
+const safeAvatarUrl = computed(() => sanitizeAvatarUrl(avatarUrl.value));
 
 const initials = computed(() => {
   const g = givenName.value.trim();

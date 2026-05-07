@@ -16,7 +16,7 @@
         <tbody>
           <tr v-for="u in users" :key="u.id">
             <td>
-              <img v-if="u.avatarUrl" :src="u.avatarUrl" alt="Avatar utente" class="avatar-mini" />
+              <img v-if="safeAvatarUrl(u.avatarUrl)" :src="safeAvatarUrl(u.avatarUrl) ?? undefined" alt="Avatar utente" class="avatar-mini" />
               <div v-else class="avatar-mini fallback">{{ userInitials(u) }}</div>
             </td>
             <td>{{ u.email }}</td>
@@ -86,6 +86,7 @@ import { ref, onMounted } from 'vue';
 import { admin as adminApi, ApiError } from '../../api/client';
 import type { User } from '../../types';
 import { formatDate } from '@/utils/formatDate';
+import { sanitizeAvatarUrl } from '@/utils/avatarUrl';
 
 const users = ref<User[]>([]);
 const total = ref(0);
@@ -189,6 +190,10 @@ async function saveEdit() {
     error.value = err instanceof ApiError ? err.message : 'Errore';
     actionMsg.value = null;
   }
+}
+
+function safeAvatarUrl(url: string | null | undefined): string | null {
+  return sanitizeAvatarUrl(url);
 }
 </script>
 

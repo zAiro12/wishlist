@@ -1,11 +1,26 @@
 import { z } from 'zod';
 
+function isHttpUrl(value: string): boolean {
+  try {
+    const parsed = new URL(value);
+    return parsed.protocol === 'http:' || parsed.protocol === 'https:';
+  } catch {
+    return false;
+  }
+}
+
 // ─── Profile ───────────────────────────────────────────────────────────────────
 
 export const UpdateProfileSchema = z.object({
   givenName: z.string().min(1).max(100).optional(),
   familyName: z.string().min(1).max(100).optional(),
-  avatarUrl: z.string().url('Must be a valid URL').max(1000).optional().or(z.literal('')),
+  avatarUrl: z
+    .string()
+    .url('Must be a valid URL')
+    .max(1000)
+    .refine(isHttpUrl, 'Avatar URL must use http or https')
+    .optional()
+    .or(z.literal('')),
   birthdate: z
     .string()
     .regex(/^\d{4}-\d{2}-\d{2}$/, 'Birthdate must be in YYYY-MM-DD format')
@@ -73,7 +88,13 @@ export const AdminUpdateUserSchema = z.object({
   action: z.enum(['ban', 'unban', 'disable', 'enable']).optional(),
   givenName: z.string().min(1).max(100).optional(),
   familyName: z.string().min(1).max(100).optional(),
-  avatarUrl: z.string().url('Must be a valid URL').max(1000).optional().or(z.literal('')),
+  avatarUrl: z
+    .string()
+    .url('Must be a valid URL')
+    .max(1000)
+    .refine(isHttpUrl, 'Avatar URL must use http or https')
+    .optional()
+    .or(z.literal('')),
   birthdate: z
     .string()
     .regex(/^\d{4}-\d{2}-\d{2}$/, 'Birthdate must be in YYYY-MM-DD format')

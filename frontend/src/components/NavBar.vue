@@ -39,7 +39,7 @@
 
     <div class="sidebar-footer">
       <button class="sidebar-user" type="button" @click="navigateToProfile">
-        <img v-if="auth.user?.avatarUrl" :src="auth.user.avatarUrl" alt="Avatar utente" class="user-avatar-image" />
+        <img v-if="safeAvatarUrl" :src="safeAvatarUrl" alt="Avatar utente" class="user-avatar-image" />
         <div v-else class="user-avatar">{{ initials }}</div>
         <span class="user-name">{{ displayName }}</span>
       </button>
@@ -62,6 +62,7 @@
 import { ref, computed } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useAuthStore } from '../stores/auth';
+import { sanitizeAvatarUrl } from '../utils/avatarUrl';
 
 const auth = useAuthStore();
 const route = useRoute();
@@ -70,6 +71,7 @@ const router = useRouter();
 const isMobileMenuOpen = ref(false);
 
 const displayName = computed(() => auth.user?.givenName ?? auth.user?.email ?? '');
+const safeAvatarUrl = computed(() => sanitizeAvatarUrl(auth.user?.avatarUrl));
 
 const initials = computed(() => {
   const g = auth.user?.givenName ?? '';
