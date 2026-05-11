@@ -86,21 +86,20 @@
           <thead>
             <tr>
               <th>Nome</th>
-              <th>Email</th>
-              <th>Ruolo</th>
+              <th v-if="authStore.isAdmin">Email</th>
               <th v-if="isOwner">Azioni</th>
             </tr>
           </thead>
           <tbody>
             <tr v-for="m in activeMembers" :key="m.id">
               <td>
+                <span class="member-role-icon" :title="memberRoleLabel(m)">{{ memberRoleIcon(m) }}</span>
                 {{ m.user?.givenName }} {{ m.user?.familyName }}
                 <span v-if="m.user?.birthdate" class="member-birthdate">
                   ({{ formatBirthday(m.user.birthdate) }})
                 </span>
               </td>
-              <td>{{ m.user?.email }}</td>
-              <td>{{ m.userId === group.ownerId ? '👑 Proprietario' : m.user?.email === 'giada.galli18@hotmail.com' ? '👸 Principessa' : 'Membro' }}</td>
+              <td v-if="authStore.isAdmin">{{ m.user?.email }}</td>
               <td v-if="isOwner">
                 <button v-if="m.userId !== authStore.user?.id" class="remove-btn" @click="handleRemove(m)">Rimuovi</button>
               </td>
@@ -111,18 +110,21 @@
 
       <div v-if="isOwner" class="card" style="margin-bottom:1.5rem;">
         <h3>Trasferisci proprietà</h3>
-        <div style="display:flex;gap:0.5rem;">
-          <select v-model="transferUserId" style="flex:1;">
-            <option value="">Seleziona nuovo proprietario…</option>
-            <option
-              v-for="m in activeMembers.filter(m => m.userId !== authStore.user?.id)"
-              :key="m.userId"
-              :value="m.userId"
-            >
-              {{ m.user?.givenName }} {{ m.user?.familyName }} ({{ m.user?.email }})
-            </option>
-          </select>
-          <button class="btn-primary" :disabled="!transferUserId" @click="handleTransfer">Trasferisci</button>
+        <div class="transfer-container">
+          <input
+            v-model="transferQuery"
+            class="transfer-search"
+            type="text"
+            placeholder="Cerca per nome, cognome o email…"
+          />
+          <ul class="transfer-suggestions">
+            <li v-for="m in filteredTransferCandidates" :key="m.userId">
+              <button type="button" class="transfer-suggestion-btn" @click="selectTransferCandidate(m)">
+                {{ transferCandidateLabel(m) }}
+              </button>
+            </li>
+          </ul>
+          <button class="btn-primary" :disabled="!resolvedTransferUserId" @click="handleTransfer">Trasferisci</button>
         </div>
       </div>
 
@@ -169,6 +171,7 @@ const error = ref<string | null>(null);
 const actionMsg = ref<string | null>(null);
 const actionError = ref<string | null>(null);
 const transferUserId = ref('');
+const transferQuery = ref('');
 const copied = ref(false);
 
 const editingName = ref(false);
@@ -266,6 +269,47 @@ const allBirthdays = computed(() =>
     })
     .sort((a, b) => a.daysUntil - b.daysUntil)
 );
+const transferCandidates = computed(() =>
+  activeMembers.value.filter((m) => m.userId !== authStore.user?.id)
+);
+const filteredTransferCandidates = computed(() => {
+  const query = transferQuery.value.trim().toLowerCase();
+  if (!query) return transferCandidates.value;
+  return transferCandidates.value.filter((m) => {
+    const givenName = m.user?.givenName?.toLowerCase() ?? '';
+    const familyName = m.user?.familyName?.toLowerCase() ?? '';
+    const email = m.user?.email?.toLowerCase() ?? '';
+    return givenName.includes(query) || familyName.includes(query) || email.includes(query);
+  });
+});
+const resolvedTransferUserId = computed(() => {
+  const query = transferQuery.value.trim().toLowerCase();
+  const selectedById = transferCandidates.value.find((m) => m.userId === transferUserId.value);
+  if (selectedById && transferCandidateLabel(selectedById).toLowerCase() === query) return selectedById.userId;
+  const selectedByQuery = transferCandidates.value.find((m) => transferCandidateLabel(m).toLowerCase() === query);
+  return selectedByQuery?.userId ?? '';
+});
+
+function transferCandidateLabel(member: GroupMember): string {
+  return `${member.user?.givenName ?? ''} ${member.user?.familyName ?? ''} (${member.user?.email ?? ''})`.trim();
+}
+
+function selectTransferCandidate(member: GroupMember): void {
+  transferUserId.value = member.userId;
+  transferQuery.value = transferCandidateLabel(member);
+}
+
+function memberRoleIcon(member: GroupMember): string {
+  if (member.userId === group.value?.ownerId) return '👑';
+  if (member.user?.email === 'giada.galli18@hotmail.com') return '👸';
+  return '👤';
+}
+
+function memberRoleLabel(member: GroupMember): string {
+  if (member.userId === group.value?.ownerId) return 'Proprietario';
+  if (member.user?.email === 'giada.galli18@hotmail.com') return 'Principessa';
+  return 'Membro';
+}
 
 function buildInviteLink(): string {
   const base = import.meta.env.BASE_URL ?? '/';
@@ -349,12 +393,19 @@ async function handleRemove(member: GroupMember) {
 }
 
 async function handleTransfer() {
-  if (!transferUserId.value) return;
+  const selected = transferCandidates.value.find((m) => m.userId === resolvedTransferUserId.value);
+  if (!selected) {
+    transferUserId.value = '';
+    actionError.value = 'Seleziona un membro valido da trasferire.';
+    actionMsg.value = null;
+    return;
+  }
 
   try {
-    const updated = await groupsApi.transfer(groupId, transferUserId.value);
+    const updated = await groupsApi.transfer(groupId, selected.userId);
     if (group.value) group.value.ownerId = updated.ownerId;
     transferUserId.value = '';
+    transferQuery.value = '';
     actionMsg.value = 'Proprietà trasferita con successo.';
     actionError.value = null;
   } catch (err) {
@@ -414,6 +465,11 @@ async function handleDeleteGroup() {
 .member-birthdate {
   color: var(--color-on-surface-variant);
   font-size: 0.8rem;
+}
+
+.member-role-icon {
+  display: inline-block;
+  margin-right: 0.35rem;
 }
 
 .birthday-list {
@@ -498,5 +554,38 @@ async function handleDeleteGroup() {
   font-size: 0.9rem;
   min-width: 16rem;
   resize: vertical;
+}
+
+.transfer-container {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.transfer-search {
+  width: 100%;
+}
+
+.transfer-suggestions {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  max-height: 10rem;
+  overflow-y: auto;
+}
+
+.transfer-suggestion-btn {
+  width: 100%;
+  text-align: left;
+  border: 1px solid var(--color-outline, #ccc);
+  border-radius: var(--radius-md, 6px);
+  background: var(--color-surface, #fff);
+  color: var(--color-on-surface, #000);
+  padding: 0.35rem 0.5rem;
+  cursor: pointer;
+  font-family: var(--font-body);
 }
 </style>
