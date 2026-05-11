@@ -152,7 +152,7 @@ type SharePayload = {
   text?: string;
   url: string;
 };
-const PRINCESS_USER_ID = import.meta.env.VITE_PRINCESS_USER_ID;
+const PRINCESS_USER_ID = (import.meta.env.VITE_PRINCESS_USER_ID ?? '').trim();
 
 function hasNativeShare(nav: Navigator): nav is Navigator & { share: (data: SharePayload) => Promise<void> } {
   // Narrow navigator to check Web Share API availability without relying on global lib types
