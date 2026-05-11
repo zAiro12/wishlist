@@ -111,11 +111,13 @@
       <div v-if="isOwner" class="card" style="margin-bottom:1.5rem;">
         <h3>Trasferisci proprietà</h3>
         <div class="transfer-container">
+          <label for="transfer-owner-search">Cerca nuovo proprietario</label>
           <input
+            id="transfer-owner-search"
             v-model="transferQuery"
             class="transfer-search"
             type="text"
-            placeholder="Cerca per nome, cognome o email…"
+            :placeholder="authStore.isAdmin ? 'Cerca per nome, cognome o email…' : 'Cerca per nome o cognome…'"
           />
           <ul class="transfer-suggestions">
             <li v-for="m in filteredTransferCandidates" :key="m.userId">
@@ -281,8 +283,8 @@ const filteredTransferCandidates = computed(() => {
     const label = transferCandidateLabel(m).toLowerCase();
     const givenName = m.user?.givenName?.toLowerCase() ?? '';
     const familyName = m.user?.familyName?.toLowerCase() ?? '';
-    const email = m.user?.email?.toLowerCase() ?? '';
-    return givenName.includes(query) || familyName.includes(query) || email.includes(query) || label.includes(query);
+    const emailMatch = authStore.isAdmin && (m.user?.email?.toLowerCase() ?? '').includes(query);
+    return givenName.includes(query) || familyName.includes(query) || emailMatch || label.includes(query);
   });
 });
 const selectedTransferMember = computed(() => {
@@ -295,7 +297,7 @@ const resolvedTransferUserId = computed(() => selectedTransferMember.value?.user
 
 function transferCandidateLabel(member: GroupMember): string {
   const fullName = `${member.user?.givenName ?? ''} ${member.user?.familyName ?? ''}`.trim();
-  const email = member.user?.email ?? '';
+  const email = authStore.isAdmin ? (member.user?.email ?? '') : '';
   if (fullName && email) return `${fullName} (${email})`;
   if (fullName) return fullName;
   if (email) return email;
