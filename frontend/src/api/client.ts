@@ -228,7 +228,7 @@ export const groups = {
     request<import('../types').WishlistItem[]>(`/api/groups/${groupId}/wishlists`),
 
   nextCelebrated: (groupId: string) =>
-    request<{ nextCelebrated: import('../types').User[]; daysUntil: number | null }>(
+    request<{ nextCelebrated: import('../types').GroupUserBirthdaySummary[]; daysUntil: number | null }>(
       `/api/groups/${groupId}/next-celebrated`
     ),
 };

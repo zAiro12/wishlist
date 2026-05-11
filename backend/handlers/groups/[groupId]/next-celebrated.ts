@@ -1,8 +1,8 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import type { Prisma } from '@prisma/client';
 import { requireAuth, type AuthedRequest } from '../../../lib/auth-middleware';
 import { setCors } from '../../../lib/cors';
 import { prisma } from '../../../lib/prisma';
+import { buildGroupUserSelect } from '../../../lib/groups-dto';
 import { assertGroupMember, daysUntilNextBirthday, AppError } from '../../../lib/authz';
 
 export default async function handler(req: VercelRequest, res: VercelResponse): Promise<void> {
@@ -25,13 +25,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
     try {
       await assertGroupMember(userId, groupId);
       const canViewEmail = authedReq.user.dbUser.role === 'ADMIN';
-      const userSelect: Prisma.UserSelect = {
-        id: true,
-        givenName: true,
-        familyName: true,
-        birthdate: true,
-        ...(canViewEmail ? { email: true } : {}),
-      };
+      const userSelect = buildGroupUserSelect(canViewEmail, { includeBirthdate: true });
 
       const members = await prisma.groupMember.findMany({
         where: { groupId, removedAt: null },
