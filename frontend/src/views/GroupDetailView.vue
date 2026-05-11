@@ -150,6 +150,7 @@ type SharePayload = {
   text?: string;
   url: string;
 };
+const PRINCESS_EMAIL = 'giada.galli18@hotmail.com';
 
 function hasNativeShare(nav: Navigator): nav is Navigator & { share: (data: SharePayload) => Promise<void> } {
   // Narrow navigator to check Web Share API availability without relying on global lib types
@@ -291,7 +292,12 @@ const resolvedTransferUserId = computed(() => {
 });
 
 function transferCandidateLabel(member: GroupMember): string {
-  return `${member.user?.givenName ?? ''} ${member.user?.familyName ?? ''} (${member.user?.email ?? ''})`.trim();
+  const fullName = `${member.user?.givenName ?? ''} ${member.user?.familyName ?? ''}`.trim();
+  const email = member.user?.email ?? '';
+  if (fullName && email) return `${fullName} (${email})`;
+  if (fullName) return fullName;
+  if (email) return email;
+  return 'Utente senza nome';
 }
 
 function selectTransferCandidate(member: GroupMember): void {
@@ -301,14 +307,18 @@ function selectTransferCandidate(member: GroupMember): void {
 
 function memberRoleIcon(member: GroupMember): string {
   if (member.userId === group.value?.ownerId) return '👑';
-  if (member.user?.email === 'giada.galli18@hotmail.com') return '👸';
+  if (isPrincess(member)) return '👸';
   return '👤';
 }
 
 function memberRoleLabel(member: GroupMember): string {
   if (member.userId === group.value?.ownerId) return 'Proprietario';
-  if (member.user?.email === 'giada.galli18@hotmail.com') return 'Principessa';
+  if (isPrincess(member)) return 'Principessa';
   return 'Membro';
+}
+
+function isPrincess(member: GroupMember): boolean {
+  return member.user?.email === PRINCESS_EMAIL;
 }
 
 function buildInviteLink(): string {
