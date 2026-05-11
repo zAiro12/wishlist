@@ -289,9 +289,16 @@ const filteredTransferCandidates = computed(() => {
 });
 const selectedTransferMember = computed(() => {
   const query = normalizedTransferQuery.value;
+  if (!query) return null;
+
   const selectedById = transferCandidates.value.find((m) => m.userId === transferUserId.value);
-  if (!selectedById) return null;
-  return transferCandidateLabel(selectedById).toLowerCase() === query ? selectedById : null;
+  if (selectedById && transferCandidateLabel(selectedById).toLowerCase() === query) {
+    return selectedById;
+  }
+
+  return (
+    transferCandidates.value.find((m) => transferCandidateLabel(m).toLowerCase() === query) ?? null
+  );
 });
 const resolvedTransferUserId = computed(() => selectedTransferMember.value?.userId ?? '');
 
