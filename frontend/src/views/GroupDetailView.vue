@@ -273,23 +273,25 @@ const allBirthdays = computed(() =>
 const transferCandidates = computed(() =>
   activeMembers.value.filter((m) => m.userId !== authStore.user?.id)
 );
+const normalizedTransferQuery = computed(() => transferQuery.value.trim().toLowerCase());
 const filteredTransferCandidates = computed(() => {
-  const query = transferQuery.value.trim().toLowerCase();
+  const query = normalizedTransferQuery.value;
   if (!query) return transferCandidates.value;
   return transferCandidates.value.filter((m) => {
+    const label = transferCandidateLabel(m).toLowerCase();
     const givenName = m.user?.givenName?.toLowerCase() ?? '';
     const familyName = m.user?.familyName?.toLowerCase() ?? '';
     const email = m.user?.email?.toLowerCase() ?? '';
-    return givenName.includes(query) || familyName.includes(query) || email.includes(query);
+    return givenName.includes(query) || familyName.includes(query) || email.includes(query) || label.includes(query);
   });
 });
-const resolvedTransferUserId = computed(() => {
-  const query = transferQuery.value.trim().toLowerCase();
+const selectedTransferMember = computed(() => {
+  const query = normalizedTransferQuery.value;
   const selectedById = transferCandidates.value.find((m) => m.userId === transferUserId.value);
-  if (selectedById && transferCandidateLabel(selectedById).toLowerCase() === query) return selectedById.userId;
-  const selectedByQuery = transferCandidates.value.find((m) => transferCandidateLabel(m).toLowerCase() === query);
-  return selectedByQuery?.userId ?? '';
+  if (selectedById && transferCandidateLabel(selectedById).toLowerCase() === query) return selectedById;
+  return transferCandidates.value.find((m) => transferCandidateLabel(m).toLowerCase() === query) ?? null;
 });
+const resolvedTransferUserId = computed(() => selectedTransferMember.value?.userId ?? '');
 
 function transferCandidateLabel(member: GroupMember): string {
   const fullName = `${member.user?.givenName ?? ''} ${member.user?.familyName ?? ''}`.trim();
@@ -403,7 +405,7 @@ async function handleRemove(member: GroupMember) {
 }
 
 async function handleTransfer() {
-  const selected = transferCandidates.value.find((m) => m.userId === resolvedTransferUserId.value);
+  const selected = selectedTransferMember.value;
   if (!selected) {
     transferUserId.value = '';
     actionError.value = 'Seleziona un membro valido da trasferire.';
