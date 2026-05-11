@@ -1,4 +1,5 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
+import type { Prisma } from '@prisma/client';
 import { requireAuth, type AuthedRequest } from '../../lib/auth-middleware';
 import { setCors } from '../../lib/cors';
 import { prisma } from '../../lib/prisma';
@@ -11,6 +12,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
 
   await requireAuth(req, res, async (authedReq: AuthedRequest, authedRes: VercelResponse) => {
     const userId = authedReq.user.userId;
+    const canViewEmail = authedReq.user.dbUser.role === 'ADMIN';
+    const ownerSelect: Prisma.UserSelect = {
+      id: true,
+      givenName: true,
+      familyName: true,
+      ...(canViewEmail ? { email: true } : {}),
+    };
 
     if (authedReq.method === 'GET') {
       const memberships = await prisma.groupMember.findMany({
@@ -18,7 +26,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
         include: {
           group: {
             include: {
-              owner: { select: { id: true, givenName: true, familyName: true, email: true } },
+              owner: { select: ownerSelect },
               _count: { select: { members: { where: { removedAt: null } } } },
             },
           },

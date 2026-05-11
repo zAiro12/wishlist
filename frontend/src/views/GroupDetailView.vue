@@ -152,7 +152,7 @@ type SharePayload = {
   text?: string;
   url: string;
 };
-const PRINCESS_EMAIL = 'giada.galli18@hotmail.com';
+const PRINCESS_USER_ID = import.meta.env.VITE_PRINCESS_USER_ID;
 
 function hasNativeShare(nav: Navigator): nav is Navigator & { share: (data: SharePayload) => Promise<void> } {
   // Narrow navigator to check Web Share API availability without relying on global lib types
@@ -322,7 +322,7 @@ function memberRoleLabel(member: GroupMember): string {
 }
 
 function isPrincess(member: GroupMember): boolean {
-  return member.user?.email === PRINCESS_EMAIL;
+  return Boolean(PRINCESS_USER_ID) && member.userId === PRINCESS_USER_ID;
 }
 
 function buildInviteLink(): string {
