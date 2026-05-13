@@ -10,15 +10,14 @@ export const useSettingsStore = defineStore('settings', () => {
     (data.value['princess_user_id'] ?? '').trim()
   );
 
-  async function fetchSettings(): Promise<void> {
-    if (initialized.value) return;
+  async function fetchSettings(force = false): Promise<void> {
+    if (initialized.value && !force) return;
     try {
       const result = await settingsApi.get();
       if (result) data.value = result;
+      initialized.value = true;
     } catch {
       // Settings are optional — silently ignore errors
-    } finally {
-      initialized.value = true;
     }
   }
 
