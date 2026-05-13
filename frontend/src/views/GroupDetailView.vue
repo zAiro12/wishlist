@@ -93,7 +93,7 @@
           <tbody>
             <tr v-for="m in activeMembers" :key="m.id">
               <td>
-                <span class="member-role-icon" :title="memberRoleLabel(m)">{{ memberRoleIcon(m) }}</span>
+                <span class="member-role-icon" role="img" :title="memberRoleLabel(m)" :aria-label="memberRoleLabel(m)">{{ memberRoleIcon(m) }}</span>
                 {{ m.user?.givenName }} {{ m.user?.familyName }}
                 <span v-if="m.user?.birthdate" class="member-birthdate">
                   ({{ formatBirthday(m.user.birthdate) }})
