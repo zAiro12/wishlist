@@ -144,6 +144,7 @@ import { useRoute, useRouter } from 'vue-router';
 import NavBar from '../components/NavBar.vue';
 import { groups as groupsApi, ApiError } from '../api/client';
 import { useAuthStore } from '../stores/auth';
+import { useSettingsStore } from '../stores/settings';
 import type { Group, GroupMember } from '../types';
 import { useToast } from '../composables/useToast';
 
@@ -152,7 +153,7 @@ type SharePayload = {
   text?: string;
   url: string;
 };
-const PRINCESS_USER_ID = (import.meta.env.VITE_PRINCESS_USER_ID ?? '').trim();
+const PRINCESS_USER_ID_ENV = (import.meta.env.VITE_PRINCESS_USER_ID ?? '').trim();
 
 function hasNativeShare(nav: Navigator): nav is Navigator & { share: (data: SharePayload) => Promise<void> } {
   // Narrow navigator to check Web Share API availability without relying on global lib types
@@ -164,6 +165,7 @@ function hasNativeShare(nav: Navigator): nav is Navigator & { share: (data: Shar
 const route = useRoute();
 const router = useRouter();
 const authStore = useAuthStore();
+const settingsStore = useSettingsStore();
 const { showToast } = useToast();
 
 const groupId = route.params['groupId'] as string;
@@ -329,7 +331,8 @@ function memberRoleLabel(member: GroupMember): string {
 }
 
 function isPrincess(member: GroupMember): boolean {
-  return Boolean(PRINCESS_USER_ID) && member.userId === PRINCESS_USER_ID;
+  const id = settingsStore.princessUserId || PRINCESS_USER_ID_ENV;
+  return Boolean(id) && member.userId === id;
 }
 
 function buildInviteLink(): string {
@@ -375,7 +378,10 @@ async function shareInviteLink(): Promise<void> {
 onMounted(async () => {
   loading.value = true;
   try {
-    group.value = await groupsApi.get(groupId);
+    await Promise.all([
+      groupsApi.get(groupId).then((g) => { group.value = g; }),
+      settingsStore.fetchSettings(),
+    ]);
   } catch (err) {
     error.value = err instanceof ApiError ? err.message : 'Errore caricamento gruppo';
   } finally {

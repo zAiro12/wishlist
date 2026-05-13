@@ -277,6 +277,12 @@ export const wishlistStatus = {
     }),
 };
 
+// ─── Settings ─────────────────────────────────────────────────────────────────
+
+export const settings = {
+  get: () => request<Record<string, string>>('/api/settings'),
+};
+
 // ─── Admin ────────────────────────────────────────────────────────────────────
 
 export const admin = {
@@ -341,5 +347,13 @@ export const admin = {
         limit: number;
       }>(`/api/admin/audit?${q.toString()}`);
     },
+  },
+  settings: {
+    get: () => request<Record<string, string>>('/api/admin/settings'),
+    set: (key: string, value: string) =>
+      request<{ key: string; value: string }>('/api/admin/settings', {
+        method: 'PUT',
+        body: JSON.stringify({ key, value }),
+      }),
   },
 };

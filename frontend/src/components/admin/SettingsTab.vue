@@ -1,0 +1,173 @@
+<template>
+  <div>
+    <h2 style="margin-top:0;">Impostazioni applicazione</h2>
+
+    <!-- Princess user section -->
+    <div class="setting-card card">
+      <h3>👸 Principessa</h3>
+      <p style="color:var(--color-on-surface-variant);font-size:0.875rem;margin-bottom:0.75rem;">
+        L'utente selezionato apparirà con il ruolo "Principessa" (icona 👸) in tutti i gruppi.
+        Lascia vuoto per disabilitare il ruolo speciale.
+      </p>
+
+      <div v-if="currentPrincess" class="current-princess">
+        <span>Attuale: <strong>{{ currentPrincess.givenName }} {{ currentPrincess.familyName }}</strong> ({{ currentPrincess.email }})</span>
+        <button class="mini-btn danger" style="margin-left:0.75rem;" @click="clearPrincess">Rimuovi</button>
+      </div>
+      <div v-else style="color:var(--color-on-surface-variant);font-size:0.875rem;margin-bottom:0.5rem;">
+        Nessuna principessa impostata.
+      </div>
+
+      <div style="margin-top:0.75rem;">
+        <label for="princess-search" style="display:block;font-size:0.875rem;font-weight:500;margin-bottom:0.25rem;">
+          Cerca utente da impostare come principessa
+        </label>
+        <div style="display:flex;gap:0.5rem;">
+          <input
+            id="princess-search"
+            v-model="searchQuery"
+            type="text"
+            placeholder="Cerca per nome, cognome o email…"
+            style="flex:1;max-width:380px;"
+            @input="onSearchInput"
+          />
+          <button class="btn-secondary" @click="doSearch">Cerca</button>
+        </div>
+        <div v-if="searchResults.length" class="suggestions">
+          <div
+            v-for="u in searchResults"
+            :key="u.id"
+            class="suggestion-item"
+            :class="{ selected: selectedUserId === u.id }"
+            @click="selectUser(u)"
+          >
+            <strong>{{ u.givenName }} {{ u.familyName }}</strong>
+            <span style="color:var(--color-on-surface-variant);font-size:0.8rem;margin-left:0.4rem;">({{ u.email }})</span>
+          </div>
+        </div>
+        <p v-if="searchPerformed && searchResults.length === 0" style="font-size:0.875rem;color:var(--color-on-surface-variant);margin-top:0.5rem;">
+          Nessun utente trovato.
+        </p>
+      </div>
+
+      <div v-if="selectedUserId" style="margin-top:0.75rem;display:flex;align-items:center;gap:0.75rem;">
+        <span style="font-size:0.875rem;">Selezionato: <strong>{{ selectedUserLabel }}</strong></span>
+        <button class="btn-primary" :disabled="saving" @click="savePrincess">
+          {{ saving ? 'Salvataggio…' : 'Imposta come principessa' }}
+        </button>
+        <button class="btn-secondary" @click="clearSelection">Annulla</button>
+      </div>
+
+      <p v-if="successMsg" style="color:var(--color-success);margin-top:0.5rem;font-size:0.875rem;">{{ successMsg }}</p>
+      <p v-if="errorMsg" class="error-message" style="margin-top:0.5rem;">{{ errorMsg }}</p>
+    </div>
+  </div>
+</template>
+
+<script setup lang="ts">
+import { ref, onMounted } from 'vue';
+import { admin as adminApi, settings as settingsApi, ApiError } from '../../api/client';
+import type { User } from '../../types';
+
+const searchQuery = ref('');
+const searchResults = ref<User[]>([]);
+const searchPerformed = ref(false);
+const selectedUserId = ref('');
+const selectedUserLabel = ref('');
+const saving = ref(false);
+const successMsg = ref<string | null>(null);
+const errorMsg = ref<string | null>(null);
+const currentPrincess = ref<User | null>(null);
+
+onMounted(load);
+
+async function load() {
+  try {
+    const s = await settingsApi.get();
+    const princessId = s?.['princess_user_id'] ?? '';
+    if (princessId) {
+      const res = await adminApi.users.list({ search: '', limit: 100 });
+      currentPrincess.value = res.users.find((u) => u.id === princessId) ?? null;
+    }
+  } catch {
+    // non-critical
+  }
+}
+
+let searchTimer: ReturnType<typeof setTimeout> | null = null;
+function onSearchInput() {
+  if (searchTimer) clearTimeout(searchTimer);
+  searchTimer = setTimeout(() => doSearch(), 400);
+}
+
+async function doSearch() {
+  const q = searchQuery.value.trim();
+  if (!q) { searchResults.value = []; searchPerformed.value = false; return; }
+  try {
+    const res = await adminApi.users.list({ search: q, limit: 10 });
+    searchResults.value = res.users;
+    searchPerformed.value = true;
+  } catch {
+    searchResults.value = [];
+  }
+}
+
+function selectUser(u: User) {
+  selectedUserId.value = u.id;
+  selectedUserLabel.value = `${u.givenName ?? ''} ${u.familyName ?? ''}`.trim() || u.email;
+  searchResults.value = [];
+  searchQuery.value = selectedUserLabel.value;
+  successMsg.value = null;
+  errorMsg.value = null;
+}
+
+function clearSelection() {
+  selectedUserId.value = '';
+  selectedUserLabel.value = '';
+  searchQuery.value = '';
+  searchResults.value = [];
+  searchPerformed.value = false;
+}
+
+async function savePrincess() {
+  if (!selectedUserId.value) return;
+  saving.value = true;
+  errorMsg.value = null;
+  successMsg.value = null;
+  try {
+    await adminApi.settings.set('princess_user_id', selectedUserId.value);
+    successMsg.value = `Principessa impostata: ${selectedUserLabel.value}`;
+    await load();
+    clearSelection();
+  } catch (err) {
+    errorMsg.value = err instanceof ApiError ? err.message : 'Errore durante il salvataggio';
+  } finally {
+    saving.value = false;
+  }
+}
+
+async function clearPrincess() {
+  saving.value = true;
+  errorMsg.value = null;
+  successMsg.value = null;
+  try {
+    await adminApi.settings.set('princess_user_id', '');
+    currentPrincess.value = null;
+    successMsg.value = 'Ruolo principessa rimosso.';
+  } catch (err) {
+    errorMsg.value = err instanceof ApiError ? err.message : 'Errore durante la rimozione';
+  } finally {
+    saving.value = false;
+  }
+}
+</script>
+
+<style scoped>
+.setting-card { padding: 1.25rem; margin-bottom: 1.5rem; }
+.current-princess { display: flex; align-items: center; font-size: 0.875rem; }
+.suggestions { border: 1px solid var(--color-surface-container-highest); border-radius: var(--radius-sm); margin-top: 0.25rem; max-width: 380px; max-height: 200px; overflow-y: auto; }
+.suggestion-item { padding: 0.5rem 0.75rem; cursor: pointer; font-size: 0.875rem; }
+.suggestion-item:hover, .suggestion-item.selected { background: var(--color-surface-container-high); }
+.mini-btn { font-size: 0.7rem; padding: 0.2rem 0.5rem; border-radius: var(--radius-sm); border: none; cursor: pointer; color: white; font-family: var(--font-body); }
+.mini-btn.danger { background: var(--color-error); }
+</style>
