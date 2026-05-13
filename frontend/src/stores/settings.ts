@@ -22,9 +22,5 @@ export const useSettingsStore = defineStore('settings', () => {
     }
   }
 
-  function setLocal(key: string, value: string): void {
-    data.value = { ...data.value, [key]: value };
-  }
-
-  return { data, princessUserId, fetchSettings, setLocal, initialized };
+  return { data, princessUserId, fetchSettings, initialized };
 });

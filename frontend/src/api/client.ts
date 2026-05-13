@@ -296,6 +296,8 @@ export const admin = {
         `/api/admin/users?${q.toString()}`
       );
     },
+    getById: (userId: string) =>
+      request<import('../types').User>(`/api/admin/users?id=${userId}`),
     update: (userId: string, data: {
       action?: 'ban' | 'unban' | 'disable' | 'enable';
       reason?: string;

@@ -65,7 +65,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, onUnmounted } from 'vue';
 import { admin as adminApi, settings as settingsApi, ApiError } from '../../api/client';
 import type { User } from '../../types';
 
@@ -80,14 +80,16 @@ const errorMsg = ref<string | null>(null);
 const currentPrincess = ref<User | null>(null);
 
 onMounted(load);
+onUnmounted(() => { if (searchTimer) clearTimeout(searchTimer); });
 
 async function load() {
   try {
     const s = await settingsApi.get();
     const princessId = s?.['princess_user_id'] ?? '';
     if (princessId) {
-      const res = await adminApi.users.list({ search: '', limit: 100 });
-      currentPrincess.value = res.users.find((u) => u.id === princessId) ?? null;
+      currentPrincess.value = (await adminApi.users.getById(princessId)) ?? null;
+    } else {
+      currentPrincess.value = null;
     }
   } catch {
     // non-critical

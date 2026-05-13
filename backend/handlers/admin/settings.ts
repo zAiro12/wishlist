@@ -48,7 +48,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
         data: {
           actorId: authedReq.user.userId,
           action: 'SETTING_UPDATED',
-          details: { key, value: value ? '[set]' : '[cleared]' },
+          details: { key, value: value || null },
         },
       });
 
