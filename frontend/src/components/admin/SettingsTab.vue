@@ -34,16 +34,17 @@
           <button class="btn-secondary" @click="doSearch">Cerca</button>
         </div>
         <div v-if="searchResults.length" class="suggestions">
-          <div
+          <button
             v-for="u in searchResults"
             :key="u.id"
+            type="button"
             class="suggestion-item"
             :class="{ selected: selectedUserId === u.id }"
             @click="selectUser(u)"
           >
             <strong>{{ u.givenName }} {{ u.familyName }}</strong>
             <span style="color:var(--color-on-surface-variant);font-size:0.8rem;margin-left:0.4rem;">({{ u.email }})</span>
-          </div>
+          </button>
         </div>
         <p v-if="searchPerformed && searchResults.length === 0" style="font-size:0.875rem;color:var(--color-on-surface-variant);margin-top:0.5rem;">
           Nessun utente trovato.
