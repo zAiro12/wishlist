@@ -27,17 +27,25 @@ export const useAuthStore = defineStore('auth', () => {
     try {
       const apiBase = import.meta.env.VITE_API_URL ?? 'http://localhost:3000';
       const tokenLocal = readToken();
+      console.info('🔐 fetchUser: tokenLocal from readToken():', tokenLocal ? tokenLocal.slice(0, 50) + '...' : 'NULL');
+      
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+        ...(tokenLocal ? { Authorization: `Bearer ${tokenLocal}` } : {}),
+      };
+      console.info('📤 fetchUser: request headers:', { 'Content-Type': 'application/json', Authorization: tokenLocal ? 'Bearer ' + tokenLocal.slice(0, 20) + '...' : '(none)' });
+      
       const res = await fetch(`${apiBase}/api/users/me`, {
         method: 'GET',
         credentials: 'include',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(tokenLocal ? { Authorization: `Bearer ${tokenLocal}` } : {}),
-        },
+        headers,
       });
+      
+      console.info('📥 fetchUser: response status:', res.status);
 
       if (!res.ok) {
         if (res.status === 401 || res.status === 403) {
+          console.warn('⚠️ fetchUser: got 401/403, clearing user');
           user.value = null;
           // Mark as initialized even on auth failures so callers know we've
           // attempted an authenticated request. Other non-auth errors should
@@ -52,12 +60,15 @@ export const useAuthStore = defineStore('auth', () => {
         } catch {
           text = res.statusText;
         }
+        console.error('❌ fetchUser: API error:', res.status, text);
         throw new ApiError(res.status, { error: text });
       }
 
       user.value = await res.json();
+      console.info('✅ fetchUser: user loaded:', user.value);
       initialized.value = true;
     } catch (err) {
+      console.error('❌ fetchUser: caught error:', err);
       if (err instanceof ApiError && (err.status === 401 || err.status === 403)) {
         user.value = null;
         initialized.value = true;

@@ -54,25 +54,31 @@ onMounted(async () => {
     const persistToken = (t: string) => {
       try {
         localStorage.setItem('token', t);
-      } catch {
+        console.info('✅ persistToken() saved to localStorage:', t.slice(0, 50) + '...');
+      } catch (e) {
+        console.warn('⚠️ localStorage.setItem failed, trying sessionStorage:', e);
         try {
           sessionStorage.setItem('token', t);
-        } catch {
-          /* ignore storage errors */
+          console.info('✅ persistToken() saved to sessionStorage:', t.slice(0, 50) + '...');
+        } catch (e2) {
+          console.error('❌ persistToken() failed in both storages:', e2);
         }
       }
     };
 
     if (tokenFromQuery) {
+      console.info('📝 AuthCallbackView: token from query:', tokenFromQuery.slice(0, 50) + '...');
       try {
         persistToken(tokenFromQuery);
         // update store token synchronously if available
         try { auth.setToken?.(tokenFromQuery); } catch { /* ignore setter errors */ }
         // Mark initialized early to prevent router guard redirecting to login
         try { (auth as unknown as { initialized?: boolean }).initialized = true; } catch { /* ignore */ }
-      } catch {
-        /* ignore storage errors */
+      } catch (e) {
+        console.error('❌ Error in AuthCallbackView token handling:', e);
       }
+    } else {
+      console.warn('⚠️ AuthCallbackView: no token in query string');
     }
 
     // Fetch current user to populate store (will use Authorization header if token present)

@@ -32,19 +32,40 @@ async function request<T>(
   }
 
   function readToken(): string | null {
-    try { return localStorage.getItem('token') ?? sessionStorage.getItem('token'); }
-    catch { return null; }
+    try { 
+      const storageToken = localStorage.getItem('token');
+      if (storageToken) {
+        console.debug('✅ readToken() found in localStorage:', storageToken.slice(0, 50) + '...');
+        return storageToken;
+      }
+      const sessionToken = sessionStorage.getItem('token');
+      if (sessionToken) {
+        console.debug('✅ readToken() found in sessionStorage:', sessionToken.slice(0, 50) + '...');
+        return sessionToken;
+      }
+      console.debug('❌ readToken() found NO token in either storage');
+      return null;
+    }
+    catch (e) { 
+      console.error('❌ readToken() storage access error:', e);
+      return null; 
+    }
   }
   const token = readToken();
   if (token) {
     try {
       const safe = String(token).slice(0, 8) + '...';
-      console.info('API request', path, 'using token prefix', safe);
+      console.info('✅ API request %s using token prefix %s', path, safe);
     } catch (e) { void e; }
   } else {
-    console.info('API request', path, 'no token present in storage');
+    console.warn('⚠️ API request %s NO token in storage - request will be sent without Authorization header', path);
   }
-  if (token) headers['Authorization'] = `Bearer ${token}`;
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+    console.debug('✅ Added Authorization header for %s', path);
+  } else {
+    console.warn('⚠️ Skipping Authorization header for %s (no token available)', path);
+  }
 
   const fetchOptions: RequestInit = {
     ...options,
