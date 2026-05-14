@@ -1,5 +1,5 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { requireAuth, type AuthedRequest } from '../../lib/auth-middleware';
+import { requireAuth, type AuthedRequest } from '../lib/auth-middleware';
 import { setCors } from '../../lib/cors';
 import { prisma } from '../../lib/prisma';
 
