@@ -18,6 +18,7 @@
     <GroupsTab v-else-if="tab === 'groups'" />
     <WishlistsTab v-else-if="tab === 'wishlists'" />
     <AuditTab v-else-if="tab === 'audit'" />
+    <SettingsTab v-else-if="tab === 'settings'" />
   </div>
 </template>
 
@@ -28,8 +29,9 @@ import UsersTab from '../components/admin/UsersTab.vue';
 import GroupsTab from '../components/admin/GroupsTab.vue';
 import WishlistsTab from '../components/admin/WishlistsTab.vue';
 import AuditTab from '../components/admin/AuditTab.vue';
+import SettingsTab from '../components/admin/SettingsTab.vue';
 
-const TABS = ['users', 'groups', 'wishlists', 'audit'] as const;
+const TABS = ['users', 'groups', 'wishlists', 'audit', 'settings'] as const;
 type Tab = (typeof TABS)[number];
 const tab = ref<Tab>('users');
 </script>

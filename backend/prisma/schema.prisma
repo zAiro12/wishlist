@@ -131,6 +131,12 @@ model WishlistItemStatus {
   @@index([statusGroupId])
 }
 
+model AppSetting {
+  key       String   @id
+  value     String
+  updatedAt DateTime @updatedAt
+}
+
 model AdminAction {
   id           String   @id @default(cuid())
   actorId      String

@@ -85,7 +85,7 @@ const byOwner = computed(() => {
 function ownerName(item: WishlistItem): string {
   const o = item.owner;
   if (!o) return item.ownerId;
-  return `${o.givenName ?? ''} ${o.familyName ?? ''}`.trim() || o.email;
+  return `${o.givenName ?? ''} ${o.familyName ?? ''}`.trim() || o.email || o.id;
 }
 
 function itemStatus(item: WishlistItem): string {

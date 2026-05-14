@@ -36,10 +36,12 @@ import wishlistsInGroupHandler from '../backend/handlers/groups/[groupId]/wishli
 import wishlistHandler from '../backend/handlers/wishlist/index'
 import wishlistItemHandler from '../backend/handlers/wishlist/[itemId]'
 import wishlistStatusHandler from '../backend/handlers/wishlist-status/[itemId]'
+import settingsHandler from '../backend/handlers/settings'
 import adminUsersHandler from '../backend/handlers/admin/users'
 import adminGroupsHandler from '../backend/handlers/admin/groups'
 import adminAuditHandler from '../backend/handlers/admin/audit'
 import adminWishlistsHandler from '../backend/handlers/admin/wishlists'
+import adminSettingsHandler from '../backend/handlers/admin/settings'
 import { getOpenApiSpec, getSwaggerHtml } from '../backend/lib/swagger'
 import swaggerUi from 'swagger-ui-express'
 
@@ -91,10 +93,13 @@ const routes: { pattern: string; handler: Handler }[] = [
 	{ pattern: '/wishlist/:itemId',                  handler: wishlistItemHandler },
 	{ pattern: '/wishlist-status/:itemId',           handler: wishlistStatusHandler },
 
+	{ pattern: '/settings',                          handler: settingsHandler },
+
 	{ pattern: '/admin/users',                       handler: adminUsersHandler },
 	{ pattern: '/admin/groups',                      handler: adminGroupsHandler },
 	{ pattern: '/admin/audit',                       handler: adminAuditHandler },
-	{ pattern: '/admin/wishlists',                   handler: adminWishlistsHandler }
+	{ pattern: '/admin/wishlists',                   handler: adminWishlistsHandler },
+	{ pattern: '/admin/settings',                    handler: adminSettingsHandler },
 ]
 
 // Construct allowed origins set from environment, normalizing to origin only

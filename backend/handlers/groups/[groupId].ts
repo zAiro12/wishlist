@@ -2,6 +2,7 @@ import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { requireAuth, type AuthedRequest } from '../../lib/auth-middleware';
 import { setCors } from '../../lib/cors';
 import { prisma } from '../../lib/prisma';
+import { buildGroupUserSelect } from '../../lib/groups-dto';
 import { UpdateGroupSchema } from '../../lib/validators';
 import { assertGroupMember, assertGroupOwner, AppError } from '../../lib/authz';
 import { ZodError } from 'zod';
@@ -21,14 +22,17 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
     try {
       if (authedReq.method === 'GET') {
         await assertGroupMember(userId, groupId);
+        const canViewEmail = authedReq.user.dbUser.role === 'ADMIN';
+        const ownerSelect = buildGroupUserSelect(canViewEmail);
+        const memberUserSelect = buildGroupUserSelect(canViewEmail, { includeBirthdate: true });
 
         const group = await prisma.group.findUnique({
           where: { id: groupId },
           include: {
-            owner: { select: { id: true, givenName: true, familyName: true, email: true } },
+            owner: { select: ownerSelect },
             members: {
               where: { removedAt: null },
-              include: { user: { select: { id: true, givenName: true, familyName: true, email: true, birthdate: true } } },
+              include: { user: { select: memberUserSelect } },
               orderBy: { joinedAt: 'asc' },
             },
           },

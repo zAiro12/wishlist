@@ -2,6 +2,7 @@ import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { requireAuth, type AuthedRequest } from '../../../lib/auth-middleware';
 import { setCors } from '../../../lib/cors';
 import { prisma } from '../../../lib/prisma';
+import { buildGroupUserSelect } from '../../../lib/groups-dto';
 import { assertGroupMember, AppError } from '../../../lib/authz';
 
 export default async function handler(req: VercelRequest, res: VercelResponse): Promise<void> {
@@ -23,13 +24,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
 
     try {
       await assertGroupMember(userId, groupId);
+      const canViewEmail = authedReq.user.dbUser.role === 'ADMIN';
+      const ownerSelect = buildGroupUserSelect(canViewEmail);
 
       const members = await prisma.groupMember.findMany({ where: { groupId, removedAt: null }, select: { userId: true } });
       const memberIds = members.map((m) => m.userId);
 
       const items = await prisma.wishlistItem.findMany({
         where: { ownerId: { in: memberIds }, deletedAt: null },
-        include: { owner: { select: { id: true, givenName: true, familyName: true, email: true } }, status: true },
+        include: { owner: { select: ownerSelect }, status: true },
         orderBy: [{ ownerId: 'asc' }, { createdAt: 'asc' }],
       });
 

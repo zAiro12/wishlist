@@ -228,7 +228,7 @@ export const groups = {
     request<import('../types').WishlistItem[]>(`/api/groups/${groupId}/wishlists`),
 
   nextCelebrated: (groupId: string) =>
-    request<{ nextCelebrated: import('../types').User[]; daysUntil: number | null }>(
+    request<{ nextCelebrated: import('../types').GroupUserBirthdaySummary[]; daysUntil: number | null }>(
       `/api/groups/${groupId}/next-celebrated`
     ),
 };
@@ -277,6 +277,12 @@ export const wishlistStatus = {
     }),
 };
 
+// ─── Settings ─────────────────────────────────────────────────────────────────
+
+export const settings = {
+  get: () => request<Record<string, string>>('/api/settings'),
+};
+
 // ─── Admin ────────────────────────────────────────────────────────────────────
 
 export const admin = {
@@ -290,6 +296,8 @@ export const admin = {
         `/api/admin/users?${q.toString()}`
       );
     },
+    getById: (userId: string) =>
+      request<import('../types').User>(`/api/admin/users?id=${userId}`),
     update: (userId: string, data: {
       action?: 'ban' | 'unban' | 'disable' | 'enable';
       reason?: string;
@@ -341,5 +349,13 @@ export const admin = {
         limit: number;
       }>(`/api/admin/audit?${q.toString()}`);
     },
+  },
+  settings: {
+    get: () => request<Record<string, string>>('/api/admin/settings'),
+    set: (key: string, value: string) =>
+      request<{ key: string; value: string }>('/api/admin/settings', {
+        method: 'PUT',
+        body: JSON.stringify({ key, value }),
+      }),
   },
 };

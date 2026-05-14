@@ -2,6 +2,7 @@ import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { requireAuth, type AuthedRequest } from '../../../lib/auth-middleware';
 import { setCors } from '../../../lib/cors';
 import { prisma } from '../../../lib/prisma';
+import { buildGroupUserSelect } from '../../../lib/groups-dto';
 import { assertGroupMember, daysUntilNextBirthday, AppError } from '../../../lib/authz';
 
 export default async function handler(req: VercelRequest, res: VercelResponse): Promise<void> {
@@ -23,8 +24,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
 
     try {
       await assertGroupMember(userId, groupId);
+      const canViewEmail = authedReq.user.dbUser.role === 'ADMIN';
+      const userSelect = buildGroupUserSelect(canViewEmail, { includeBirthdate: true });
 
-      const members = await prisma.groupMember.findMany({ where: { groupId, removedAt: null }, include: { user: { select: { id: true, givenName: true, familyName: true, email: true, birthdate: true } } } });
+      const members = await prisma.groupMember.findMany({
+        where: { groupId, removedAt: null },
+        include: { user: { select: userSelect } },
+      });
 
       const withBirthdate = members
         .filter((m) => m.user.birthdate !== null)

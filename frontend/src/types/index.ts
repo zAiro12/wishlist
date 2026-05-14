@@ -4,6 +4,17 @@ export type UserRole = 'USER' | 'ADMIN';
 export type UserStatus = 'ACTIVE' | 'BANNED' | 'DISABLED';
 export type ItemStatus = 'DISPONIBILE' | 'PRENOTATO' | 'COMPRATO';
 
+export interface GroupUserSummary {
+  id: string;
+  givenName: string | null;
+  familyName: string | null;
+  email?: string;
+}
+
+export interface GroupUserBirthdaySummary extends GroupUserSummary {
+  birthdate: string | null;
+}
+
 export interface User {
   id: string;
   email: string;
@@ -27,7 +38,7 @@ export interface Group {
   deletedAt: string | null;
   createdAt: string;
   updatedAt: string;
-  owner?: Pick<User, 'id' | 'givenName' | 'familyName' | 'email'>;
+  owner?: GroupUserSummary;
   members?: GroupMember[];
   memberCount?: number;
   joinedAt?: string;
@@ -41,7 +52,7 @@ export interface GroupMember {
   userId: string;
   joinedAt: string;
   removedAt: string | null;
-  user?: Pick<User, 'id' | 'givenName' | 'familyName' | 'email' | 'birthdate'>;
+  user?: GroupUserBirthdaySummary;
 }
 
 export interface WishlistItem {
@@ -54,7 +65,7 @@ export interface WishlistItem {
   deletedAt: string | null;
   createdAt: string;
   updatedAt: string;
-  owner?: Pick<User, 'id' | 'givenName' | 'familyName' | 'email'>;
+  owner?: GroupUserSummary;
   status?: WishlistItemStatus | null;
 }
 

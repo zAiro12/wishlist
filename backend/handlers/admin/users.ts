@@ -10,6 +10,36 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
 
   await requireAdmin(req, res, async (authedReq: AuthedRequest, authedRes: VercelResponse) => {
     if (authedReq.method === 'GET') {
+      // Single-user lookup: GET /api/admin/users?id=xxx
+      const singleId = authedReq.query['id'] as string | undefined;
+      if (singleId && authedReq.method === 'GET') {
+        const user = await prisma.user.findUnique({
+          where: { id: singleId },
+          select: {
+            id: true,
+            email: true,
+              emailVerified: true,
+              givenName: true,
+              familyName: true,
+              avatarUrl: true,
+              birthdate: true,
+              birthdateConfirmed: true,
+              role: true,
+              status: true,
+              bannedAt: true,
+            bannedReason: true,
+            createdAt: true,
+            updatedAt: true,
+          },
+        });
+        if (!user) {
+          authedRes.status(404).json({ error: 'User not found' });
+          return;
+        }
+        authedRes.status(200).json(user);
+        return;
+      }
+
       try {
         const { page, limit, search } = PaginationSchema.parse(authedReq.query);
         const skip = (page - 1) * limit;
@@ -36,11 +66,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
               emailVerified: true,
               givenName: true,
               familyName: true,
-              avatarUrl: true,
-              birthdate: true,
-              role: true,
-              status: true,
-              bannedAt: true,
+               avatarUrl: true,
+               birthdate: true,
+               birthdateConfirmed: true,
+               role: true,
+               status: true,
+               bannedAt: true,
               bannedReason: true,
               createdAt: true,
               updatedAt: true,
