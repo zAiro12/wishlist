@@ -91,7 +91,7 @@ router.beforeEach(async (to) => {
   }
 
   // Explicitly allow public routes by name
-  const publicRoutes = ['Login', 'AuthCallback', 'Home'];
+  const publicRoutes = ['Login', 'AuthCallback'];
   if (publicRoutes.includes(to.name as string)) return true;
 
   const requiresAuth = to.meta['requiresAuth'] === true;
