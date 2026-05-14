@@ -11,6 +11,8 @@ const callbackMissing = CALLBACK_REQUIRED.filter((k) => !process.env[k])
 if (callbackMissing.length) console.warn('auth/callback missing ENV:', callbackMissing.join(','))
 
 const FRONTEND_URL = (process.env.FRONTEND_URL ?? 'http://localhost:5173').replace(/\/$/, '')
+// Keep cookie lifetime aligned with JWT lifetime (30d) for persistent sessions.
+const THIRTY_DAYS_IN_SECONDS = 30 * 24 * 60 * 60
 
 function parseCookies(header: string): Record<string, string> {
   const cookies: Record<string, string> = {};
@@ -172,7 +174,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
       'HttpOnly',
       'SameSite=None',
       'Path=/',
-      `Max-Age=${15 * 60}`,
+      `Max-Age=${THIRTY_DAYS_IN_SECONDS}`,
     ];
     // Set Secure in production; required alongside SameSite=None
     if (process.env.NODE_ENV === 'production') cookieParts.push('Secure');

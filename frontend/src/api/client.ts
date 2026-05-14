@@ -1,5 +1,11 @@
 const API_BASE = import.meta.env.VITE_API_URL ?? 'http://localhost:3000';
 
+function getLoginUrl(): string {
+  const baseUrl = (import.meta.env.BASE_URL ?? '/').replace(/\/+$/, '');
+  const normalizedBase = baseUrl === '' ? '' : (baseUrl.startsWith('/') ? baseUrl : `/${baseUrl}`);
+  return `${window.location.origin}${normalizedBase}/login`;
+}
+
 export class ApiError extends Error {
   constructor(
     public readonly status: number,
@@ -82,7 +88,7 @@ async function request<T>(
         if (retryRes.status === 401) {
           try { localStorage.removeItem('token') } catch { /* ignore */ }
           try { sessionStorage.removeItem('token') } catch { /* ignore */ }
-          window.location.href = '/login'
+          window.location.href = getLoginUrl()
           return undefined as T
         }
 
@@ -96,7 +102,7 @@ async function request<T>(
       // Refresh fallito — forza logout
       try { localStorage.removeItem('token') } catch { /* ignore */ }
       try { sessionStorage.removeItem('token') } catch { /* ignore */ }
-      window.location.href = '/login'
+      window.location.href = getLoginUrl()
       return undefined as T
     }
     // --- FINE blocco refresh ---
