@@ -1,10 +1,8 @@
 const API_BASE = import.meta.env.VITE_API_URL ?? 'http://localhost:3000';
 
 function getLoginUrl(): string {
-  const rawBaseUrl = import.meta.env.BASE_URL ?? '/';
-  const normalizedBaseUrl = rawBaseUrl.startsWith('/') ? rawBaseUrl : `/${rawBaseUrl}`;
-  const withTrailingSlash = normalizedBaseUrl.endsWith('/') ? normalizedBaseUrl : `${normalizedBaseUrl}/`;
-  return new URL('login', `${window.location.origin}${withTrailingSlash}`).toString();
+  const baseUrl = import.meta.env.BASE_URL ?? '/';
+  return new URL('login', new URL(baseUrl, window.location.origin)).toString();
 }
 
 export class ApiError extends Error {
