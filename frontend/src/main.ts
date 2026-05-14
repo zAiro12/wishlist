@@ -13,12 +13,16 @@ app.use(router);
 // Initialise auth so session is restored on page load
 const authInit = async () => {
   const auth = useAuthStore();
+  console.info('⚙️ main.ts: authInit starting - calling auth.fetchUser()');
   try {
     // Attempt to fetch user silently. fetchUser sets initialized.
-    await auth.fetchUser().catch(() => {});
-  } catch {
-    // ignore
+    await auth.fetchUser().catch(() => {
+      console.warn('⚠️ main.ts: auth.fetchUser() failed');
+    });
+  } catch (e) {
+    console.error('❌ main.ts: authInit error:', e);
   }
+  console.info('✅ main.ts: authInit complete');
 };
 
 // If a redirect path was saved by the GitHub Pages 404 fallback, navigate to it

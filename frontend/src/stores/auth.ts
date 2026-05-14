@@ -116,8 +116,14 @@ export const useAuthStore = defineStore('auth', () => {
   }
 
   async function initFromStorage(): Promise<void> {
+    console.info('🚀 auth.initFromStorage(): checking for persisted token');
     const stored = readToken();
-    if (stored) token.value = stored;
+    if (stored) {
+      console.info('✅ auth.initFromStorage(): token found:', stored.slice(0, 30) + '...');
+      token.value = stored;
+    } else {
+      console.warn('⚠️ auth.initFromStorage(): no token in storage');
+    }
   }
 
   function clearSession(): void {

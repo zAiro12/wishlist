@@ -85,6 +85,15 @@ onUnmounted(() => { if (searchTimer) clearTimeout(searchTimer); });
 
 async function load() {
   try {
+    console.info('🎯 SettingsTab.load(): starting - checking token availability');
+    try {
+      const token = localStorage.getItem('token');
+      console.info('🔍 SettingsTab: token in localStorage:', token ? token.slice(0, 30) + '...' : 'NULL');
+    } catch (e) {
+      console.error('❌ SettingsTab: error accessing localStorage:', e);
+    }
+    
+    console.info('📡 SettingsTab: calling settingsApi.get()');
     const s = await settingsApi.get();
     const princessId = s?.['princess_user_id'] ?? '';
     if (princessId) {
@@ -92,7 +101,9 @@ async function load() {
     } else {
       currentPrincess.value = null;
     }
-  } catch {
+    console.info('✅ SettingsTab: settings loaded successfully');
+  } catch (e) {
+    console.error('❌ SettingsTab.load() error:', e);
     // non-critical
   }
 }
