@@ -18,7 +18,10 @@
     <GroupsTab v-else-if="tab === 'groups'" />
     <WishlistsTab v-else-if="tab === 'wishlists'" />
     <AuditTab v-else-if="tab === 'audit'" />
-    <SettingsTab v-else-if="tab === 'settings'" />
+    <!-- SettingsTab temporarily disabled for debugging SyntaxError causing token loss -->
+    <div v-else-if="tab === 'settings'" style="padding: 1.5rem; color: var(--color-on-surface-variant);">
+      Settings (temporarily disabled for debugging)
+    </div>
   </div>
 </template>
 
@@ -29,7 +32,6 @@ import UsersTab from '../components/admin/UsersTab.vue';
 import GroupsTab from '../components/admin/GroupsTab.vue';
 import WishlistsTab from '../components/admin/WishlistsTab.vue';
 import AuditTab from '../components/admin/AuditTab.vue';
-import SettingsTab from '../components/admin/SettingsTab.vue';
 
 const TABS = ['users', 'groups', 'wishlists', 'audit', 'settings'] as const;
 type Tab = (typeof TABS)[number];
