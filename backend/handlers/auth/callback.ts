@@ -172,7 +172,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
       'HttpOnly',
       'SameSite=None',
       'Path=/',
-      `Max-Age=${15 * 60}`,
+      `Max-Age=${30 * 24 * 60 * 60}`,
     ];
     // Set Secure in production; required alongside SameSite=None
     if (process.env.NODE_ENV === 'production') cookieParts.push('Secure');
