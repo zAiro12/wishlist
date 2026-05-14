@@ -11,7 +11,8 @@
       </p>
 
       <div v-if="currentPrincess" class="current-princess">
-        <span>Attuale: <strong>{{ currentPrincess.givenName }} {{ currentPrincess.familyName }}</strong> ({{ currentPrincess.email }})</span>
+        <span>Attuale: <strong>{{ currentPrincess.givenName }} {{ currentPrincess.familyName }}</strong> ({{
+          currentPrincess.email }})</span>
         <button class="mini-btn danger" style="margin-left:0.75rem;" @click="clearPrincess">Rimuovi</button>
       </div>
       <div v-else style="color:var(--color-on-surface-variant);font-size:0.875rem;margin-bottom:0.5rem;">
@@ -23,30 +24,20 @@
           Cerca utente da impostare come principessa
         </label>
         <div style="display:flex;gap:0.5rem;">
-          <input
-            id="princess-search"
-            v-model="searchQuery"
-            type="text"
-            placeholder="Cerca per nome, cognome o email…"
-            style="flex:1;max-width:380px;"
-            @input="onSearchInput"
-          />
+          <input id="princess-search" v-model="searchQuery" type="text" placeholder="Cerca per nome, cognome o email…"
+            style="flex:1;max-width:380px;" @input="onSearchInput" />
           <button class="btn-secondary" @click="doSearch">Cerca</button>
         </div>
         <div v-if="searchResults.length" class="suggestions">
-          <button
-            v-for="u in searchResults"
-            :key="u.id"
-            type="button"
-            class="suggestion-item"
-            :class="{ selected: selectedUserId === u.id }"
-            @click="selectUser(u)"
-          >
+          <button v-for="u in searchResults" :key="u.id" type="button" class="suggestion-item"
+            :class="{ selected: selectedUserId === u.id }" @click="selectUser(u)">
             <strong>{{ u.givenName }} {{ u.familyName }}</strong>
-            <span style="color:var(--color-on-surface-variant);font-size:0.8rem;margin-left:0.4rem;">({{ u.email }})</span>
+            <span style="color:var(--color-on-surface-variant);font-size:0.8rem;margin-left:0.4rem;">({{ u.email
+              }})</span>
           </button>
         </div>
-        <p v-if="searchPerformed && searchResults.length === 0" style="font-size:0.875rem;color:var(--color-on-surface-variant);margin-top:0.5rem;">
+        <p v-if="searchPerformed && searchResults.length === 0"
+          style="font-size:0.875rem;color:var(--color-on-surface-variant);margin-top:0.5rem;">
           Nessun utente trovato.
         </p>
       </div>
@@ -92,7 +83,7 @@ async function load() {
     } catch (e) {
       console.error('❌ SettingsTab: error accessing localStorage:', e);
     }
-    
+
     console.info('📡 SettingsTab: calling settingsApi.get()');
     const s = await settingsApi.get();
     const princessId = s?.['princess_user_id'] ?? '';
@@ -177,11 +168,48 @@ async function clearPrincess() {
 </script>
 
 <style scoped>
-.setting-card { padding: 1.25rem; margin-bottom: 1.5rem; }
-.current-princess { display: flex; align-items: center; font-size: 0.875rem; }
-.suggestions { border: 1px solid var(--color-surface-container-highest); border-radius: var(--radius-sm); margin-top: 0.25rem; max-width: 380px; max-height: 200px; overflow-y: auto; }
-.suggestion-item { padding: 0.5rem 0.75rem; cursor: pointer; font-size: 0.875rem; }
-.suggestion-item:hover, .suggestion-item.selected { background: var(--color-surface-container-high); }
-.mini-btn { font-size: 0.7rem; padding: 0.2rem 0.5rem; border-radius: var(--radius-sm); border: none; cursor: pointer; color: white; font-family: var(--font-body); }
-.mini-btn.danger { background: var(--color-error); }
+.setting-card {
+  padding: 1.25rem;
+  margin-bottom: 1.5rem;
+}
+
+.current-princess {
+  display: flex;
+  align-items: center;
+  font-size: 0.875rem;
+}
+
+.suggestions {
+  border: 1px solid var(--color-surface-container-highest);
+  border-radius: var(--radius-sm);
+  margin-top: 0.25rem;
+  max-width: 380px;
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.suggestion-item {
+  padding: 0.5rem 0.75rem;
+  cursor: pointer;
+  font-size: 0.875rem;
+}
+
+.suggestion-item:hover,
+.suggestion-item.selected {
+  background: var(--color-surface-container-high);
+}
+
+.mini-btn {
+  font-size: 0.7rem;
+  padding: 0.2rem 0.5rem;
+  border-radius: var(--radius-sm);
+  border: none;
+  cursor: pointer;
+  color: white;
+  font-family: var(--font-body);
+}
+
+.mini-btn.danger {
+  background: var(--color-error);
+}
 </style>
