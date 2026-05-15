@@ -2,6 +2,7 @@ import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { requireAdmin, type AuthedRequest } from '../../lib/auth-middleware';
 import { setCors } from '../../lib/cors';
 import { prisma } from '../../lib/prisma';
+import { ensureAppSettingTable } from '../../lib/app-setting-table';
 
 const ALLOWED_KEYS = new Set(['princess_user_id']);
 
@@ -10,6 +11,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
 
   await requireAdmin(req, res, async (authedReq: AuthedRequest, authedRes: VercelResponse) => {
     if (authedReq.method === 'GET') {
+      await ensureAppSettingTable();
       const settings = await prisma.appSetting.findMany();
       const result: Record<string, string> = {};
       for (const s of settings) result[s.key] = s.value;
@@ -38,6 +40,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
         }
       }
 
+      await ensureAppSettingTable();
       const setting = await prisma.appSetting.upsert({
         where: { key },
         create: { key, value },

@@ -2,6 +2,7 @@ import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { requireAuth, type AuthedRequest } from '../lib/auth-middleware';
 import { setCors } from '../lib/cors';
 import { prisma } from '../lib/prisma';
+import { ensureAppSettingTable } from '../lib/app-setting-table';
 
 /** Public settings keys that any authenticated user may read. */
 const PUBLIC_KEYS = ['princess_user_id'];
@@ -15,6 +16,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
       return;
     }
 
+    await ensureAppSettingTable();
     const settings = await prisma.appSetting.findMany({
       where: { key: { in: PUBLIC_KEYS } },
     });
