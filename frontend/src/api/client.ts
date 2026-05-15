@@ -1,11 +1,5 @@
 const API_BASE = import.meta.env.VITE_API_URL ?? 'http://localhost:3000';
 
-function getLoginUrl(): string {
-  const baseUrl = (import.meta.env.BASE_URL ?? '/').replace(/\/+$/, '');
-  const normalizedBase = baseUrl === '' ? '' : (baseUrl.startsWith('/') ? baseUrl : `/${baseUrl}`);
-  return `${window.location.origin}${normalizedBase}/login`;
-}
-
 export class ApiError extends Error {
   constructor(
     public readonly status: number,
@@ -107,10 +101,10 @@ async function request<T>(
 
         // Il retry ha fallito — se ancora 401, forza logout
         if (retryRes.status === 401) {
-          try { localStorage.removeItem('token') } catch { /* ignore */ }
-          try { sessionStorage.removeItem('token') } catch { /* ignore */ }
-          window.location.href = getLoginUrl()
-          return undefined as T
+          let retryData: { error: string; issues?: unknown[] }
+          try { retryData = await retryRes.json() }
+          catch { retryData = { error: retryRes.statusText } }
+          throw new ApiError(retryRes.status, retryData)
         }
 
         // Altro errore nel retry
@@ -121,10 +115,10 @@ async function request<T>(
       }
 
       // Refresh fallito — forza logout
-      try { localStorage.removeItem('token') } catch { /* ignore */ }
-      try { sessionStorage.removeItem('token') } catch { /* ignore */ }
-      window.location.href = getLoginUrl()
-      return undefined as T
+      let data: { error: string; issues?: unknown[] }
+      try { data = await res.json() }
+      catch { data = { error: res.statusText } }
+      throw new ApiError(res.status, data)
     }
     // --- FINE blocco refresh ---
 
