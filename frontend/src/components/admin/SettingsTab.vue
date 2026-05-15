@@ -58,7 +58,7 @@
 
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted } from 'vue';
-import { admin as adminApi, settings as settingsApi, ApiError } from '../../api/client';
+import { admin as adminApi, ApiError } from '../../api/client';
 import type { User } from '../../types';
 
 const searchQuery = ref('');
@@ -84,8 +84,8 @@ async function load() {
       console.error('❌ SettingsTab: error accessing localStorage:', e);
     }
 
-    console.info('📡 SettingsTab: calling settingsApi.get()');
-    const s = await settingsApi.get();
+    console.info('📡 SettingsTab: calling adminApi.settings.get()');
+    const s = await adminApi.settings.get();
     const princessId = s?.['princess_user_id'] ?? '';
     if (princessId) {
       currentPrincess.value = (await adminApi.users.getById(princessId)) ?? null;
