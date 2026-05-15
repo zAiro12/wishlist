@@ -33,7 +33,7 @@
             :class="{ selected: selectedUserId === u.id }" @click="selectUser(u)">
             <strong>{{ u.givenName }} {{ u.familyName }}</strong>
             <span style="color:var(--color-on-surface-variant);font-size:0.8rem;margin-left:0.4rem;">({{ u.email
-              }})</span>
+            }})</span>
           </button>
         </div>
         <p v-if="searchPerformed && searchResults.length === 0"
