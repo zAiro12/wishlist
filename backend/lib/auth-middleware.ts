@@ -92,7 +92,8 @@ export async function requireAuth(
       return;
     }
 
-    res.status(401).json({ error: 'Invalid or expired token' });
+    console.error('Unexpected auth handler error:', err);
+    res.status(500).json({ error: 'Internal server error' });
   }
 }
 
