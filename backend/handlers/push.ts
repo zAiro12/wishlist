@@ -89,7 +89,7 @@ export async function sendPushToUsers(userIds: string[], payload: PushPayload): 
     return;
   }
 
-  const targetUserIds = Array.from(new Set(userIds.filter((userId) => userId.trim().length > 0).map((userId) => userId.trim())));
+  const targetUserIds = Array.from(new Set(userIds.map((userId) => userId.trim()).filter((userId) => userId.length > 0)));
   if (targetUserIds.length === 0) return;
 
   ensureVapidConfigured();
