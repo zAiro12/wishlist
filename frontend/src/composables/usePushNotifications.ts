@@ -158,8 +158,8 @@ export function usePushNotifications() {
     }
   }
 
-  void refreshSubscriptionState().catch(() => {
-    /* ignore init errors */
+  void refreshSubscriptionState().catch((err) => {
+    console.error('Errore inizializzazione stato push', err);
   });
 
   return {

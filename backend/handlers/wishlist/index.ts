@@ -5,6 +5,7 @@ import { prisma } from '../../lib/prisma';
 import { CreateWishlistItemSchema } from '../../lib/validators';
 import { ZodError } from 'zod';
 import { sendPushToUser } from '../push';
+import { getActorDisplayName } from '../../lib/push-utils';
 
 export default async function handler(req: VercelRequest, res: VercelResponse): Promise<void> {
   if (setCors(req, res)) return;
@@ -53,10 +54,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
             }
           }
 
-          const actorName =
-            authedReq.user.dbUser.givenName?.trim() ||
-            authedReq.user.dbUser.familyName?.trim() ||
-            authedReq.user.dbUser.email;
+          const actorName = getActorDisplayName(authedReq.user.dbUser);
 
           await Promise.all(
             Array.from(recipients).map((recipientId) =>

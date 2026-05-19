@@ -32,6 +32,7 @@ type SendBody = {
 };
 
 let vapidConfigured = false;
+let vapidMissingWarned = false;
 
 function parsePathname(url: string | undefined): string {
   try {
@@ -74,6 +75,10 @@ function isExpiredSubscriptionError(err: unknown): boolean {
 
 export async function sendPushToUser(userId: string, payload: PushPayload): Promise<void> {
   if (!process.env.VAPID_PUBLIC_KEY || !process.env.VAPID_PRIVATE_KEY || !process.env.VAPID_MAILTO) {
+    if (!vapidMissingWarned) {
+      console.warn('Push notifications disabled: missing VAPID configuration');
+      vapidMissingWarned = true;
+    }
     return;
   }
 
@@ -83,21 +88,30 @@ export async function sendPushToUser(userId: string, payload: PushPayload): Prom
     where: { userId },
   });
 
-  for (const subscription of subscriptions) {
-    try {
-      await webpush.sendNotification(
-        toWebPushSubscription(subscription.endpoint, subscription.p256dh, subscription.auth),
-        JSON.stringify(payload)
-      );
-    } catch (err) {
-      if (isExpiredSubscriptionError(err)) {
-        await prisma.pushSubscription.deleteMany({
-          where: { endpoint: subscription.endpoint },
-        });
-      } else {
-        console.error('Push send failed', err);
-      }
-    }
+  const expiredEndpoints = (
+    await Promise.all(
+      subscriptions.map(async (subscription) => {
+        try {
+          await webpush.sendNotification(
+            toWebPushSubscription(subscription.endpoint, subscription.p256dh, subscription.auth),
+            JSON.stringify(payload)
+          );
+          return null;
+        } catch (err) {
+          if (isExpiredSubscriptionError(err)) {
+            return subscription.endpoint;
+          }
+          console.error('Push send failed', err);
+          return null;
+        }
+      })
+    )
+  ).filter((endpoint): endpoint is string => endpoint !== null);
+
+  if (expiredEndpoints.length > 0) {
+    await prisma.pushSubscription.deleteMany({
+      where: { endpoint: { in: expiredEndpoints } },
+    });
   }
 }
 

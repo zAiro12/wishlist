@@ -14,6 +14,7 @@ import {
 import { ZodError } from 'zod';
 import { PrismaClientKnownRequestError } from '@prisma/client/runtime/library';
 import { sendPushToUser } from '../push';
+import { getActorDisplayName } from '../../lib/push-utils';
 
 export default async function handler(req: VercelRequest, res: VercelResponse): Promise<void> {
   if (setCors(req, res)) return;
@@ -75,10 +76,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
                 select: { userId: true },
               });
 
-              const actorName =
-                authedReq.user.dbUser.givenName?.trim() ||
-                authedReq.user.dbUser.familyName?.trim() ||
-                authedReq.user.dbUser.email;
+              const actorName = getActorDisplayName(authedReq.user.dbUser);
 
               await Promise.all(
                 recipients.map((recipient) =>
@@ -128,10 +126,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
               select: { userId: true },
             });
 
-            const actorName =
-              authedReq.user.dbUser.givenName?.trim() ||
-              authedReq.user.dbUser.familyName?.trim() ||
-              authedReq.user.dbUser.email;
+            const actorName = getActorDisplayName(authedReq.user.dbUser);
 
             await Promise.all(
               recipients.map((recipient) =>
@@ -202,10 +197,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
             select: { userId: true },
           });
 
-          const actorName =
-            authedReq.user.dbUser.givenName?.trim() ||
-            authedReq.user.dbUser.familyName?.trim() ||
-            authedReq.user.dbUser.email;
+          const actorName = getActorDisplayName(authedReq.user.dbUser);
 
           await Promise.all(
             recipients.map((recipient) =>
