@@ -194,6 +194,15 @@ async function shareWishlist() {
       return;
     }
   } catch (err) {
+    if (
+      typeof err === 'object' &&
+      err !== null &&
+      'name' in err &&
+      err.name === 'AbortError'
+    ) {
+      return;
+    }
+
     console.debug('navigator.share failed, fallback to clipboard', { err, shareUrl });
     // fall back to clipboard
   }
