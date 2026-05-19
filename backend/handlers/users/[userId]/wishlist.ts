@@ -30,6 +30,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
       return;
     }
 
+    // Share-by-link behavior: any authenticated user with the link can view this wishlist.
     const items = await prisma.wishlistItem.findMany({
       where: { ownerId, deletedAt: null },
       orderBy: { createdAt: 'asc' },

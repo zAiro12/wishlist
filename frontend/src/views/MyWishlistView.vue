@@ -168,6 +168,7 @@ function getShareUrl(): string | null {
   if (!userId) return null;
 
   const href = router.resolve({ name: 'SharedWishlist', params: { userId } }).href;
+  if (/^https?:\/\//.test(href)) return href;
   return new URL(href, window.location.origin).toString();
 }
 
