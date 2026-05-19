@@ -180,14 +180,16 @@ async function shareWishlist() {
       showToast('Link condiviso', 'success');
       return;
     }
-  } catch {
+  } catch (err) {
+    console.debug('navigator.share failed, fallback to clipboard', err);
     // fall back to clipboard
   }
 
   try {
     await navigator.clipboard.writeText(shareUrl);
     showToast('Link copiato negli appunti', 'success');
-  } catch {
+  } catch (err) {
+    console.debug('clipboard write failed', err);
     showToast(`Copia manualmente questo link: ${shareUrl}`, 'info');
   }
 }
