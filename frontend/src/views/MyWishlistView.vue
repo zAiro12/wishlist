@@ -3,7 +3,10 @@
   <div class="page-container with-sidebar">
     <div class="page-header">
       <h1 style="margin:0;">La mia Wishlist</h1>
+      <div class="header-actions">
+        <button class="btn-secondary" @click="shareWishlist">Condividi wishlist</button>
         <button class="btn-primary" @click="openCreate">+ Aggiungi elemento</button>
+      </div>
     </div>
 
     <!-- Form -->
@@ -62,11 +65,13 @@
 
 <script setup lang="ts">
 import { ref, onMounted, reactive } from 'vue';
+import { useRouter } from 'vue-router';
 import NavBar from '../components/NavBar.vue';
 import StatusBadge from '../components/StatusBadge.vue';
 import { wishlist as wishlistApi, ApiError } from '../api/client';
 import type { WishlistItem } from '../types';
 import { useToast } from '../composables/useToast'
+import { useAuthStore } from '../stores/auth';
 
 // Priority removed from create/edit form — not persisted in backend
 
@@ -75,6 +80,8 @@ const loading = ref(true);
 const error = ref<string | null>(null);
 
 const { showToast } = useToast()
+const authStore = useAuthStore();
+const router = useRouter();
 
 const showForm = ref(false);
 const editItem = ref<WishlistItem | null>(null);
@@ -147,6 +154,43 @@ async function handleDelete(item: WishlistItem) {
     showToast(error.value ?? 'Errore eliminazione', 'error')
   }
 }
+
+function getShareUrl(): string | null {
+  const userId = authStore.user?.id;
+  if (!userId) return null;
+
+  const href = router.resolve({ name: 'SharedWishlist', params: { userId } }).href;
+  return new URL(href, window.location.origin).toString();
+}
+
+async function shareWishlist() {
+  const shareUrl = getShareUrl();
+  if (!shareUrl) {
+    showToast('Impossibile generare il link di condivisione', 'error');
+    return;
+  }
+
+  try {
+    if (navigator.share) {
+      await navigator.share({
+        title: 'La mia wishlist',
+        text: 'Guarda la mia wishlist',
+        url: shareUrl,
+      });
+      showToast('Link condiviso', 'success');
+      return;
+    }
+  } catch (_) {
+    // fall back to clipboard
+  }
+
+  try {
+    await navigator.clipboard.writeText(shareUrl);
+    showToast('Link copiato negli appunti', 'success');
+  } catch (_) {
+    showToast(`Copia manualmente questo link: ${shareUrl}`, 'info');
+  }
+}
 </script>
 
 <style scoped>
@@ -155,6 +199,11 @@ async function handleDelete(item: WishlistItem) {
   justify-content: space-between;
   align-items: center;
   margin-bottom: 1.5rem;
+}
+
+.header-actions {
+  display: flex;
+  gap: 0.5rem;
 }
 
 .item-row {
@@ -168,6 +217,11 @@ async function handleDelete(item: WishlistItem) {
     flex-direction: column;
     align-items: flex-start;
     gap: 0.75rem;
+  }
+
+  .header-actions {
+    width: 100%;
+    flex-direction: column;
   }
 
   .item-row {
