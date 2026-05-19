@@ -20,15 +20,13 @@ async function notifyGroupStatusChange(params: {
   groupId: string;
   actorUserId: string;
   ownerUserId: string;
-  actorName: string;
   itemId: string;
-  itemTitle: string;
   status: string;
   title: string;
   body: string;
   logContext: string;
 }): Promise<void> {
-  const { groupId, actorUserId, ownerUserId, actorName, itemId, itemTitle, status, title, body, logContext } = params;
+  const { groupId, actorUserId, ownerUserId, itemId, status, title, body, logContext } = params;
 
   try {
     const recipients = await prisma.groupMember.findMany({
@@ -45,7 +43,7 @@ async function notifyGroupStatusChange(params: {
       {
         type: 'ITEM_STATUS_CHANGED',
         title,
-        body: body.replace('{actorName}', actorName).replace('{itemTitle}', itemTitle),
+        body,
         data: { itemId, status, groupId },
       }
     );
@@ -109,12 +107,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
               groupId,
               actorUserId: userId,
               ownerUserId: item.ownerId,
-              actorName,
               itemId,
-              itemTitle: item.title,
               status,
               title: status === 'COMPRATO' ? 'Regalo acquistato' : 'Regalo prenotato',
-              body: '{actorName} ha aggiornato lo stato di "{itemTitle}"',
+              body: `${actorName} ha aggiornato lo stato di "${item.title}"`,
               logContext: 'create',
             });
           } catch (createErr) {
@@ -147,12 +143,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
             groupId,
             actorUserId: userId,
             ownerUserId: item.ownerId,
-            actorName,
             itemId,
-            itemTitle: item.title,
             status,
             title: status === 'COMPRATO' ? 'Regalo acquistato' : 'Regalo prenotato',
-            body: '{actorName} ha aggiornato lo stato di "{itemTitle}"',
+            body: `${actorName} ha aggiornato lo stato di "${item.title}"`,
             logContext: 'update',
           });
         }
@@ -206,12 +200,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
           groupId,
           actorUserId: userId,
           ownerUserId: item.ownerId,
-          actorName,
           itemId,
-          itemTitle: item.title,
           status: 'DISPONIBILE',
           title: 'Regalo tornato disponibile',
-          body: '{actorName} ha liberato "{itemTitle}"',
+          body: `${actorName} ha liberato "${item.title}"`,
           logContext: 'clear',
         });
         return;

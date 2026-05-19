@@ -3,12 +3,18 @@ import vue from '@vitejs/plugin-vue';
 import { resolve } from 'path';
 import { VitePWA } from 'vite-plugin-pwa';
 
+function normalizeBaseUrl(baseUrl: string | undefined): string {
+  const trimmedBaseUrl = baseUrl?.trim();
+  if (!trimmedBaseUrl) return '/';
+
+  const withLeadingSlash = trimmedBaseUrl.startsWith('/') ? trimmedBaseUrl : `/${trimmedBaseUrl}`;
+  return withLeadingSlash.endsWith('/') ? withLeadingSlash : `${withLeadingSlash}/`;
+}
+
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), 'VITE_');
-  const rawBaseUrl = env.VITE_BASE_URL?.trim();
-  const baseUrl = rawBaseUrl ? (rawBaseUrl.startsWith('/') ? rawBaseUrl : `/${rawBaseUrl}`) : '/';
-  const normalizedBaseUrl = baseUrl.endsWith('/') ? baseUrl : `${baseUrl}/`;
+  const normalizedBaseUrl = normalizeBaseUrl(env.VITE_BASE_URL);
   return {
     plugins: [
       vue(),

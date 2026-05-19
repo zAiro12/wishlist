@@ -11,10 +11,10 @@ type PushPayload = Record<string, unknown>;
 const SubscribeBodySchema = z.object({
   userId: z.string().optional(),
   subscription: z.object({
-    endpoint: z.string().min(1),
+    endpoint: z.string().trim().min(1),
     keys: z.object({
-      p256dh: z.string().min(1),
-      auth: z.string().min(1),
+      p256dh: z.string().trim().min(1),
+      auth: z.string().trim().min(1),
     }),
   }),
 });
@@ -22,19 +22,19 @@ const SubscribeBodySchema = z.object({
 const UnsubscribeBodySchema = z
   .object({
     userId: z.string().optional(),
-    endpoint: z.string().optional(),
+    endpoint: z.string().trim().min(1).optional(),
     subscription: z
       .object({
-        endpoint: z.string().optional(),
+        endpoint: z.string().trim().min(1).optional(),
       })
       .optional(),
   })
-  .refine((body) => Boolean(body.endpoint?.trim() || body.subscription?.endpoint?.trim()), {
+  .refine((body) => Boolean(body.endpoint || body.subscription?.endpoint), {
     message: 'Endpoint required',
   });
 
 const SendBodySchema = z.object({
-  userId: z.string().min(1),
+  userId: z.string().trim().min(1),
   payload: z.record(z.unknown()).optional(),
 });
 
@@ -89,7 +89,7 @@ export async function sendPushToUsers(userIds: string[], payload: PushPayload): 
     return;
   }
 
-  const targetUserIds = Array.from(new Set(userIds.filter(Boolean)));
+  const targetUserIds = Array.from(new Set(userIds.filter((userId) => userId.trim().length > 0).map((userId) => userId.trim())));
   if (targetUserIds.length === 0) return;
 
   ensureVapidConfigured();
@@ -172,7 +172,11 @@ async function handleUnsubscribe(req: AuthedRequest, res: VercelResponse): Promi
     return;
   }
 
-  const endpoint = (body.endpoint ?? body.subscription?.endpoint ?? '').trim();
+  const endpoint = body.endpoint ?? body.subscription?.endpoint;
+  if (!endpoint) {
+    res.status(400).json({ error: 'Endpoint required' });
+    return;
+  }
 
   await prisma.pushSubscription.deleteMany({
     where: { userId, endpoint },
