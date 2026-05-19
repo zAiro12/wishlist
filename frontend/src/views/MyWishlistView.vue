@@ -190,7 +190,8 @@ async function shareWishlist() {
     showToast('Link copiato negli appunti', 'success');
   } catch (err) {
     console.debug('clipboard write failed', err);
-    showToast(`Copia manualmente questo link: ${shareUrl}`, 'info');
+    window.prompt('Copia manualmente questo link:', shareUrl);
+    showToast('Copia manuale richiesta', 'info');
   }
 }
 </script>

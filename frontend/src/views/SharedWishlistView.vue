@@ -32,19 +32,19 @@ import { computed, onMounted, ref } from 'vue';
 import { useRoute } from 'vue-router';
 import NavBar from '../components/NavBar.vue';
 import { users, ApiError } from '../api/client';
-import type { WishlistItem } from '../types';
+import type { GroupUserSummary, SharedWishlistItem } from '../types';
 
 const route = useRoute();
 const userId = route.params['userId'] as string;
 
 const loading = ref(true);
 const error = ref<string | null>(null);
-const items = ref<WishlistItem[]>([]);
+const items = ref<SharedWishlistItem[]>([]);
+const owner = ref<GroupUserSummary | null>(null);
 
 const ownerLabel = computed(() => {
-  const owner = items.value[0]?.owner;
-  if (!owner) return '';
-  const fullName = `${owner.givenName ?? ''} ${owner.familyName ?? ''}`.trim();
+  if (!owner.value) return '';
+  const fullName = `${owner.value.givenName ?? ''} ${owner.value.familyName ?? ''}`.trim();
   return fullName || '';
 });
 
@@ -52,7 +52,9 @@ onMounted(async () => {
   loading.value = true;
   error.value = null;
   try {
-    items.value = await users.sharedWishlist(userId);
+    const response = await users.sharedWishlist(userId);
+    owner.value = response.owner;
+    items.value = response.items;
   } catch (err) {
     error.value = err instanceof ApiError ? err.message : 'Errore nel caricamento della wishlist condivisa';
   } finally {

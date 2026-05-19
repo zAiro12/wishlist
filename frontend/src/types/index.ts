@@ -69,6 +69,22 @@ export interface WishlistItem {
   status?: WishlistItemStatus | null;
 }
 
+export interface SharedWishlistItem {
+  id: string;
+  ownerId: string;
+  title: string;
+  description: string | null;
+  url: string | null;
+  imageUrl: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface SharedWishlistResponse {
+  owner: GroupUserSummary;
+  items: SharedWishlistItem[];
+}
+
 export interface WishlistItemStatus {
   id: string;
   itemId: string;

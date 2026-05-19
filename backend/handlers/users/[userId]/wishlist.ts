@@ -39,14 +39,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
         description: true,
         url: true,
         imageUrl: true,
-        deletedAt: true,
         createdAt: true,
         updatedAt: true,
-        owner: { select: buildGroupUserSelect(false) },
       },
     });
 
-    const maskedItems = items.map((item) => ({ ...item, status: null }));
-    authedRes.status(200).json(maskedItems);
+    authedRes.status(200).json({
+      owner,
+      items,
+    });
   });
 }
