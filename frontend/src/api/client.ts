@@ -194,6 +194,8 @@ export const auth = {
 
 export const users = {
   me: () => request<import('../types').User>('/api/users/me'),
+  sharedWishlist: (userId: string) =>
+    request<import('../types').SharedWishlistResponse>(`/api/users/${userId}/wishlist`),
   updateProfile: (data: { givenName?: string; familyName?: string; avatarUrl?: string; birthdate?: string }) =>
     request<import('../types').User>('/api/users/me', {
       method: 'PATCH',
