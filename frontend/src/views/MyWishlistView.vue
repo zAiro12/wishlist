@@ -193,16 +193,15 @@ async function shareWishlist() {
       return;
     }
   } catch (err) {
-    console.debug('navigator.share failed, fallback to clipboard', err);
+    console.debug('navigator.share failed, fallback to clipboard', { err, shareUrl });
     // fall back to clipboard
   }
 
   try {
     await navigator.clipboard.writeText(shareUrl);
-    manualShareUrl.value = null;
     showToast('Link copiato negli appunti', 'success');
   } catch (err) {
-    console.debug('clipboard write failed', err);
+    console.debug('clipboard write failed', { err, shareUrl });
     manualShareUrl.value = shareUrl;
     showToast('Copia manualmente il link dal box mostrato in pagina', 'info');
   }
