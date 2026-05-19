@@ -17,24 +17,6 @@ export default defineConfig(({ mode }) => {
         workbox: {
           globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
           navigateFallback: '/index.html',
-          runtimeCaching: [
-            {
-              urlPattern: ({ url }) =>
-                url.pathname.startsWith('/api/') || url.pathname.startsWith('/backend/'),
-              handler: 'NetworkFirst',
-              options: {
-                cacheName: 'wishlist-api-cache',
-                networkTimeoutSeconds: 10,
-                expiration: {
-                  maxEntries: 100,
-                  maxAgeSeconds: 60 * 60 * 24,
-                },
-                cacheableResponse: {
-                  statuses: [0, 200],
-                },
-              },
-            },
-          ],
         },
       }),
     ],
