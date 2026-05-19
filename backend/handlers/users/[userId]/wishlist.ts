@@ -31,7 +31,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
 
     const items = await prisma.wishlistItem.findMany({
       where: { ownerId, deletedAt: null },
-      orderBy: [{ createdAt: 'asc' }],
+      orderBy: { createdAt: 'asc' },
       select: {
         id: true,
         ownerId: true,

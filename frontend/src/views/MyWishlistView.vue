@@ -8,6 +8,13 @@
         <button class="btn-primary" @click="openCreate">+ Aggiungi elemento</button>
       </div>
     </div>
+    <div v-if="manualShareUrl" class="card manual-share">
+      <p style="margin-top:0;">Non siamo riusciti a copiare il link automaticamente. Copialo da qui:</p>
+      <input :value="manualShareUrl" readonly @focus="selectManualShareInput" />
+      <div style="display:flex;justify-content:flex-end;">
+        <button class="btn-secondary" @click="manualShareUrl = null">Chiudi</button>
+      </div>
+    </div>
 
     <!-- Form -->
     <div v-if="showForm" class="card" style="margin-bottom:1.5rem;">
@@ -88,6 +95,7 @@ const editItem = ref<WishlistItem | null>(null);
 const form = reactive({ title: '', description: '', url: '' });
 const formError = ref<string | null>(null);
 const saving = ref(false);
+const manualShareUrl = ref<string | null>(null);
 
 onMounted(loadItems);
 
@@ -163,6 +171,11 @@ function getShareUrl(): string | null {
   return new URL(href, window.location.origin).toString();
 }
 
+function selectManualShareInput(event: FocusEvent) {
+  const target = event.target as HTMLInputElement | null;
+  target?.select();
+}
+
 async function shareWishlist() {
   const shareUrl = getShareUrl();
   if (!shareUrl) {
@@ -177,7 +190,6 @@ async function shareWishlist() {
         text: 'Guarda la mia wishlist',
         url: shareUrl,
       });
-      showToast('Link condiviso', 'success');
       return;
     }
   } catch (err) {
@@ -187,11 +199,12 @@ async function shareWishlist() {
 
   try {
     await navigator.clipboard.writeText(shareUrl);
+    manualShareUrl.value = null;
     showToast('Link copiato negli appunti', 'success');
   } catch (err) {
     console.debug('clipboard write failed', err);
-    window.prompt('Copia manualmente questo link:', shareUrl);
-    showToast('Copia manuale richiesta', 'info');
+    manualShareUrl.value = shareUrl;
+    showToast('Copia manualmente il link dal box mostrato in pagina', 'info');
   }
 }
 </script>
@@ -213,6 +226,17 @@ async function shareWishlist() {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
+}
+
+.manual-share {
+  margin-bottom: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.manual-share input {
+  width: 100%;
 }
 
 @media (max-width: 767px) {
