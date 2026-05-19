@@ -48,11 +48,14 @@
       </div>
     </template>
 
+    <InstallGuide />
+
   </div>
 </template>
 
 <script setup lang="ts">
 import NavBar from '../components/NavBar.vue';
+import InstallGuide from '../components/InstallGuide.vue';
 import { useAuthStore } from '../stores/auth';
 
 const auth = useAuthStore();

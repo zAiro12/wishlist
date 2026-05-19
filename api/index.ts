@@ -43,6 +43,7 @@ import adminGroupsHandler from '../backend/handlers/admin/groups'
 import adminAuditHandler from '../backend/handlers/admin/audit'
 import adminWishlistsHandler from '../backend/handlers/admin/wishlists'
 import adminSettingsHandler from '../backend/handlers/admin/settings'
+import pushHandler from '../backend/handlers/push'
 import { getOpenApiSpec, getSwaggerHtml } from '../backend/lib/swagger'
 import swaggerUi from 'swagger-ui-express'
 
@@ -102,6 +103,11 @@ const routes: { pattern: string; handler: Handler }[] = [
 	{ pattern: '/admin/audit',                       handler: adminAuditHandler },
 	{ pattern: '/admin/wishlists',                   handler: adminWishlistsHandler },
 	{ pattern: '/admin/settings',                    handler: adminSettingsHandler },
+
+	{ pattern: '/push/subscribe',                    handler: pushHandler },
+	{ pattern: '/push/unsubscribe',                  handler: pushHandler },
+	{ pattern: '/push/send',                         handler: pushHandler },
+	{ pattern: '/push/vapid-public-key',             handler: pushHandler },
 ]
 
 // Construct allowed origins set from environment, normalizing to origin only

@@ -44,6 +44,7 @@ model User {
   groupMemberships GroupMember[]
   ownedGroups      Group[]             @relation("GroupOwner")
   wishlistItems    WishlistItem[]
+  pushSubscriptions PushSubscription[]
   statusesSet      WishlistItemStatus[]
   auditActorOf     AdminAction[]       @relation("AdminActor")
   auditTargetOf    AdminAction[]       @relation("AdminTarget")
@@ -129,6 +130,18 @@ model WishlistItemStatus {
 
   @@index([itemId])
   @@index([statusGroupId])
+}
+
+model PushSubscription {
+  id        String   @id @default(cuid())
+  userId    String
+  endpoint  String   @unique
+  p256dh    String
+  auth      String
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
 }
 
 model AppSetting {
