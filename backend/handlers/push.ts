@@ -151,15 +151,15 @@ async function handleUnsubscribe(req: AuthedRequest, res: VercelResponse): Promi
 }
 
 async function handleSend(req: AuthedRequest, res: VercelResponse): Promise<void> {
+  if (req.user.dbUser.role !== 'ADMIN') {
+    res.status(403).json({ error: 'Forbidden' });
+    return;
+  }
+
   const body = (req.body ?? {}) as SendBody;
   const userId = body.userId;
   if (!userId) {
     res.status(400).json({ error: 'userId required' });
-    return;
-  }
-
-  if (req.user.dbUser.role !== 'ADMIN' && userId !== req.user.userId) {
-    res.status(403).json({ error: 'Forbidden' });
     return;
   }
 
@@ -201,4 +201,3 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
     authedRes.status(404).json({ error: 'Not found' });
   });
 }
-
