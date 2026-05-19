@@ -4,6 +4,14 @@ import { setCors } from '../../../../lib/cors';
 import { prisma } from '../../../../lib/prisma';
 import { buildGroupUserSelect } from '../../../../lib/groups-dto';
 
+function sanitizeOwnerForSharedWishlist(owner: { id: string; givenName: string | null; familyName: string | null }) {
+  return {
+    id: owner.id,
+    givenName: owner.givenName,
+    familyName: owner.familyName,
+  };
+}
+
 export default async function handler(req: VercelRequest, res: VercelResponse): Promise<void> {
   if (setCors(req, res)) return;
 
@@ -47,11 +55,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
     });
 
     authedRes.status(200).json({
-      owner: {
-        id: owner.id,
-        givenName: owner.givenName,
-        familyName: owner.familyName,
-      },
+      owner: sanitizeOwnerForSharedWishlist(owner),
       items,
     });
   });
