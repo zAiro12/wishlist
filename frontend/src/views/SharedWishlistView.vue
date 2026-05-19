@@ -45,7 +45,8 @@ const owner = ref<GroupUserSummary | null>(null);
 const ownerLabel = computed(() => {
   if (!owner.value) return '';
   const fullName = `${owner.value.givenName ?? ''} ${owner.value.familyName ?? ''}`.trim();
-  return fullName || '';
+  if (fullName) return fullName;
+  return userId ? `Wishlist di ${userId}` : 'Wishlist condivisa';
 });
 
 onMounted(async () => {
