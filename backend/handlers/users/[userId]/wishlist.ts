@@ -20,12 +20,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
     }
 
     const canViewEmail = false;
-    const owner = await prisma.user.findFirst({
-      where: { id: ownerId, status: 'ACTIVE' },
-      select: buildGroupUserSelect(canViewEmail),
+    const owner = await prisma.user.findUnique({
+      where: { id: ownerId },
+      select: { status: true, ...buildGroupUserSelect(canViewEmail) },
     });
 
-    if (!owner) {
+    if (!owner || owner.status !== 'ACTIVE') {
       authedRes.status(404).json({ error: 'User not found' });
       return;
     }
@@ -47,7 +47,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
     });
 
     authedRes.status(200).json({
-      owner,
+      owner: {
+        id: owner.id,
+        givenName: owner.givenName,
+        familyName: owner.familyName,
+      },
       items,
     });
   });
