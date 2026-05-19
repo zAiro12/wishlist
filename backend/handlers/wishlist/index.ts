@@ -4,7 +4,7 @@ import { setCors } from '../../lib/cors';
 import { prisma } from '../../lib/prisma';
 import { CreateWishlistItemSchema } from '../../lib/validators';
 import { ZodError } from 'zod';
-import { sendPushToUser } from '../push';
+import { sendPushToUsers } from '../push';
 import { getActorDisplayName } from '../../lib/push-utils';
 
 export default async function handler(req: VercelRequest, res: VercelResponse): Promise<void> {
@@ -56,19 +56,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
 
           const actorName = getActorDisplayName(authedReq.user.dbUser);
 
-          await Promise.all(
-            Array.from(recipients).map((recipientId) =>
-              sendPushToUser(recipientId, {
-                type: 'ITEM_ADDED',
-                title: 'Nuovo desiderio aggiunto',
-                body: `${actorName} ha aggiunto "${item.title}" alla wishlist`,
-                data: {
-                  ownerId: userId,
-                  itemId: item.id,
-                },
-              })
-            )
-          );
+          await sendPushToUsers(Array.from(recipients), {
+            type: 'ITEM_ADDED',
+            title: 'Nuovo desiderio aggiunto',
+            body: `${actorName} ha aggiunto "${item.title}" alla wishlist`,
+            data: {
+              ownerId: userId,
+              itemId: item.id,
+            },
+          });
         } catch (pushErr) {
           console.error('Failed to send push notifications for ITEM_CREATED', pushErr);
         }

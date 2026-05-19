@@ -6,6 +6,9 @@ import { VitePWA } from 'vite-plugin-pwa';
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), 'VITE_');
+  const rawBaseUrl = env.VITE_BASE_URL?.trim();
+  const baseUrl = rawBaseUrl ? (rawBaseUrl.startsWith('/') ? rawBaseUrl : `/${rawBaseUrl}`) : '/';
+  const normalizedBaseUrl = baseUrl.endsWith('/') ? baseUrl : `${baseUrl}/`;
   return {
     plugins: [
       vue(),
@@ -16,7 +19,7 @@ export default defineConfig(({ mode }) => {
         manifest: false,
         workbox: {
           globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
-          navigateFallback: '/index.html',
+          navigateFallback: `${normalizedBaseUrl}index.html`,
         },
       }),
     ],
@@ -26,7 +29,7 @@ export default defineConfig(({ mode }) => {
       },
     },
     // GitHub Pages deployment: set base to your repo name (e.g. '/wishlist/')
-    base: env.VITE_BASE_URL ?? '/',
+    base: normalizedBaseUrl,
     build: {
       outDir: 'dist',
       emptyOutDir: true,

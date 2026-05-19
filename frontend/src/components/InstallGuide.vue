@@ -69,9 +69,13 @@ type BeforeInstallPromptEvent = Event & {
 const ua = navigator.userAgent;
 const isIOS = ref(/iphone|ipad|ipod/i.test(ua));
 const isAndroid = ref(/android/i.test(ua));
-const isStandalone = ref(
-  window.matchMedia('(display-mode: standalone)').matches || (navigator as Navigator & { standalone?: boolean }).standalone === true
-);
+const standaloneMediaQuery = window.matchMedia('(display-mode: standalone)');
+
+function readStandaloneState(): boolean {
+  return standaloneMediaQuery.matches || (navigator as Navigator & { standalone?: boolean }).standalone === true;
+}
+
+const isStandalone = ref(readStandaloneState());
 
 const deferredPrompt = ref<BeforeInstallPromptEvent | null>(null);
 
@@ -82,18 +86,32 @@ const onBeforeInstallPrompt = (e: Event) => {
   deferredPrompt.value = e as BeforeInstallPromptEvent;
 };
 
+const onAppInstalled = () => {
+  isStandalone.value = readStandaloneState();
+  deferredPrompt.value = null;
+};
+
+const onDisplayModeChange = () => {
+  isStandalone.value = readStandaloneState();
+};
+
 async function install(): Promise<void> {
   if (!deferredPrompt.value) return;
   await deferredPrompt.value.prompt();
+  isStandalone.value = readStandaloneState();
   deferredPrompt.value = null;
 }
 
 onMounted(() => {
   window.addEventListener('beforeinstallprompt', onBeforeInstallPrompt);
+  window.addEventListener('appinstalled', onAppInstalled);
+  standaloneMediaQuery.addEventListener('change', onDisplayModeChange);
 });
 
 onUnmounted(() => {
   window.removeEventListener('beforeinstallprompt', onBeforeInstallPrompt);
+  window.removeEventListener('appinstalled', onAppInstalled);
+  standaloneMediaQuery.removeEventListener('change', onDisplayModeChange);
 });
 </script>
 

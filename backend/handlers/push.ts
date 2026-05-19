@@ -1,35 +1,42 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import type { PushSubscription as WebPushSubscription } from 'web-push';
 import webpush from 'web-push';
+import { z } from 'zod';
 import { requireAuth, type AuthedRequest } from '../lib/auth-middleware';
 import { setCors } from '../lib/cors';
 import { prisma } from '../lib/prisma';
 
 type PushPayload = Record<string, unknown>;
 
-type SubscribeBody = {
-  userId?: string;
-  subscription?: {
-    endpoint?: string;
-    keys?: {
-      p256dh?: string;
-      auth?: string;
-    };
-  };
-};
+const SubscribeBodySchema = z.object({
+  userId: z.string().optional(),
+  subscription: z.object({
+    endpoint: z.string().min(1),
+    keys: z.object({
+      p256dh: z.string().min(1),
+      auth: z.string().min(1),
+    }),
+  }),
+});
 
-type UnsubscribeBody = {
-  userId?: string;
-  endpoint?: string;
-  subscription?: {
-    endpoint?: string;
-  };
-};
+const UnsubscribeBodySchema = z
+  .object({
+    userId: z.string().optional(),
+    endpoint: z.string().optional(),
+    subscription: z
+      .object({
+        endpoint: z.string().optional(),
+      })
+      .optional(),
+  })
+  .refine((body) => Boolean(body.endpoint?.trim() || body.subscription?.endpoint?.trim()), {
+    message: 'Endpoint required',
+  });
 
-type SendBody = {
-  userId?: string;
-  payload?: PushPayload;
-};
+const SendBodySchema = z.object({
+  userId: z.string().min(1),
+  payload: z.record(z.unknown()).optional(),
+});
 
 let vapidConfigured = false;
 let vapidMissingWarned = false;
@@ -73,7 +80,7 @@ function isExpiredSubscriptionError(err: unknown): boolean {
   return maybeStatusCode === 404 || maybeStatusCode === 410;
 }
 
-export async function sendPushToUser(userId: string, payload: PushPayload): Promise<void> {
+export async function sendPushToUsers(userIds: string[], payload: PushPayload): Promise<void> {
   if (!process.env.VAPID_PUBLIC_KEY || !process.env.VAPID_PRIVATE_KEY || !process.env.VAPID_MAILTO) {
     if (!vapidMissingWarned) {
       console.warn('Push notifications disabled: missing VAPID configuration');
@@ -82,10 +89,13 @@ export async function sendPushToUser(userId: string, payload: PushPayload): Prom
     return;
   }
 
+  const targetUserIds = Array.from(new Set(userIds.filter(Boolean)));
+  if (targetUserIds.length === 0) return;
+
   ensureVapidConfigured();
 
   const subscriptions = await prisma.pushSubscription.findMany({
-    where: { userId },
+    where: { userId: { in: targetUserIds } },
   });
 
   const expiredEndpoints = (
@@ -115,8 +125,18 @@ export async function sendPushToUser(userId: string, payload: PushPayload): Prom
   }
 }
 
+export async function sendPushToUser(userId: string, payload: PushPayload): Promise<void> {
+  await sendPushToUsers([userId], payload);
+}
+
 async function handleSubscribe(req: AuthedRequest, res: VercelResponse): Promise<void> {
-  const body = (req.body ?? {}) as SubscribeBody;
+  const parsedBody = SubscribeBodySchema.safeParse(req.body ?? {});
+  if (!parsedBody.success) {
+    res.status(400).json({ error: 'Invalid subscription payload' });
+    return;
+  }
+
+  const body = parsedBody.data;
   const userId = req.user.userId;
 
   if (body.userId && body.userId !== userId) {
@@ -124,14 +144,9 @@ async function handleSubscribe(req: AuthedRequest, res: VercelResponse): Promise
     return;
   }
 
-  const endpoint = body.subscription?.endpoint;
-  const p256dh = body.subscription?.keys?.p256dh;
-  const auth = body.subscription?.keys?.auth;
-
-  if (!endpoint || !p256dh || !auth) {
-    res.status(400).json({ error: 'Invalid subscription payload' });
-    return;
-  }
+  const endpoint = body.subscription.endpoint;
+  const p256dh = body.subscription.keys.p256dh;
+  const auth = body.subscription.keys.auth;
 
   await prisma.pushSubscription.upsert({
     where: { endpoint },
@@ -143,7 +158,13 @@ async function handleSubscribe(req: AuthedRequest, res: VercelResponse): Promise
 }
 
 async function handleUnsubscribe(req: AuthedRequest, res: VercelResponse): Promise<void> {
-  const body = (req.body ?? {}) as UnsubscribeBody;
+  const parsedBody = UnsubscribeBodySchema.safeParse(req.body ?? {});
+  if (!parsedBody.success) {
+    res.status(400).json({ error: 'Endpoint required' });
+    return;
+  }
+
+  const body = parsedBody.data;
   const userId = req.user.userId;
 
   if (body.userId && body.userId !== userId) {
@@ -151,11 +172,7 @@ async function handleUnsubscribe(req: AuthedRequest, res: VercelResponse): Promi
     return;
   }
 
-  const endpoint = body.endpoint ?? body.subscription?.endpoint;
-  if (!endpoint) {
-    res.status(400).json({ error: 'Endpoint required' });
-    return;
-  }
+  const endpoint = (body.endpoint ?? body.subscription?.endpoint ?? '').trim();
 
   await prisma.pushSubscription.deleteMany({
     where: { userId, endpoint },
@@ -170,14 +187,15 @@ async function handleSend(req: AuthedRequest, res: VercelResponse): Promise<void
     return;
   }
 
-  const body = (req.body ?? {}) as SendBody;
-  const userId = body.userId;
-  if (!userId) {
+  const parsedBody = SendBodySchema.safeParse(req.body ?? {});
+  if (!parsedBody.success) {
     res.status(400).json({ error: 'userId required' });
     return;
   }
 
-  await sendPushToUser(userId, body.payload ?? {});
+  const body = parsedBody.data;
+
+  await sendPushToUser(body.userId, body.payload ?? {});
   res.status(200).json({ ok: true });
 }
 

@@ -13,8 +13,46 @@ import {
 } from '../../lib/authz';
 import { ZodError } from 'zod';
 import { PrismaClientKnownRequestError } from '@prisma/client/runtime/library';
-import { sendPushToUser } from '../push';
+import { sendPushToUsers } from '../push';
 import { getActorDisplayName } from '../../lib/push-utils';
+
+async function notifyGroupStatusChange(params: {
+  groupId: string;
+  actorUserId: string;
+  ownerUserId: string;
+  actorName: string;
+  itemId: string;
+  itemTitle: string;
+  status: string;
+  title: string;
+  body: string;
+  logContext: string;
+}): Promise<void> {
+  const { groupId, actorUserId, ownerUserId, actorName, itemId, itemTitle, status, title, body, logContext } = params;
+
+  try {
+    const recipients = await prisma.groupMember.findMany({
+      where: {
+        groupId,
+        removedAt: null,
+        userId: { notIn: [actorUserId, ownerUserId] },
+      },
+      select: { userId: true },
+    });
+
+    await sendPushToUsers(
+      recipients.map((recipient) => recipient.userId),
+      {
+        type: 'ITEM_STATUS_CHANGED',
+        title,
+        body: body.replace('{actorName}', actorName).replace('{itemTitle}', itemTitle),
+        data: { itemId, status, groupId },
+      }
+    );
+  } catch (pushErr) {
+    console.error(`Failed to send push notifications for STATUS_CHANGED (${logContext})`, pushErr);
+  }
+}
 
 export default async function handler(req: VercelRequest, res: VercelResponse): Promise<void> {
   if (setCors(req, res)) return;
@@ -66,31 +104,19 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
               console.error('Failed to write audit for STATUS_CHANGED (create)', e);
             }
             authedRes.status(200).json(created);
-            try {
-              const recipients = await prisma.groupMember.findMany({
-                where: {
-                  groupId,
-                  removedAt: null,
-                  userId: { notIn: [userId, item.ownerId] },
-                },
-                select: { userId: true },
-              });
-
-              const actorName = getActorDisplayName(authedReq.user.dbUser);
-
-              await Promise.all(
-                recipients.map((recipient) =>
-                  sendPushToUser(recipient.userId, {
-                    type: 'ITEM_STATUS_CHANGED',
-                    title: status === 'COMPRATO' ? 'Regalo acquistato' : 'Regalo prenotato',
-                    body: `${actorName} ha aggiornato lo stato di "${item.title}"`,
-                    data: { itemId, status, groupId },
-                  })
-                )
-              );
-            } catch (pushErr) {
-              console.error('Failed to send push notifications for STATUS_CHANGED (create)', pushErr);
-            }
+            const actorName = getActorDisplayName(authedReq.user.dbUser);
+            await notifyGroupStatusChange({
+              groupId,
+              actorUserId: userId,
+              ownerUserId: item.ownerId,
+              actorName,
+              itemId,
+              itemTitle: item.title,
+              status,
+              title: status === 'COMPRATO' ? 'Regalo acquistato' : 'Regalo prenotato',
+              body: '{actorName} ha aggiornato lo stato di "{itemTitle}"',
+              logContext: 'create',
+            });
           } catch (createErr) {
             if (createErr instanceof PrismaClientKnownRequestError && createErr.code === 'P2002') {
               throw new ConflictError('Item status was modified concurrently. Please refresh and try again.');
@@ -116,31 +142,19 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
           }
 
           authedRes.status(200).json(updated);
-          try {
-            const recipients = await prisma.groupMember.findMany({
-              where: {
-                groupId,
-                removedAt: null,
-                userId: { notIn: [userId, item.ownerId] },
-              },
-              select: { userId: true },
-            });
-
-            const actorName = getActorDisplayName(authedReq.user.dbUser);
-
-            await Promise.all(
-              recipients.map((recipient) =>
-                sendPushToUser(recipient.userId, {
-                  type: 'ITEM_STATUS_CHANGED',
-                  title: status === 'COMPRATO' ? 'Regalo acquistato' : 'Regalo prenotato',
-                  body: `${actorName} ha aggiornato lo stato di "${item.title}"`,
-                  data: { itemId, status, groupId },
-                })
-              )
-            );
-          } catch (pushErr) {
-            console.error('Failed to send push notifications for STATUS_CHANGED (update)', pushErr);
-          }
+          const actorName = getActorDisplayName(authedReq.user.dbUser);
+          await notifyGroupStatusChange({
+            groupId,
+            actorUserId: userId,
+            ownerUserId: item.ownerId,
+            actorName,
+            itemId,
+            itemTitle: item.title,
+            status,
+            title: status === 'COMPRATO' ? 'Regalo acquistato' : 'Regalo prenotato',
+            body: '{actorName} ha aggiornato lo stato di "{itemTitle}"',
+            logContext: 'update',
+          });
         }
         return;
       }
@@ -187,31 +201,19 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
         }
 
         authedRes.status(200).json(updated);
-        try {
-          const recipients = await prisma.groupMember.findMany({
-            where: {
-              groupId,
-              removedAt: null,
-              userId: { notIn: [userId, item.ownerId] },
-            },
-            select: { userId: true },
-          });
-
-          const actorName = getActorDisplayName(authedReq.user.dbUser);
-
-          await Promise.all(
-            recipients.map((recipient) =>
-              sendPushToUser(recipient.userId, {
-                type: 'ITEM_STATUS_CHANGED',
-                title: 'Regalo tornato disponibile',
-                body: `${actorName} ha liberato "${item.title}"`,
-                data: { itemId, status: 'DISPONIBILE', groupId },
-              })
-            )
-          );
-        } catch (pushErr) {
-          console.error('Failed to send push notifications for STATUS_CHANGED (clear)', pushErr);
-        }
+        const actorName = getActorDisplayName(authedReq.user.dbUser);
+        await notifyGroupStatusChange({
+          groupId,
+          actorUserId: userId,
+          ownerUserId: item.ownerId,
+          actorName,
+          itemId,
+          itemTitle: item.title,
+          status: 'DISPONIBILE',
+          title: 'Regalo tornato disponibile',
+          body: '{actorName} ha liberato "{itemTitle}"',
+          logContext: 'clear',
+        });
         return;
       }
 

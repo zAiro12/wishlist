@@ -52,11 +52,10 @@ async function getServiceWorkerRegistration(): Promise<ServiceWorkerRegistration
 
 export function usePushNotifications() {
   const auth = useAuthStore();
-  const isSupported = ref<boolean>('serviceWorker' in navigator && 'PushManager' in window);
+  const hasNotificationApi = 'Notification' in window;
+  const isSupported = ref<boolean>('serviceWorker' in navigator && 'PushManager' in window && hasNotificationApi);
   const isSubscribed = ref(false);
-  const permissionState = ref<NotificationPermission>(
-    'Notification' in window ? Notification.permission : 'default'
-  );
+  const permissionState = ref<NotificationPermission>(hasNotificationApi ? Notification.permission : 'default');
   const isLoading = ref(false);
   const error = ref<string | null>(null);
 
@@ -65,13 +64,18 @@ export function usePushNotifications() {
     const registration = await getServiceWorkerRegistration();
     const existing = await registration.pushManager.getSubscription();
     isSubscribed.value = existing !== null;
-    permissionState.value = Notification.permission;
+    permissionState.value = hasNotificationApi ? Notification.permission : 'default';
   }
 
   async function subscribe(): Promise<void> {
     error.value = null;
     if (!isSupported.value) {
       error.value = 'Push notifications non supportate su questo browser.';
+      return;
+    }
+
+    if (!hasNotificationApi) {
+      error.value = 'API Notification non disponibile su questo browser.';
       return;
     }
 
@@ -151,7 +155,7 @@ export function usePushNotifications() {
       }
 
       isSubscribed.value = false;
-      permissionState.value = Notification.permission;
+      permissionState.value = hasNotificationApi ? Notification.permission : 'default';
     } catch (err) {
       error.value = err instanceof Error ? err.message : 'Errore durante la disiscrizione push';
     } finally {
