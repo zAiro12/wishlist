@@ -20,8 +20,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
     }
 
     const canViewEmail = false;
-    const owner = await prisma.user.findUnique({
-      where: { id: ownerId },
+    const owner = await prisma.user.findFirst({
+      where: { id: ownerId, status: 'ACTIVE' },
       select: buildGroupUserSelect(canViewEmail),
     });
 
