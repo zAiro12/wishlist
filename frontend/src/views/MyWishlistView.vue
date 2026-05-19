@@ -180,14 +180,14 @@ async function shareWishlist() {
       showToast('Link condiviso', 'success');
       return;
     }
-  } catch (_) {
+  } catch {
     // fall back to clipboard
   }
 
   try {
     await navigator.clipboard.writeText(shareUrl);
     showToast('Link copiato negli appunti', 'success');
-  } catch (_) {
+  } catch {
     showToast(`Copia manualmente questo link: ${shareUrl}`, 'info');
   }
 }
