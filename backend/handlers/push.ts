@@ -1,8 +1,10 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import type { PushSubscription as WebPushSubscription } from 'web-push';
+import { randomUUID } from 'crypto';
 import webpush from 'web-push';
 import { z } from 'zod';
 import { requireAuth, type AuthedRequest } from '../lib/auth-middleware';
+import { ensureAppSettingTable } from '../lib/app-setting-table';
 import { setCors } from '../lib/cors';
 import { prisma } from '../lib/prisma';
 
@@ -37,6 +39,19 @@ const SendBodySchema = z.object({
   userId: z.string().trim().min(1),
   payload: z.record(z.unknown()).optional(),
 });
+
+const SendAllBodySchema = z.object({
+  payload: z.record(z.unknown()),
+  scheduledFor: z.string().datetime().optional(),
+});
+
+const ScheduledPushJobSchema = z.object({
+  id: z.string().trim().min(1),
+  payload: z.record(z.unknown()),
+  scheduledFor: z.string().datetime(),
+});
+const ScheduledPushJobsSchema = z.array(ScheduledPushJobSchema);
+const SCHEDULED_PUSH_JOBS_KEY = 'scheduled_push_broadcast_jobs';
 
 let vapidConfigured = false;
 let vapidMissingWarned = false;
@@ -129,6 +144,75 @@ export async function sendPushToUser(userId: string, payload: PushPayload): Prom
   await sendPushToUsers([userId], payload);
 }
 
+async function sendPushToAllSubscribers(payload: PushPayload): Promise<void> {
+  const subscriptions = await prisma.pushSubscription.findMany({
+    select: { userId: true },
+    distinct: ['userId'],
+  });
+  const uniqueUserIds = subscriptions.map((subscription) => subscription.userId);
+  await sendPushToUsers(uniqueUserIds, payload);
+}
+
+async function readScheduledJobs(): Promise<z.infer<typeof ScheduledPushJobsSchema>> {
+  await ensureAppSettingTable();
+  const raw = await prisma.appSetting.findUnique({
+    where: { key: SCHEDULED_PUSH_JOBS_KEY },
+    select: { value: true },
+  });
+  if (!raw?.value) return [];
+
+  try {
+    const parsed = JSON.parse(raw.value) as unknown;
+    const parsedJobs = ScheduledPushJobsSchema.safeParse(parsed);
+    if (!parsedJobs.success) {
+      console.error('Invalid scheduled push jobs schema, returning empty list', parsedJobs.error);
+      return [];
+    }
+    return parsedJobs.data;
+  } catch (err) {
+    console.error('Invalid scheduled push jobs JSON, returning empty scheduled jobs list', err);
+    return [];
+  }
+}
+
+async function writeScheduledJobs(jobs: z.infer<typeof ScheduledPushJobsSchema>): Promise<void> {
+  await ensureAppSettingTable();
+  if (jobs.length === 0) {
+    await prisma.appSetting.deleteMany({ where: { key: SCHEDULED_PUSH_JOBS_KEY } });
+    return;
+  }
+
+  await prisma.appSetting.upsert({
+    where: { key: SCHEDULED_PUSH_JOBS_KEY },
+    create: { key: SCHEDULED_PUSH_JOBS_KEY, value: JSON.stringify(jobs) },
+    update: { value: JSON.stringify(jobs) },
+  });
+}
+
+async function flushDueScheduledBroadcasts(): Promise<void> {
+  const jobs = await readScheduledJobs();
+  if (jobs.length === 0) return;
+
+  const nowTs = Date.now();
+  const dueJobs: z.infer<typeof ScheduledPushJobsSchema> = [];
+  const pendingJobs: z.infer<typeof ScheduledPushJobsSchema> = [];
+  for (const job of jobs) {
+    if (Date.parse(job.scheduledFor) <= nowTs) dueJobs.push(job);
+    else pendingJobs.push(job);
+  }
+  if (dueJobs.length === 0) return;
+
+  await writeScheduledJobs(pendingJobs);
+
+  for (const job of dueJobs) {
+    try {
+      await sendPushToAllSubscribers(job.payload);
+    } catch (err) {
+      console.error('Scheduled push broadcast failed', { id: job.id, scheduledFor: job.scheduledFor, err });
+    }
+  }
+}
+
 async function handleSubscribe(req: AuthedRequest, res: VercelResponse): Promise<void> {
   const parsedBody = SubscribeBodySchema.safeParse(req.body ?? {});
   if (!parsedBody.success) {
@@ -203,8 +287,49 @@ async function handleSend(req: AuthedRequest, res: VercelResponse): Promise<void
   res.status(200).json({ ok: true });
 }
 
+async function handleSendAll(req: AuthedRequest, res: VercelResponse): Promise<void> {
+  if (req.user.dbUser.role !== 'ADMIN') {
+    res.status(403).json({ error: 'Forbidden' });
+    return;
+  }
+
+  const parsedBody = SendAllBodySchema.safeParse(req.body ?? {});
+  if (!parsedBody.success) {
+    res.status(400).json({ error: 'Invalid payload' });
+    return;
+  }
+
+  const body = parsedBody.data;
+  const scheduledAt = body.scheduledFor ? Date.parse(body.scheduledFor) : null;
+
+  if (body.scheduledFor && Number.isNaN(scheduledAt)) {
+    res.status(400).json({ error: 'Invalid scheduledFor' });
+    return;
+  }
+
+  if (scheduledAt !== null && scheduledAt > Date.now()) {
+    const job = {
+      id: randomUUID(),
+      payload: body.payload,
+      scheduledFor: new Date(scheduledAt).toISOString(),
+    };
+    const jobs = await readScheduledJobs();
+    jobs.push(job);
+    await writeScheduledJobs(jobs);
+    res.status(200).json({ ok: true, scheduled: true, id: job.id, scheduledFor: job.scheduledFor });
+    return;
+  }
+
+  await sendPushToAllSubscribers(body.payload);
+  res.status(200).json({ ok: true, scheduled: false });
+}
+
 export default async function handler(req: VercelRequest, res: VercelResponse): Promise<void> {
   if (setCors(req, res)) return;
+
+  await flushDueScheduledBroadcasts().catch((err) => {
+    console.error('Failed to flush scheduled push broadcasts', err);
+  });
 
   const pathname = parsePathname(req.url);
 
@@ -231,6 +356,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
 
     if (pathname.endsWith('/push/send')) {
       await handleSend(authedReq, authedRes);
+      return;
+    }
+
+    if (pathname.endsWith('/push/send-all')) {
+      await handleSendAll(authedReq, authedRes);
       return;
     }
 

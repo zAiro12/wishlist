@@ -107,6 +107,7 @@ const routes: { pattern: string; handler: Handler }[] = [
 	{ pattern: '/push/subscribe',                    handler: pushHandler },
 	{ pattern: '/push/unsubscribe',                  handler: pushHandler },
 	{ pattern: '/push/send',                         handler: pushHandler },
+	{ pattern: '/push/send-all',                     handler: pushHandler },
 	{ pattern: '/push/vapid-public-key',             handler: pushHandler },
 ]
 
