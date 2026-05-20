@@ -49,6 +49,7 @@
     </template>
 
     <InstallGuide />
+    <div class="app-version">Versione {{ version }}</div>
 
   </div>
 </template>
@@ -57,8 +58,10 @@
 import NavBar from '../components/NavBar.vue';
 import InstallGuide from '../components/InstallGuide.vue';
 import { useAuthStore } from '../stores/auth';
+import pkg from '../../../package.json';
 
 const auth = useAuthStore();
+const version = pkg.version as string;
 </script>
 
 <style scoped>
@@ -152,5 +155,17 @@ const auth = useAuthStore();
 
 @media (max-width: 767px) {
   .guest-hero { padding: 2rem 0 1rem; }
+}
+
+.app-version {
+  position: fixed;
+  bottom: 8px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 0.75rem;
+  color: var(--color-on-surface-variant);
+  opacity: 0.85;
+  pointer-events: none;
+  z-index: 1000;
 }
 </style>
