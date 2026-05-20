@@ -26,9 +26,10 @@ export default defineConfig(({ mode }) => {
         workbox: {
           globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2,json}'],
           navigateFallback: `${normalizedBaseUrl}index.html`,
+          importScripts: ['sw-custom.js'],
           runtimeCaching: [
             {
-              urlPattern: ({ url, request }) =>
+              urlPattern: ({ url, request }: { url: URL; request: Request }) =>
                 request.method === 'GET' &&
                 (url.pathname.startsWith(`${normalizedBaseUrl}backend/`) ||
                   url.pathname === `${normalizedBaseUrl}api/push/vapid-public-key`),
@@ -47,7 +48,6 @@ export default defineConfig(({ mode }) => {
         '@': resolve(__dirname, './src'),
       },
     },
-    // GitHub Pages deployment: set base to your repo name (e.g. '/wishlist/')
     base: normalizedBaseUrl,
     build: {
       outDir: 'dist',
