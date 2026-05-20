@@ -1,5 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import type { PushSubscription as WebPushSubscription } from 'web-push';
+import { randomUUID } from 'crypto';
 import webpush from 'web-push';
 import { z } from 'zod';
 import { requireAuth, type AuthedRequest } from '../lib/auth-middleware';
@@ -164,7 +165,8 @@ async function readScheduledJobs(): Promise<z.infer<typeof ScheduledPushJobsSche
     const parsedJobs = ScheduledPushJobsSchema.safeParse(parsed);
     if (!parsedJobs.success) return [];
     return parsedJobs.data;
-  } catch {
+  } catch (err) {
+    console.error('Invalid scheduled push jobs JSON', err);
     return [];
   }
 }
@@ -299,7 +301,7 @@ async function handleSendAll(req: AuthedRequest, res: VercelResponse): Promise<v
 
   if (scheduledAt !== null && scheduledAt > Date.now()) {
     const job = {
-      id: `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`,
+      id: randomUUID(),
       payload: body.payload,
       scheduledFor: new Date(scheduledAt).toISOString(),
     };
