@@ -168,31 +168,31 @@ export function usePushNotifications() {
             const authConverted = toBase64Url(authRaw)
             error.value = `auth raw: ${authRaw.length} chars → converted: ${authConverted.length} chars | p256dh: ${p256dhRaw.length} chars`
             return // blocca qui, non manda ancora al backend
-            const bodyPayload = {
-                subscription: {
-                    endpoint: subJson.endpoint,
-                    keys: {
-                        p256dh: toBase64Url(subJson.keys?.p256dh ?? ""),
-                        auth: toBase64Url(subJson.keys?.auth ?? ""),
-                    },
-                },
-                userId: auth.user.id,
-            };
+            // const bodyPayload = {
+            //     subscription: {
+            //         endpoint: subJson.endpoint,
+            //         keys: {
+            //             p256dh: toBase64Url(subJson.keys?.p256dh ?? ""),
+            //             auth: toBase64Url(subJson.keys?.auth ?? ""),
+            //         },
+            //     },
+            //     // userId: auth.user.id,
+            // };
 
-            const response = await fetch(`${API_BASE}/api/push/subscribe`, {
-                method: "POST",
-                credentials: "include",
-                headers: buildAuthHeaders({
-                    "Content-Type": "application/json",
-                }),
-                body: JSON.stringify(bodyPayload),
-            });
+            // const response = await fetch(`${API_BASE}/api/push/subscribe`, {
+            //     method: "POST",
+            //     credentials: "include",
+            //     headers: buildAuthHeaders({
+            //         "Content-Type": "application/json",
+            //     }),
+            //     body: JSON.stringify(bodyPayload),
+            // });
 
-            if (!response.ok) {
-                throw new Error("Registrazione push fallita");
-            }
+            // if (!response.ok) {
+            //     throw new Error("Registrazione push fallita");
+            // }
 
-            isSubscribed.value = true;
+            // isSubscribed.value = true;
         } catch (err) {
             error.value =
                 err instanceof Error
