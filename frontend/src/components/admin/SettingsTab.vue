@@ -275,7 +275,13 @@ async function sendBroadcast() {
     broadcastMode.value = 'now';
     broadcastScheduledAt.value = '';
   } catch (err) {
-    broadcastErrorMsg.value = err instanceof ApiError ? err.message : 'Errore durante l\'invio della notifica';
+    if (err instanceof ApiError) {
+      broadcastErrorMsg.value = err.message;
+    } else if (broadcastMode.value === 'scheduled') {
+      broadcastErrorMsg.value = 'Errore durante la pianificazione della notifica';
+    } else {
+      broadcastErrorMsg.value = 'Errore durante l\'invio della notifica';
+    }
   } finally {
     sendingBroadcast.value = false;
   }

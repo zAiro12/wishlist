@@ -166,7 +166,7 @@ async function readScheduledJobs(): Promise<z.infer<typeof ScheduledPushJobsSche
     if (!parsedJobs.success) return [];
     return parsedJobs.data;
   } catch (err) {
-    console.error('Invalid scheduled push jobs JSON', err);
+    console.error('Invalid scheduled push jobs JSON, returning empty scheduled jobs list', err);
     return [];
   }
 }
@@ -200,7 +200,7 @@ async function flushDueScheduledBroadcasts(): Promise<void> {
     try {
       await sendPushToAllSubscribers(job.payload);
     } catch (err) {
-      console.error('Scheduled push broadcast failed', { id: job.id, err });
+      console.error('Scheduled push broadcast failed', { id: job.id, scheduledFor: job.scheduledFor, err });
     }
   }
 }
