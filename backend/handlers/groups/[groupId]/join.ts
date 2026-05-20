@@ -3,6 +3,8 @@ import { requireAuth, type AuthedRequest } from '../../../lib/auth-middleware';
 import { setCors } from '../../../lib/cors';
 import { prisma } from '../../../lib/prisma';
 import { assertHasConfirmedBirthdate, AppError } from '../../../lib/authz';
+import { sendPushToUsers } from '../../push';
+import { getActorDisplayName } from '../../../lib/push-utils';
 
 export default async function handler(req: VercelRequest, res: VercelResponse): Promise<void> {
   if (setCors(req, res)) return;
@@ -41,10 +43,38 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
         const updated = await prisma.groupMember.update({ where: { id: existing.id }, data: { removedAt: null, joinedAt: new Date() } });
         await prisma.adminAction.create({ data: { actorId: userId, action: 'GROUP_JOINED', details: { groupId, userId } } });
         authedRes.status(200).json(updated);
+
+        // Notify existing group members that a user re-joined
+        try {
+          const recipients = await prisma.groupMember.findMany({ where: { groupId, removedAt: null, userId: { not: userId } }, select: { userId: true } });
+          const actorName = getActorDisplayName(authedReq.user.dbUser);
+          await sendPushToUsers(recipients.map(r => r.userId), {
+            type: 'GROUP_MEMBER_JOINED',
+            title: 'Nuovo membro nel gruppo',
+            body: `${actorName} si è unito al gruppo`,
+            data: { groupId, userId },
+          });
+        } catch (pushErr) {
+          console.error('Failed to send push notifications for GROUP_JOINED (rejoin)', pushErr);
+        }
       } else {
         const membership = await prisma.groupMember.create({ data: { groupId, userId } });
         await prisma.adminAction.create({ data: { actorId: userId, action: 'GROUP_JOINED', details: { groupId, userId } } });
         authedRes.status(201).json(membership);
+
+        // Notify existing group members that a new user joined
+        try {
+          const recipients = await prisma.groupMember.findMany({ where: { groupId, removedAt: null, userId: { not: userId } }, select: { userId: true } });
+          const actorName = getActorDisplayName(authedReq.user.dbUser);
+          await sendPushToUsers(recipients.map(r => r.userId), {
+            type: 'GROUP_MEMBER_JOINED',
+            title: 'Nuovo membro nel gruppo',
+            body: `${actorName} si è unito al gruppo`,
+            data: { groupId, userId },
+          });
+        } catch (pushErr) {
+          console.error('Failed to send push notifications for GROUP_JOINED (create)', pushErr);
+        }
       }
     } catch (err) {
       if (err instanceof AppError) {
