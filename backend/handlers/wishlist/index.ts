@@ -34,7 +34,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
 
         try {
           const memberships = await prisma.groupMember.findMany({
-            where: { userId, removedAt: null },
+            where: { userId, removedAt: null, group: { deletedAt: null } },
             select: {
               group: {
                 select: {
