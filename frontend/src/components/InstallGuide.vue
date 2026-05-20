@@ -4,24 +4,7 @@
 
     <div v-if="isStandalone">
       <p class="status-ok">App già installata ✓</p>
-      <p class="hint">Puoi attivare subito le notifiche push.</p>
-      <div class="actions">
-        <button
-          class="btn-primary"
-          :disabled="isLoading || permissionState === 'denied'"
-          @click="subscribe"
-        >
-          {{ isSubscribed ? 'Notifiche attive' : 'Attiva notifiche' }}
-        </button>
-        <button
-          v-if="isSubscribed"
-          class="btn-secondary"
-          :disabled="isLoading"
-          @click="unsubscribe"
-        >
-          Disattiva notifiche
-        </button>
-      </div>
+      <p class="hint">Le notifiche vengono proposte automaticamente all'apertura dell'app installata.</p>
     </div>
 
     <div v-else-if="isIOS">
@@ -79,7 +62,7 @@ const isStandalone = ref(readStandaloneState());
 
 const deferredPrompt = ref<BeforeInstallPromptEvent | null>(null);
 
-const { subscribe, unsubscribe, isLoading, isSubscribed, permissionState, error } = usePushNotifications();
+const { subscribe, isSupported, isSubscribed, permissionState, error } = usePushNotifications();
 
 const onBeforeInstallPrompt = (e: Event) => {
   e.preventDefault();
@@ -89,6 +72,7 @@ const onBeforeInstallPrompt = (e: Event) => {
 const onAppInstalled = () => {
   isStandalone.value = readStandaloneState();
   deferredPrompt.value = null;
+  void maybePromptNotifications();
 };
 
 const onDisplayModeChange = () => {
@@ -100,12 +84,20 @@ async function install(): Promise<void> {
   await deferredPrompt.value.prompt();
   isStandalone.value = readStandaloneState();
   deferredPrompt.value = null;
+  void maybePromptNotifications();
+}
+
+async function maybePromptNotifications(): Promise<void> {
+  if (!isStandalone.value || !isSupported.value) return;
+  if (isSubscribed.value || permissionState.value !== 'default') return;
+  await subscribe();
 }
 
 onMounted(() => {
   window.addEventListener('beforeinstallprompt', onBeforeInstallPrompt);
   window.addEventListener('appinstalled', onAppInstalled);
   standaloneMediaQuery.addEventListener('change', onDisplayModeChange);
+  void maybePromptNotifications();
 });
 
 onUnmounted(() => {

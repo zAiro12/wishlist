@@ -43,6 +43,28 @@
         {{ saving ? 'Salvataggio…' : 'Salva profilo' }}
       </button>
     </form>
+
+    <section class="card notifications-card">
+      <h2 style="margin-top:0;">Notifiche push</h2>
+      <p style="color:var(--color-on-surface-variant);font-size:0.875rem;">
+        Gestisci qui l'attivazione delle notifiche.
+      </p>
+
+      <div v-if="!isPushSupported" style="font-size:0.875rem;color:var(--color-on-surface-variant);">
+        Le notifiche push non sono supportate su questo dispositivo/browser.
+      </div>
+      <template v-else>
+        <div style="display:flex;gap:0.5rem;flex-wrap:wrap;">
+          <button class="btn-primary" :disabled="isPushLoading || pushPermissionState === 'denied'" @click="subscribePush">
+            {{ isPushSubscribed ? 'Notifiche attive' : 'Attiva notifiche' }}
+          </button>
+          <button v-if="isPushSubscribed" class="btn-secondary" :disabled="isPushLoading" @click="unsubscribePush">
+            Disattiva notifiche
+          </button>
+        </div>
+        <p v-if="pushError" class="error-message" style="margin-top:0.5rem;">{{ pushError }}</p>
+      </template>
+    </section>
   </div>
 </template>
 
@@ -52,6 +74,7 @@ import NavBar from '../components/NavBar.vue';
 import { users as usersApi, ApiError } from '../api/client';
 import { useAuthStore } from '../stores/auth';
 import { useDateInput } from '../composables/useDateInput';
+import { usePushNotifications } from '../composables/usePushNotifications';
 import { sanitizeAvatarUrl } from '../utils/avatarUrl';
 
 const auth = useAuthStore();
@@ -63,6 +86,15 @@ const saving = ref(false);
 const error = ref<string | null>(null);
 const success = ref<string | null>(null);
 const safeAvatarUrl = computed(() => sanitizeAvatarUrl(avatarUrl.value));
+const {
+  isSupported: isPushSupported,
+  isSubscribed: isPushSubscribed,
+  permissionState: pushPermissionState,
+  isLoading: isPushLoading,
+  error: pushError,
+  subscribe: subscribePush,
+  unsubscribe: unsubscribePush,
+} = usePushNotifications();
 
 const initials = computed(() => {
   const g = givenName.value.trim();
@@ -108,6 +140,7 @@ async function save() {
 
 <style scoped>
 .form { max-width: 560px; display: grid; gap: 0.8rem; }
+.notifications-card { margin-top: 1rem; max-width: 560px; }
 .avatar-preview { display: flex; justify-content: center; margin-bottom: 0.5rem; }
 .avatar-preview img,
 .avatar-fallback {

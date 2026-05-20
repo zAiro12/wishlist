@@ -53,6 +53,64 @@
       <p v-if="successMsg" style="color:var(--color-success);margin-top:0.5rem;font-size:0.875rem;">{{ successMsg }}</p>
       <p v-if="errorMsg" class="error-message" style="margin-top:0.5rem;">{{ errorMsg }}</p>
     </div>
+
+    <div class="setting-card card">
+      <h3>📣 Wizard notifica push</h3>
+      <p style="color:var(--color-on-surface-variant);font-size:0.875rem;margin-bottom:0.75rem;">
+        Invia una notifica a tutti gli utenti con notifiche attive subito oppure pianificata.
+      </p>
+
+      <div class="wizard-step">
+        <strong>1. Contenuto notifica</strong>
+        <input v-model="broadcastTitle" type="text" placeholder="Titolo notifica" style="margin-top:0.5rem;" />
+        <textarea
+          v-model="broadcastBody"
+          placeholder="Testo notifica"
+          style="margin-top:0.5rem;min-height:90px;"
+        />
+        <input
+          v-model="broadcastUrl"
+          type="text"
+          placeholder="URL opzionale (es: /groups)"
+          style="margin-top:0.5rem;"
+        />
+      </div>
+
+      <div class="wizard-step" style="margin-top:0.75rem;">
+        <strong>2. Quando inviare</strong>
+        <div style="display:flex;gap:1rem;flex-wrap:wrap;margin-top:0.5rem;">
+          <label style="display:flex;align-items:center;gap:0.4rem;">
+            <input v-model="broadcastMode" type="radio" value="now" />
+            Subito
+          </label>
+          <label style="display:flex;align-items:center;gap:0.4rem;">
+            <input v-model="broadcastMode" type="radio" value="scheduled" />
+            A una data/ora specifica
+          </label>
+        </div>
+        <input
+          v-if="broadcastMode === 'scheduled'"
+          v-model="broadcastScheduledAt"
+          type="datetime-local"
+          style="margin-top:0.5rem;max-width:260px;"
+        />
+      </div>
+
+      <div class="wizard-step" style="margin-top:0.75rem;">
+        <strong>3. Conferma</strong>
+        <p style="font-size:0.875rem;color:var(--color-on-surface-variant);margin-top:0.4rem;">
+          Titolo: <strong>{{ broadcastTitle || '—' }}</strong><br />
+          Testo: {{ broadcastBody || '—' }}<br />
+          Invio: {{ broadcastMode === 'now' ? 'Subito' : (broadcastScheduledAt || 'Seleziona data/ora') }}
+        </p>
+        <button class="btn-primary" :disabled="sendingBroadcast" style="margin-top:0.5rem;" @click="sendBroadcast">
+          {{ sendingBroadcast ? 'Invio…' : 'Invia notifica a tutti' }}
+        </button>
+      </div>
+
+      <p v-if="broadcastSuccessMsg" style="color:var(--color-success);margin-top:0.5rem;font-size:0.875rem;">{{ broadcastSuccessMsg }}</p>
+      <p v-if="broadcastErrorMsg" class="error-message" style="margin-top:0.5rem;">{{ broadcastErrorMsg }}</p>
+    </div>
   </div>
 </template>
 
@@ -70,6 +128,14 @@ const saving = ref(false);
 const successMsg = ref<string | null>(null);
 const errorMsg = ref<string | null>(null);
 const currentPrincess = ref<User | null>(null);
+const sendingBroadcast = ref(false);
+const broadcastTitle = ref('');
+const broadcastBody = ref('');
+const broadcastUrl = ref('');
+const broadcastMode = ref<'now' | 'scheduled'>('now');
+const broadcastScheduledAt = ref('');
+const broadcastSuccessMsg = ref<string | null>(null);
+const broadcastErrorMsg = ref<string | null>(null);
 
 onMounted(load);
 onUnmounted(() => { if (searchTimer) clearTimeout(searchTimer); });
@@ -165,12 +231,66 @@ async function clearPrincess() {
     saving.value = false;
   }
 }
+
+async function sendBroadcast() {
+  const title = broadcastTitle.value.trim();
+  const body = broadcastBody.value.trim();
+  const url = broadcastUrl.value.trim();
+  broadcastErrorMsg.value = null;
+  broadcastSuccessMsg.value = null;
+
+  if (!title || !body) {
+    broadcastErrorMsg.value = 'Titolo e testo sono obbligatori.';
+    return;
+  }
+
+  let scheduledFor: string | undefined;
+  if (broadcastMode.value === 'scheduled') {
+    if (!broadcastScheduledAt.value) {
+      broadcastErrorMsg.value = 'Seleziona data e ora di invio.';
+      return;
+    }
+    const parsedDate = new Date(broadcastScheduledAt.value);
+    if (Number.isNaN(parsedDate.getTime())) {
+      broadcastErrorMsg.value = 'Data/ora non valida.';
+      return;
+    }
+    scheduledFor = parsedDate.toISOString();
+  }
+
+  sendingBroadcast.value = true;
+  try {
+    const result = await adminApi.push.sendBroadcast({
+      payload: { title, body, ...(url ? { url } : {}) },
+      ...(scheduledFor ? { scheduledFor } : {}),
+    });
+    if (result.scheduled && result.scheduledFor) {
+      broadcastSuccessMsg.value = `Notifica pianificata per ${new Date(result.scheduledFor).toLocaleString()}.`;
+    } else {
+      broadcastSuccessMsg.value = 'Notifica inviata a tutti gli utenti con notifiche attive.';
+    }
+    broadcastTitle.value = '';
+    broadcastBody.value = '';
+    broadcastUrl.value = '';
+    broadcastMode.value = 'now';
+    broadcastScheduledAt.value = '';
+  } catch (err) {
+    broadcastErrorMsg.value = err instanceof ApiError ? err.message : 'Errore durante l\'invio della notifica';
+  } finally {
+    sendingBroadcast.value = false;
+  }
+}
 </script>
 
 <style scoped>
 .setting-card {
   padding: 1.25rem;
   margin-bottom: 1.5rem;
+}
+
+.wizard-step {
+  border-top: 1px dashed var(--color-surface-container-highest);
+  padding-top: 0.75rem;
 }
 
 .current-princess {
