@@ -161,6 +161,13 @@ export function usePushNotifications() {
                 }));
 
             const subJson = subscription.toJSON() as DeferredSubscription;
+
+            // DEBUG TEMPORANEO — rimuovi dopo il test
+            const authRaw = subJson.keys?.auth ?? ''
+            const p256dhRaw = subJson.keys?.p256dh ?? ''
+            const authConverted = toBase64Url(authRaw)
+            error.value = `auth raw: ${authRaw.length} chars → converted: ${authConverted.length} chars | p256dh: ${p256dhRaw.length} chars`
+            return // blocca qui, non manda ancora al backend
             const bodyPayload = {
                 subscription: {
                     endpoint: subJson.endpoint,

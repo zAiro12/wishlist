@@ -37,3 +37,4 @@ Thumbs.db
 *.tsbuildinfo
 
 stitch_wishlist_sharing_platform/
+backend/test-push.js
