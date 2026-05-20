@@ -147,8 +147,9 @@ export async function sendPushToUser(userId: string, payload: PushPayload): Prom
 async function sendPushToAllSubscribers(payload: PushPayload): Promise<void> {
   const subscriptions = await prisma.pushSubscription.findMany({
     select: { userId: true },
+    distinct: ['userId'],
   });
-  const uniqueUserIds = Array.from(new Set(subscriptions.map((subscription) => subscription.userId)));
+  const uniqueUserIds = subscriptions.map((subscription) => subscription.userId);
   await sendPushToUsers(uniqueUserIds, payload);
 }
 
@@ -163,7 +164,10 @@ async function readScheduledJobs(): Promise<z.infer<typeof ScheduledPushJobsSche
   try {
     const parsed = JSON.parse(raw.value) as unknown;
     const parsedJobs = ScheduledPushJobsSchema.safeParse(parsed);
-    if (!parsedJobs.success) return [];
+    if (!parsedJobs.success) {
+      console.error('Invalid scheduled push jobs schema, returning empty list', parsedJobs.error);
+      return [];
+    }
     return parsedJobs.data;
   } catch (err) {
     console.error('Invalid scheduled push jobs JSON, returning empty scheduled jobs list', err);
@@ -190,10 +194,14 @@ async function flushDueScheduledBroadcasts(): Promise<void> {
   if (jobs.length === 0) return;
 
   const nowTs = Date.now();
-  const dueJobs = jobs.filter((job) => Date.parse(job.scheduledFor) <= nowTs);
+  const dueJobs: z.infer<typeof ScheduledPushJobsSchema> = [];
+  const pendingJobs: z.infer<typeof ScheduledPushJobsSchema> = [];
+  for (const job of jobs) {
+    if (Date.parse(job.scheduledFor) <= nowTs) dueJobs.push(job);
+    else pendingJobs.push(job);
+  }
   if (dueJobs.length === 0) return;
 
-  const pendingJobs = jobs.filter((job) => Date.parse(job.scheduledFor) > nowTs);
   await writeScheduledJobs(pendingJobs);
 
   for (const job of dueJobs) {
