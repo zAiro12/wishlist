@@ -30,11 +30,14 @@ function urlBase64ToUint8Array(base64String: string): ArrayBuffer {
 }
 
 function toBase64Url(base64: string): string {
-  // Converti da Base64 standard a Base64url
-  const b64url = base64.replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '')
-  // Aggiungi padding fino a multiplo di 4
-  const pad = (4 - (b64url.length % 4)) % 4
-  return b64url + '='.repeat(pad)
+    // Converti da Base64 standard a Base64url
+    const b64url = base64
+        .replace(/\+/g, "-")
+        .replace(/\//g, "_")
+        .replace(/=+$/, "");
+    // Aggiungi padding fino a multiplo di 4
+    const pad = (4 - (b64url.length % 4)) % 4;
+    return b64url + "=".repeat(pad);
 }
 
 function readAuthToken(): string | null {
@@ -165,38 +168,31 @@ export function usePushNotifications() {
                 }));
 
             const subJson = subscription.toJSON() as DeferredSubscription;
+            const bodyPayload = {
+                subscription: {
+                    endpoint: subJson.endpoint,
+                    keys: {
+                        p256dh: toBase64Url(subJson.keys?.p256dh ?? ""),
+                        auth: toBase64Url(subJson.keys?.auth ?? ""),
+                    },
+                },
+                userId: auth.user.id,
+            };
 
-            // DEBUG TEMPORANEO — rimuovi dopo il test
-            const authRaw = subJson.keys?.auth ?? ''
-            const p256dhRaw = subJson.keys?.p256dh ?? ''
-            const authConverted = toBase64Url(authRaw)
-            error.value = `auth raw: ${authRaw.length} chars → converted: ${authConverted.length} chars | p256dh: ${p256dhRaw.length} chars`
-            return // blocca qui, non manda ancora al backend
-            // const bodyPayload = {
-            //     subscription: {
-            //         endpoint: subJson.endpoint,
-            //         keys: {
-            //             p256dh: toBase64Url(subJson.keys?.p256dh ?? ""),
-            //             auth: toBase64Url(subJson.keys?.auth ?? ""),
-            //         },
-            //     },
-            //     // userId: auth.user.id,
-            // };
+            const response = await fetch(`${API_BASE}/api/push/subscribe`, {
+                method: "POST",
+                credentials: "include",
+                headers: buildAuthHeaders({
+                    "Content-Type": "application/json",
+                }),
+                body: JSON.stringify(bodyPayload),
+            });
 
-            // const response = await fetch(`${API_BASE}/api/push/subscribe`, {
-            //     method: "POST",
-            //     credentials: "include",
-            //     headers: buildAuthHeaders({
-            //         "Content-Type": "application/json",
-            //     }),
-            //     body: JSON.stringify(bodyPayload),
-            // });
+            if (!response.ok) {
+                throw new Error("Registrazione push fallita");
+            }
 
-            // if (!response.ok) {
-            //     throw new Error("Registrazione push fallita");
-            // }
-
-            // isSubscribed.value = true;
+            isSubscribed.value = true;
         } catch (err) {
             error.value =
                 err instanceof Error
