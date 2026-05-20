@@ -5,6 +5,7 @@ import { router } from './router';
 import './assets/design.css';
 import './assets/main.css';
 import { useAuthStore } from './stores/auth';
+import { registerSW } from 'virtual:pwa-register';
 
 const app = createApp(App);
 app.use(createPinia());
@@ -33,3 +34,7 @@ if (saved) {
 }
 
 authInit().then(() => app.mount('#root'));
+
+if (import.meta.env.PROD) {
+  registerSW({ immediate: true });
+}

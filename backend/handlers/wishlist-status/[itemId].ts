@@ -13,6 +13,44 @@ import {
 } from '../../lib/authz';
 import { ZodError } from 'zod';
 import { PrismaClientKnownRequestError } from '@prisma/client/runtime/library';
+import { sendPushToUsers } from '../push';
+import { getActorDisplayName } from '../../lib/push-utils';
+
+async function notifyGroupStatusChange(params: {
+  groupId: string;
+  actorUserId: string;
+  ownerUserId: string;
+  itemId: string;
+  status: string;
+  title: string;
+  body: string;
+  logContext: string;
+}): Promise<void> {
+  const { groupId, actorUserId, ownerUserId, itemId, status, title, body, logContext } = params;
+
+  try {
+    const recipients = await prisma.groupMember.findMany({
+      where: {
+        groupId,
+        removedAt: null,
+        userId: { notIn: [actorUserId, ownerUserId] },
+      },
+      select: { userId: true },
+    });
+
+    await sendPushToUsers(
+      recipients.map((recipient) => recipient.userId),
+      {
+        type: 'ITEM_STATUS_CHANGED',
+        title,
+        body,
+        data: { itemId, status, groupId },
+      }
+    );
+  } catch (pushErr) {
+    console.error(`Failed to send push notifications for STATUS_CHANGED (${logContext})`, pushErr);
+  }
+}
 
 export default async function handler(req: VercelRequest, res: VercelResponse): Promise<void> {
   if (setCors(req, res)) return;
@@ -64,6 +102,17 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
               console.error('Failed to write audit for STATUS_CHANGED (create)', e);
             }
             authedRes.status(200).json(created);
+            const actorName = getActorDisplayName(authedReq.user.dbUser);
+            await notifyGroupStatusChange({
+              groupId,
+              actorUserId: userId,
+              ownerUserId: item.ownerId,
+              itemId,
+              status,
+              title: status === 'COMPRATO' ? 'Regalo acquistato' : 'Regalo prenotato',
+              body: `${actorName} ha aggiornato lo stato di "${item.title}"`,
+              logContext: 'create',
+            });
           } catch (createErr) {
             if (createErr instanceof PrismaClientKnownRequestError && createErr.code === 'P2002') {
               throw new ConflictError('Item status was modified concurrently. Please refresh and try again.');
@@ -89,6 +138,17 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
           }
 
           authedRes.status(200).json(updated);
+          const actorName = getActorDisplayName(authedReq.user.dbUser);
+          await notifyGroupStatusChange({
+            groupId,
+            actorUserId: userId,
+            ownerUserId: item.ownerId,
+            itemId,
+            status,
+            title: status === 'COMPRATO' ? 'Regalo acquistato' : 'Regalo prenotato',
+            body: `${actorName} ha aggiornato lo stato di "${item.title}"`,
+            logContext: 'update',
+          });
         }
         return;
       }
@@ -135,6 +195,17 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
         }
 
         authedRes.status(200).json(updated);
+        const actorName = getActorDisplayName(authedReq.user.dbUser);
+        await notifyGroupStatusChange({
+          groupId,
+          actorUserId: userId,
+          ownerUserId: item.ownerId,
+          itemId,
+          status: 'DISPONIBILE',
+          title: 'Regalo tornato disponibile',
+          body: `${actorName} ha liberato "${item.title}"`,
+          logContext: 'clear',
+        });
         return;
       }
 
