@@ -92,8 +92,8 @@ async function resolveVapidPublicKey(): Promise<string> {
 }
 
 async function getServiceWorkerRegistration(): Promise<ServiceWorkerRegistration> {
-    const existing = await navigator.serviceWorker.getRegistration();
-    if (existing) return existing;
+    // const existing = await navigator.serviceWorker.getRegistration();
+    // if (existing) return existing;
 
     return navigator.serviceWorker.ready;
 }
