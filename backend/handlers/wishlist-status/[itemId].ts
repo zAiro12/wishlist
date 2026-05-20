@@ -29,11 +29,14 @@ async function notifyGroupStatusChange(params: {
   const { groupId, actorUserId, ownerUserId, itemId, status, title, body, logContext } = params;
 
   try {
+    // For purchases, notify all group members except the owner of the list.
+    // For other status changes, exclude both the actor and the owner.
+    const excludeList = status === 'COMPRATO' ? [ownerUserId] : [actorUserId, ownerUserId];
     const recipients = await prisma.groupMember.findMany({
       where: {
         groupId,
         removedAt: null,
-        userId: { notIn: [actorUserId, ownerUserId] },
+        userId: { notIn: excludeList },
       },
       select: { userId: true },
     });
