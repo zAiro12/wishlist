@@ -26,7 +26,7 @@ export default defineConfig(({ mode }) => {
         workbox: {
           globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2,json}'],
           navigateFallback: `${normalizedBaseUrl}index.html`,
-          importScripts: [`${normalizedBaseUrl}sw.js`],
+          importScripts: [`${normalizedBaseUrl}sw-push.js`],
           runtimeCaching: [
             {
               urlPattern: ({ url, request }: { url: URL; request: Request }) =>
