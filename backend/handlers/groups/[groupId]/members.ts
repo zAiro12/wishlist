@@ -6,9 +6,9 @@ import { buildGroupUserSelect } from '../../../lib/groups-dto';
 import {
   assertGroupMember,
   assertGroupOwner,
-  assertHasConfirmedBirthdate,
   AppError,
 } from '../../../lib/authz';
+import { handleGroupJoin } from './join';
 
 export default async function handler(req: VercelRequest, res: VercelResponse): Promise<void> {
   if (setCors(req, res)) return;
@@ -39,30 +39,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
       }
 
       if (authedReq.method === 'POST') {
-        assertHasConfirmedBirthdate(authedReq.user.dbUser);
-
-        const group = await prisma.group.findUnique({ where: { id: groupId } });
-        if (!group || group.deletedAt !== null) {
-          authedRes.status(404).json({ error: 'Group not found' });
-          return;
-        }
-
-        const existing = await prisma.groupMember.findUnique({ where: { groupId_userId: { groupId, userId } } });
-
-        if (existing && existing.removedAt === null) {
-          authedRes.status(409).json({ error: 'Already a member of this group' });
-          return;
-        }
-
-        if (existing) {
-          const updated = await prisma.groupMember.update({ where: { id: existing.id }, data: { removedAt: null, joinedAt: new Date() } });
-          await prisma.adminAction.create({ data: { actorId: userId, action: 'GROUP_JOINED', details: { groupId, userId } } });
-          authedRes.status(200).json(updated);
-        } else {
-          const membership = await prisma.groupMember.create({ data: { groupId, userId } });
-          await prisma.adminAction.create({ data: { actorId: userId, action: 'GROUP_JOINED', details: { groupId, userId } } });
-          authedRes.status(201).json(membership);
-        }
+        await handleGroupJoin(authedReq, authedRes, groupId, userId);
         return;
       }
 
