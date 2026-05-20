@@ -31,7 +31,7 @@ export default defineConfig(({ mode }) => {
               urlPattern: ({ url, request }) =>
                 request.method === 'GET' &&
                 (url.pathname.startsWith(`${normalizedBaseUrl}backend/`) ||
-                  url.pathname.startsWith(`${normalizedBaseUrl}api/push/vapid-public-key`)),
+                  url.pathname === `${normalizedBaseUrl}api/push/vapid-public-key`),
               handler: 'NetworkFirst',
               options: {
                 cacheName: 'runtime-api-cache',

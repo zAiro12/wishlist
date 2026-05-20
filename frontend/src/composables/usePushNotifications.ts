@@ -26,7 +26,10 @@ function urlBase64ToUint8Array(base64String: string): ArrayBuffer {
 
 function readAuthToken(): string | null {
   try {
-    return localStorage.getItem('token') ?? sessionStorage.getItem('token');
+    const token = localStorage.getItem('token') ?? sessionStorage.getItem('token');
+    if (!token) return null;
+    const jwtParts = token.split('.');
+    return jwtParts.length === 3 && jwtParts.every((part) => part.length > 0) ? token : null;
   } catch {
     return null;
   }
