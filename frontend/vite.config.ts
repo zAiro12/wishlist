@@ -35,7 +35,7 @@ export default defineConfig(({ mode }) => {
               handler: 'NetworkFirst',
               options: {
                 cacheName: 'runtime-api-cache',
-                networkTimeoutSeconds: 5,
+                networkTimeoutSeconds: 10,
               },
             },
           ],

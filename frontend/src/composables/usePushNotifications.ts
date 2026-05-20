@@ -29,7 +29,17 @@ function readAuthToken(): string | null {
     const token = localStorage.getItem('token') ?? sessionStorage.getItem('token');
     if (!token) return null;
     const jwtParts = token.split('.');
-    return jwtParts.length === 3 && jwtParts.every((part) => part.length > 0) ? token : null;
+    if (jwtParts.length !== 3 || jwtParts.some((part) => part.length === 0)) return null;
+
+    const [, payload] = jwtParts;
+    const normalizedPayload = payload.replace(/-/g, '+').replace(/_/g, '/');
+    const decodedPayload = JSON.parse(atob(normalizedPayload)) as { exp?: number };
+
+    if (typeof decodedPayload.exp === 'number' && Date.now() >= decodedPayload.exp * 1000) {
+      return null;
+    }
+
+    return token;
   } catch {
     return null;
   }
