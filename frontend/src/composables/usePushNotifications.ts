@@ -1,7 +1,7 @@
 import { ref } from 'vue';
 import { useAuthStore } from '@/stores/auth';
 
-const configuredApiBase = import.meta.env.VITE_API_URL?.trim();
+const configuredApiBase = import.meta.env.VITE_API_URL?.trim().replace(/\/+$/, '');
 const API_BASE = configuredApiBase || 'http://localhost:3000';
 
 type DeferredSubscription = PushSubscriptionJSON & {
