@@ -26,6 +26,19 @@ export default defineConfig(({ mode }) => {
         workbox: {
           globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2,json}'],
           navigateFallback: `${normalizedBaseUrl}index.html`,
+          runtimeCaching: [
+            {
+              urlPattern: ({ url, request }) =>
+                request.method === 'GET' &&
+                (url.pathname.startsWith(`${normalizedBaseUrl}backend/`) ||
+                  url.pathname.startsWith(`${normalizedBaseUrl}api/push/vapid-public-key`)),
+              handler: 'NetworkFirst',
+              options: {
+                cacheName: 'runtime-api-cache',
+                networkTimeoutSeconds: 3,
+              },
+            },
+          ],
         },
       }),
     ],

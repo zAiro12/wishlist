@@ -24,6 +24,23 @@ function urlBase64ToUint8Array(base64String: string): ArrayBuffer {
   return outputArray.buffer as ArrayBuffer;
 }
 
+function readAuthToken(): string | null {
+  try {
+    return localStorage.getItem('token') ?? sessionStorage.getItem('token');
+  } catch {
+    return null;
+  }
+}
+
+function buildAuthHeaders(baseHeaders: Record<string, string> = {}): Record<string, string> {
+  const token = readAuthToken();
+  if (!token) return baseHeaders;
+  return {
+    ...baseHeaders,
+    Authorization: `Bearer ${token}`,
+  };
+}
+
 async function resolveVapidPublicKey(): Promise<string> {
   const fromEnv = import.meta.env.VITE_VAPID_PUBLIC_KEY?.trim();
   if (fromEnv) return fromEnv;
@@ -111,7 +128,7 @@ export function usePushNotifications() {
       const response = await fetch(`${API_BASE}/api/push/subscribe`, {
         method: 'POST',
         credentials: 'include',
-        headers: { 'Content-Type': 'application/json' },
+        headers: buildAuthHeaders({ 'Content-Type': 'application/json' }),
         body: JSON.stringify(bodyPayload),
       });
 
@@ -146,7 +163,7 @@ export function usePushNotifications() {
       const response = await fetch(`${API_BASE}/api/push/unsubscribe`, {
         method: 'POST',
         credentials: 'include',
-        headers: { 'Content-Type': 'application/json' },
+        headers: buildAuthHeaders({ 'Content-Type': 'application/json' }),
         body: JSON.stringify({ endpoint, userId: auth.user.id }),
       });
 
