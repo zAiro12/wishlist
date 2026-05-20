@@ -30,7 +30,11 @@ function urlBase64ToUint8Array(base64String: string): ArrayBuffer {
 }
 
 function toBase64Url(base64: string): string {
-    return base64.replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, ""); // rimuove il padding
+  // Converti da Base64 standard a Base64url
+  const b64url = base64.replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '')
+  // Aggiungi padding fino a multiplo di 4
+  const pad = (4 - (b64url.length % 4)) % 4
+  return b64url + '='.repeat(pad)
 }
 
 function readAuthToken(): string | null {
