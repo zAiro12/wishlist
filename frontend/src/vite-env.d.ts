@@ -5,6 +5,7 @@ interface ImportMetaEnv {
   readonly VITE_API_URL: string
   readonly VITE_BASE_URL: string
   readonly VITE_PRINCESS_USER_ID?: string
+  readonly VITE_TESTER_USER_IDS?: string
   readonly VITE_VAPID_PUBLIC_KEY?: string
 }
 

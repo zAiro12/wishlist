@@ -154,6 +154,14 @@ type SharePayload = {
   url: string;
 };
 const PRINCESS_USER_ID_ENV = (import.meta.env.VITE_PRINCESS_USER_ID ?? '').trim();
+const TESTER_USER_IDS_ENV = Array.from(
+  new Set(
+    (import.meta.env.VITE_TESTER_USER_IDS ?? '')
+      .split(',')
+      .map((id) => id.trim())
+      .filter(Boolean)
+  )
+);
 
 function hasNativeShare(nav: Navigator): nav is Navigator & { share: (data: SharePayload) => Promise<void> } {
   // Narrow navigator to check Web Share API availability without relying on global lib types
@@ -317,18 +325,25 @@ function selectTransferCandidate(member: GroupMember): void {
 function memberRoleIcon(member: GroupMember): string {
   if (member.userId === group.value?.ownerId) return '👑';
   if (isPrincess(member)) return '👸';
+  if (isTester(member)) return '⚙️';
   return '👤';
 }
 
 function memberRoleLabel(member: GroupMember): string {
   if (member.userId === group.value?.ownerId) return 'Proprietario';
   if (isPrincess(member)) return 'Principessa';
+  if (isTester(member)) return 'Tester';
   return 'Membro';
 }
 
 function isPrincess(member: GroupMember): boolean {
   const id = settingsStore.princessUserId || PRINCESS_USER_ID_ENV;
   return Boolean(id) && member.userId === id;
+}
+
+function isTester(member: GroupMember): boolean {
+  const ids = settingsStore.testerUserIds.length ? settingsStore.testerUserIds : TESTER_USER_IDS_ENV;
+  return ids.includes(member.userId);
 }
 
 function buildInviteLink(): string {

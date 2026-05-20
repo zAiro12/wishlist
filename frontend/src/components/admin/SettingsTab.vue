@@ -2,7 +2,6 @@
   <div>
     <h2 style="margin-top:0;">Impostazioni applicazione</h2>
 
-    <!-- Princess user section -->
     <div class="setting-card card">
       <h3>👸 Principessa</h3>
       <p style="color:var(--color-on-surface-variant);font-size:0.875rem;margin-bottom:0.75rem;">
@@ -10,7 +9,7 @@
         Lascia vuoto per disabilitare il ruolo speciale.
       </p>
 
-      <div v-if="currentPrincess" class="current-princess">
+      <div v-if="currentPrincess" class="current-role">
         <span>Attuale: <strong>{{ currentPrincess.givenName }} {{ currentPrincess.familyName }}</strong> ({{
           currentPrincess.email }})</span>
         <button class="mini-btn danger" style="margin-left:0.75rem;" @click="clearPrincess">Rimuovi</button>
@@ -24,34 +23,86 @@
           Cerca utente da impostare come principessa
         </label>
         <div style="display:flex;gap:0.5rem;">
-          <input id="princess-search" v-model="searchQuery" type="text" placeholder="Cerca per nome, cognome o email…"
-            style="flex:1;max-width:380px;" @input="onSearchInput" />
-          <button class="btn-secondary" @click="doSearch">Cerca</button>
+          <input id="princess-search" v-model="princessSearchQuery" type="text"
+            placeholder="Cerca per nome, cognome o email…" style="flex:1;max-width:380px;" @input="onPrincessSearchInput" />
+          <button class="btn-secondary" @click="doPrincessSearch">Cerca</button>
         </div>
-        <div v-if="searchResults.length" class="suggestions">
-          <button v-for="u in searchResults" :key="u.id" type="button" class="suggestion-item"
-            :class="{ selected: selectedUserId === u.id }" @click="selectUser(u)">
+        <div v-if="princessSearchResults.length" class="suggestions">
+          <button v-for="u in princessSearchResults" :key="u.id" type="button" class="suggestion-item"
+            :class="{ selected: selectedPrincessUserId === u.id }" @click="selectPrincessUser(u)">
             <strong>{{ u.givenName }} {{ u.familyName }}</strong>
             <span style="color:var(--color-on-surface-variant);font-size:0.8rem;margin-left:0.4rem;">({{ u.email
             }})</span>
           </button>
         </div>
-        <p v-if="searchPerformed && searchResults.length === 0"
+        <p v-if="princessSearchPerformed && princessSearchResults.length === 0"
           style="font-size:0.875rem;color:var(--color-on-surface-variant);margin-top:0.5rem;">
           Nessun utente trovato.
         </p>
       </div>
 
-      <div v-if="selectedUserId" style="margin-top:0.75rem;display:flex;align-items:center;gap:0.75rem;">
-        <span style="font-size:0.875rem;">Selezionato: <strong>{{ selectedUserLabel }}</strong></span>
+      <div v-if="selectedPrincessUserId" style="margin-top:0.75rem;display:flex;align-items:center;gap:0.75rem;">
+        <span style="font-size:0.875rem;">Selezionato: <strong>{{ selectedPrincessUserLabel }}</strong></span>
         <button class="btn-primary" :disabled="saving" @click="savePrincess">
           {{ saving ? 'Salvataggio…' : 'Imposta come principessa' }}
         </button>
-        <button class="btn-secondary" @click="clearSelection">Annulla</button>
+        <button class="btn-secondary" @click="clearPrincessSelection">Annulla</button>
       </div>
 
-      <p v-if="successMsg" style="color:var(--color-success);margin-top:0.5rem;font-size:0.875rem;">{{ successMsg }}</p>
-      <p v-if="errorMsg" class="error-message" style="margin-top:0.5rem;">{{ errorMsg }}</p>
+      <p v-if="princessSuccessMsg" style="color:var(--color-success);margin-top:0.5rem;font-size:0.875rem;">{{ princessSuccessMsg }}</p>
+      <p v-if="princessErrorMsg" class="error-message" style="margin-top:0.5rem;">{{ princessErrorMsg }}</p>
+    </div>
+
+    <div class="setting-card card">
+      <h3>⚙️ Tester</h3>
+      <p style="color:var(--color-on-surface-variant);font-size:0.875rem;margin-bottom:0.75rem;">
+        Gli utenti selezionati appariranno con il ruolo "Tester" (icona ⚙️) in tutti i gruppi.
+        Puoi associare più persone.
+      </p>
+
+      <div v-if="currentTesters.length" style="margin-bottom:0.5rem;">
+        <div v-for="u in currentTesters" :key="u.id" class="current-role" style="margin-bottom:0.35rem;">
+          <span><strong>{{ userLabel(u) }}</strong> ({{ u.email }})</span>
+          <button class="mini-btn danger" style="margin-left:0.75rem;" @click="removeTester(u.id)">Rimuovi</button>
+        </div>
+      </div>
+      <div v-else style="color:var(--color-on-surface-variant);font-size:0.875rem;margin-bottom:0.5rem;">
+        Nessun tester impostato.
+      </div>
+
+      <div style="margin-top:0.75rem;">
+        <label for="tester-search" style="display:block;font-size:0.875rem;font-weight:500;margin-bottom:0.25rem;">
+          Cerca utente da aggiungere come tester
+        </label>
+        <div style="display:flex;gap:0.5rem;">
+          <input id="tester-search" v-model="testerSearchQuery" type="text" placeholder="Cerca per nome, cognome o email…"
+            style="flex:1;max-width:380px;" @input="onTesterSearchInput" />
+          <button class="btn-secondary" @click="doTesterSearch">Cerca</button>
+        </div>
+        <div v-if="testerSearchResults.length" class="suggestions">
+          <button v-for="u in testerSearchResults" :key="u.id" type="button" class="suggestion-item"
+            :class="{ selected: selectedTesterUserId === u.id }" @click="selectTesterUser(u)">
+            <strong>{{ u.givenName }} {{ u.familyName }}</strong>
+            <span style="color:var(--color-on-surface-variant);font-size:0.8rem;margin-left:0.4rem;">({{ u.email
+            }})</span>
+          </button>
+        </div>
+        <p v-if="testerSearchPerformed && testerSearchResults.length === 0"
+          style="font-size:0.875rem;color:var(--color-on-surface-variant);margin-top:0.5rem;">
+          Nessun utente trovato.
+        </p>
+      </div>
+
+      <div v-if="selectedTesterUserId" style="margin-top:0.75rem;display:flex;align-items:center;gap:0.75rem;">
+        <span style="font-size:0.875rem;">Selezionato: <strong>{{ selectedTesterUserLabel }}</strong></span>
+        <button class="btn-primary" :disabled="savingTesters" @click="addTester">
+          {{ savingTesters ? 'Salvataggio…' : 'Aggiungi tester' }}
+        </button>
+        <button class="btn-secondary" @click="clearTesterSelection">Annulla</button>
+      </div>
+
+      <p v-if="testerSuccessMsg" style="color:var(--color-success);margin-top:0.5rem;font-size:0.875rem;">{{ testerSuccessMsg }}</p>
+      <p v-if="testerErrorMsg" class="error-message" style="margin-top:0.5rem;">{{ testerErrorMsg }}</p>
     </div>
 
     <div class="setting-card card">
@@ -119,15 +170,26 @@ import { ref, onMounted, onUnmounted } from 'vue';
 import { admin as adminApi, ApiError } from '../../api/client';
 import type { User } from '../../types';
 
-const searchQuery = ref('');
-const searchResults = ref<User[]>([]);
-const searchPerformed = ref(false);
-const selectedUserId = ref('');
-const selectedUserLabel = ref('');
 const saving = ref(false);
-const successMsg = ref<string | null>(null);
-const errorMsg = ref<string | null>(null);
+const princessSuccessMsg = ref<string | null>(null);
+const princessErrorMsg = ref<string | null>(null);
 const currentPrincess = ref<User | null>(null);
+const princessSearchQuery = ref('');
+const princessSearchResults = ref<User[]>([]);
+const princessSearchPerformed = ref(false);
+const selectedPrincessUserId = ref('');
+const selectedPrincessUserLabel = ref('');
+
+const savingTesters = ref(false);
+const testerSuccessMsg = ref<string | null>(null);
+const testerErrorMsg = ref<string | null>(null);
+const currentTesters = ref<User[]>([]);
+const testerSearchQuery = ref('');
+const testerSearchResults = ref<User[]>([]);
+const testerSearchPerformed = ref(false);
+const selectedTesterUserId = ref('');
+const selectedTesterUserLabel = ref('');
+
 const sendingBroadcast = ref(false);
 const broadcastTitle = ref('');
 const broadcastBody = ref('');
@@ -138,7 +200,32 @@ const broadcastSuccessMsg = ref<string | null>(null);
 const broadcastErrorMsg = ref<string | null>(null);
 
 onMounted(load);
-onUnmounted(() => { if (searchTimer) clearTimeout(searchTimer); });
+onUnmounted(() => {
+  if (princessSearchTimer) clearTimeout(princessSearchTimer);
+  if (testerSearchTimer) clearTimeout(testerSearchTimer);
+});
+
+function parseUserIds(value: string | undefined): string[] {
+  if (!value) return [];
+  return Array.from(new Set(value.split(',').map((id) => id.trim()).filter(Boolean)));
+}
+
+function userLabel(user: User): string {
+  return `${user.givenName ?? ''} ${user.familyName ?? ''}`.trim() || user.email;
+}
+
+async function getUsersByIds(userIds: string[]): Promise<User[]> {
+  const users = await Promise.all(
+    userIds.map(async (userId) => {
+      try {
+        return await adminApi.users.getById(userId);
+      } catch {
+        return null;
+      }
+    })
+  );
+  return users.filter((user): user is User => Boolean(user));
+}
 
 async function load() {
   try {
@@ -153,11 +240,14 @@ async function load() {
     console.info('📡 SettingsTab: calling adminApi.settings.get()');
     const s = await adminApi.settings.get();
     const princessId = s?.['princess_user_id'] ?? '';
+    const testerIds = parseUserIds(s?.['tester_user_ids']);
+
     if (princessId) {
       currentPrincess.value = (await adminApi.users.getById(princessId)) ?? null;
     } else {
       currentPrincess.value = null;
     }
+    currentTesters.value = await getUsersByIds(testerIds);
     console.info('✅ SettingsTab: settings loaded successfully');
   } catch (e) {
     console.error('❌ SettingsTab.load() error:', e);
@@ -165,53 +255,57 @@ async function load() {
   }
 }
 
-let searchTimer: ReturnType<typeof setTimeout> | null = null;
-function onSearchInput() {
-  if (searchTimer) clearTimeout(searchTimer);
-  searchTimer = setTimeout(() => doSearch(), 400);
+let princessSearchTimer: ReturnType<typeof setTimeout> | null = null;
+function onPrincessSearchInput() {
+  if (princessSearchTimer) clearTimeout(princessSearchTimer);
+  princessSearchTimer = setTimeout(() => doPrincessSearch(), 400);
 }
 
-async function doSearch() {
-  const q = searchQuery.value.trim();
-  if (!q) { searchResults.value = []; searchPerformed.value = false; return; }
+async function doPrincessSearch() {
+  const q = princessSearchQuery.value.trim();
+  if (!q) {
+    princessSearchResults.value = [];
+    princessSearchPerformed.value = false;
+    return;
+  }
   try {
     const res = await adminApi.users.list({ search: q, limit: 10 });
-    searchResults.value = res.users;
-    searchPerformed.value = true;
+    princessSearchResults.value = res.users;
+    princessSearchPerformed.value = true;
   } catch {
-    searchResults.value = [];
+    princessSearchResults.value = [];
   }
 }
 
-function selectUser(u: User) {
-  selectedUserId.value = u.id;
-  selectedUserLabel.value = `${u.givenName ?? ''} ${u.familyName ?? ''}`.trim() || u.email;
-  searchResults.value = [];
-  searchQuery.value = selectedUserLabel.value;
-  successMsg.value = null;
-  errorMsg.value = null;
+function selectPrincessUser(u: User) {
+  selectedPrincessUserId.value = u.id;
+  selectedPrincessUserLabel.value = userLabel(u);
+  princessSearchResults.value = [];
+  princessSearchQuery.value = selectedPrincessUserLabel.value;
+  princessSuccessMsg.value = null;
+  princessErrorMsg.value = null;
 }
 
-function clearSelection() {
-  selectedUserId.value = '';
-  selectedUserLabel.value = '';
-  searchQuery.value = '';
-  searchResults.value = [];
-  searchPerformed.value = false;
+function clearPrincessSelection() {
+  selectedPrincessUserId.value = '';
+  selectedPrincessUserLabel.value = '';
+  princessSearchQuery.value = '';
+  princessSearchResults.value = [];
+  princessSearchPerformed.value = false;
 }
 
 async function savePrincess() {
-  if (!selectedUserId.value) return;
+  if (!selectedPrincessUserId.value) return;
   saving.value = true;
-  errorMsg.value = null;
-  successMsg.value = null;
+  princessErrorMsg.value = null;
+  princessSuccessMsg.value = null;
   try {
-    await adminApi.settings.set('princess_user_id', selectedUserId.value);
-    successMsg.value = `Principessa impostata: ${selectedUserLabel.value}`;
+    await adminApi.settings.set('princess_user_id', selectedPrincessUserId.value);
+    princessSuccessMsg.value = `Principessa impostata: ${selectedPrincessUserLabel.value}`;
     await load();
-    clearSelection();
+    clearPrincessSelection();
   } catch (err) {
-    errorMsg.value = err instanceof ApiError ? err.message : 'Errore durante il salvataggio';
+    princessErrorMsg.value = err instanceof ApiError ? err.message : 'Errore durante il salvataggio';
   } finally {
     saving.value = false;
   }
@@ -219,16 +313,93 @@ async function savePrincess() {
 
 async function clearPrincess() {
   saving.value = true;
-  errorMsg.value = null;
-  successMsg.value = null;
+  princessErrorMsg.value = null;
+  princessSuccessMsg.value = null;
   try {
     await adminApi.settings.set('princess_user_id', '');
     currentPrincess.value = null;
-    successMsg.value = 'Ruolo principessa rimosso.';
+    princessSuccessMsg.value = 'Ruolo principessa rimosso.';
   } catch (err) {
-    errorMsg.value = err instanceof ApiError ? err.message : 'Errore durante la rimozione';
+    princessErrorMsg.value = err instanceof ApiError ? err.message : 'Errore durante la rimozione';
   } finally {
     saving.value = false;
+  }
+}
+
+let testerSearchTimer: ReturnType<typeof setTimeout> | null = null;
+function onTesterSearchInput() {
+  if (testerSearchTimer) clearTimeout(testerSearchTimer);
+  testerSearchTimer = setTimeout(() => doTesterSearch(), 400);
+}
+
+async function doTesterSearch() {
+  const q = testerSearchQuery.value.trim();
+  if (!q) {
+    testerSearchResults.value = [];
+    testerSearchPerformed.value = false;
+    return;
+  }
+  try {
+    const res = await adminApi.users.list({ search: q, limit: 10 });
+    testerSearchResults.value = res.users;
+    testerSearchPerformed.value = true;
+  } catch {
+    testerSearchResults.value = [];
+  }
+}
+
+function selectTesterUser(user: User) {
+  selectedTesterUserId.value = user.id;
+  selectedTesterUserLabel.value = userLabel(user);
+  testerSearchResults.value = [];
+  testerSearchQuery.value = selectedTesterUserLabel.value;
+  testerSuccessMsg.value = null;
+  testerErrorMsg.value = null;
+}
+
+function clearTesterSelection() {
+  selectedTesterUserId.value = '';
+  selectedTesterUserLabel.value = '';
+  testerSearchQuery.value = '';
+  testerSearchResults.value = [];
+  testerSearchPerformed.value = false;
+}
+
+async function saveTesterIds(ids: string[]): Promise<void> {
+  await adminApi.settings.set('tester_user_ids', ids.join(','));
+}
+
+async function addTester() {
+  if (!selectedTesterUserId.value) return;
+  savingTesters.value = true;
+  testerErrorMsg.value = null;
+  testerSuccessMsg.value = null;
+  try {
+    const nextIds = Array.from(new Set([...currentTesters.value.map((u) => u.id), selectedTesterUserId.value]));
+    await saveTesterIds(nextIds);
+    testerSuccessMsg.value = `Tester aggiunto: ${selectedTesterUserLabel.value}`;
+    await load();
+    clearTesterSelection();
+  } catch (err) {
+    testerErrorMsg.value = err instanceof ApiError ? err.message : 'Errore durante il salvataggio';
+  } finally {
+    savingTesters.value = false;
+  }
+}
+
+async function removeTester(userId: string) {
+  savingTesters.value = true;
+  testerErrorMsg.value = null;
+  testerSuccessMsg.value = null;
+  try {
+    const nextIds = currentTesters.value.map((u) => u.id).filter((id) => id !== userId);
+    await saveTesterIds(nextIds);
+    testerSuccessMsg.value = 'Ruolo tester aggiornato.';
+    await load();
+  } catch (err) {
+    testerErrorMsg.value = err instanceof ApiError ? err.message : 'Errore durante la rimozione';
+  } finally {
+    savingTesters.value = false;
   }
 }
 
@@ -299,7 +470,7 @@ async function sendBroadcast() {
   padding-top: 0.75rem;
 }
 
-.current-princess {
+.current-role {
   display: flex;
   align-items: center;
   font-size: 0.875rem;

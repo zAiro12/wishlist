@@ -4,7 +4,12 @@ import { setCors } from '../../lib/cors';
 import { prisma } from '../../lib/prisma';
 import { ensureAppSettingTable } from '../../lib/app-setting-table';
 
-const ALLOWED_KEYS = new Set(['princess_user_id']);
+const ALLOWED_KEYS = new Set(['princess_user_id', 'tester_user_ids']);
+
+function parseUserIds(value: string): string[] {
+  if (!value.trim()) return [];
+  return Array.from(new Set(value.split(',').map((id) => id.trim()).filter(Boolean)));
+}
 
 export default async function handler(req: VercelRequest, res: VercelResponse): Promise<void> {
   if (setCors(req, res)) return;
@@ -47,20 +52,36 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
         }
       }
 
+      let normalizedValue = value;
+      if (key === 'tester_user_ids') {
+        const testerIds = parseUserIds(value);
+        if (testerIds.length > 0) {
+          const users = await prisma.user.findMany({
+            where: { id: { in: testerIds } },
+            select: { id: true },
+          });
+          if (users.length !== testerIds.length) {
+            authedRes.status(404).json({ error: 'One or more users not found' });
+            return;
+          }
+        }
+        normalizedValue = testerIds.join(',');
+      }
+
       console.info('[admin/settings] PUT start', { userId: authedReq.user.userId, key });
       try {
         await ensureAppSettingTable();
         const setting = await prisma.appSetting.upsert({
           where: { key },
-          create: { key, value },
-          update: { value },
+          create: { key, value: normalizedValue },
+          update: { value: normalizedValue },
         });
 
         await prisma.adminAction.create({
           data: {
             actorId: authedReq.user.userId,
             action: 'SETTING_UPDATED',
-            details: { key, value: value || null },
+            details: { key, value: normalizedValue || null },
           },
         });
 

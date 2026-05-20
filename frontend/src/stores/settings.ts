@@ -11,6 +11,16 @@ export const useSettingsStore = defineStore('settings', () => {
   const princessUserId = computed(() =>
     (data.value['princess_user_id'] ?? '').trim()
   );
+  const testerUserIds = computed(() =>
+    Array.from(
+      new Set(
+        (data.value['tester_user_ids'] ?? '')
+          .split(',')
+          .map((id) => id.trim())
+          .filter(Boolean)
+      )
+    )
+  );
 
   async function fetchSettings(force = false): Promise<void> {
     if (initialized.value && !force) return;
@@ -37,5 +47,5 @@ export const useSettingsStore = defineStore('settings', () => {
     }
   }
 
-  return { data, princessUserId, fetchSettings, initialized };
+  return { data, princessUserId, testerUserIds, fetchSettings, initialized };
 });
