@@ -128,7 +128,42 @@
       </div>
 
       <div class="wizard-step" style="margin-top:0.75rem;">
-        <strong>2. Quando inviare</strong>
+        <strong>2. Destinatari</strong>
+        <div style="display:flex;gap:1rem;flex-wrap:wrap;margin-top:0.5rem;">
+          <label style="display:flex;align-items:center;gap:0.4rem;">
+            <input v-model="recipientsMode" type="radio" value="all" />
+            Tutti gli utenti
+          </label>
+          <label style="display:flex;align-items:center;gap:0.4rem;">
+            <input v-model="recipientsMode" type="radio" value="selected" />
+            Utenti specifici
+          </label>
+        </div>
+
+        <div v-if="recipientsMode === 'selected'" style="margin-top:0.5rem;">
+          <label for="recipient-search" style="display:block;font-size:0.875rem;font-weight:500;margin-bottom:0.25rem;">Cerca utenti da aggiungere</label>
+          <div style="display:flex;gap:0.5rem;">
+            <input id="recipient-search" v-model="recipientSearchQuery" type="text" placeholder="Cerca per nome, cognome o email…" style="flex:1;max-width:380px;" @input="onRecipientSearchInput" />
+            <button class="btn-secondary" @click="doRecipientSearch">Cerca</button>
+          </div>
+          <div v-if="recipientSearchResults.length" class="suggestions">
+            <button v-for="u in recipientSearchResults" :key="u.id" type="button" class="suggestion-item" @click="addRecipient(u)">
+              <strong>{{ u.givenName }} {{ u.familyName }}</strong>
+              <span style="color:var(--color-on-surface-variant);font-size:0.8rem;margin-left:0.4rem;">({{ u.email }})</span>
+            </button>
+          </div>
+
+          <div v-if="selectedRecipients.length" style="margin-top:0.5rem;">
+            <div v-for="u in selectedRecipients" :key="u.id" style="display:flex;align-items:center;gap:0.5rem;margin-bottom:0.25rem;">
+              <span>{{ userLabel(u) }} <small style="color:var(--color-on-surface-variant);">({{ u.email }})</small></span>
+              <button class="mini-btn danger" @click="removeRecipient(u.id)">Rimuovi</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="wizard-step" style="margin-top:0.75rem;">
+        <strong>3. Quando inviare</strong>
         <div style="display:flex;gap:1rem;flex-wrap:wrap;margin-top:0.5rem;">
           <label style="display:flex;align-items:center;gap:0.4rem;">
             <input v-model="broadcastMode" type="radio" value="now" />
@@ -148,14 +183,15 @@
       </div>
 
       <div class="wizard-step" style="margin-top:0.75rem;">
-        <strong>3. Conferma</strong>
+        <strong>4. Conferma</strong>
         <p style="font-size:0.875rem;color:var(--color-on-surface-variant);margin-top:0.4rem;">
           Titolo: <strong>{{ broadcastTitle || '—' }}</strong><br />
           Testo: {{ broadcastBody || '—' }}<br />
+          Destinatari: {{ recipientsMode === 'all' ? 'Tutti' : (selectedRecipients.length ? selectedRecipients.length + ' utenti selezionati' : 'Nessuno selezionato') }}<br />
           Invio: {{ broadcastMode === 'now' ? 'Subito' : (broadcastScheduledAt || 'Seleziona data/ora') }}
         </p>
         <button class="btn-primary" :disabled="sendingBroadcast" style="margin-top:0.5rem;" @click="sendBroadcast">
-          {{ sendingBroadcast ? 'Invio…' : 'Invia notifica a tutti' }}
+          {{ sendingBroadcast ? 'Invio…' : (recipientsMode === 'all' ? 'Invia notifica a tutti' : 'Invia notifica ai selezionati') }}
         </button>
       </div>
 
@@ -198,6 +234,13 @@ const broadcastMode = ref<'now' | 'scheduled'>('now');
 const broadcastScheduledAt = ref('');
 const broadcastSuccessMsg = ref<string | null>(null);
 const broadcastErrorMsg = ref<string | null>(null);
+
+const recipientsMode = ref<'all' | 'selected'>('all');
+const recipientSearchQuery = ref('');
+const recipientSearchResults = ref<User[]>([]);
+const recipientSearchPerformed = ref(false);
+const recipientSearchTimer: any = null;
+const selectedRecipients = ref<User[]>([]);
 
 onMounted(load);
 onUnmounted(() => {
@@ -348,6 +391,39 @@ async function doTesterSearch() {
   }
 }
 
+function onRecipientSearchInput() {
+  if ((recipientSearchTimer as any)) clearTimeout(recipientSearchTimer as any);
+  // debounce
+  setTimeout(() => doRecipientSearch(), 400);
+}
+
+async function doRecipientSearch() {
+  const q = recipientSearchQuery.value.trim();
+  if (!q) {
+    recipientSearchResults.value = [];
+    recipientSearchPerformed.value = false;
+    return;
+  }
+  try {
+    const res = await adminApi.users.list({ search: q, limit: 10 });
+    recipientSearchResults.value = res.users;
+    recipientSearchPerformed.value = true;
+  } catch {
+    recipientSearchResults.value = [];
+  }
+}
+
+function addRecipient(u: User) {
+  if (selectedRecipients.value.find((x) => x.id === u.id)) return;
+  selectedRecipients.value.push(u);
+  recipientSearchQuery.value = '';
+  recipientSearchResults.value = [];
+}
+
+function removeRecipient(userId: string) {
+  selectedRecipients.value = selectedRecipients.value.filter((u) => u.id !== userId);
+}
+
 function selectTesterUser(user: User) {
   selectedTesterUserId.value = user.id;
   selectedTesterUserLabel.value = userLabel(user);
@@ -431,10 +507,15 @@ async function sendBroadcast() {
 
   sendingBroadcast.value = true;
   try {
-    const result = await adminApi.push.sendBroadcast({
+    const data: { payload: Record<string, unknown>; scheduledFor?: string; userIds?: string[] } = {
       payload: { title, body, ...(url ? { url } : {}) },
       ...(scheduledFor ? { scheduledFor } : {}),
-    });
+    };
+    if (recipientsMode.value === 'selected' && selectedRecipients.value.length > 0) {
+      data.userIds = selectedRecipients.value.map((u) => u.id);
+    }
+
+    const result = await adminApi.push.sendBroadcast(data);
     if (result.scheduled && result.scheduledFor) {
       broadcastSuccessMsg.value = `Notifica pianificata per ${new Date(result.scheduledFor).toLocaleString()}.`;
     } else {

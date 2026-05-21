@@ -382,7 +382,7 @@ export const admin = {
       }),
   },
   push: {
-    sendBroadcast: (data: { payload: Record<string, unknown>; scheduledFor?: string }) =>
+    sendBroadcast: (data: { payload: Record<string, unknown>; scheduledFor?: string; userIds?: string[] }) =>
       request<{ ok: boolean; scheduled: boolean; id?: string; scheduledFor?: string }>('/api/push/send-all', {
         method: 'POST',
         body: JSON.stringify(data),

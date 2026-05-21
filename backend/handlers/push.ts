@@ -43,12 +43,14 @@ const SendBodySchema = z.object({
 const SendAllBodySchema = z.object({
   payload: z.record(z.unknown()),
   scheduledFor: z.string().datetime().optional(),
+  userIds: z.array(z.string().trim().min(1)).optional(),
 });
 
 const ScheduledPushJobSchema = z.object({
   id: z.string().trim().min(1),
   payload: z.record(z.unknown()),
   scheduledFor: z.string().datetime(),
+  userIds: z.array(z.string().trim().min(1)).optional(),
 });
 const ScheduledPushJobsSchema = z.array(ScheduledPushJobSchema);
 const SCHEDULED_PUSH_JOBS_KEY = 'scheduled_push_broadcast_jobs';
@@ -206,7 +208,11 @@ async function flushDueScheduledBroadcasts(): Promise<void> {
 
   for (const job of dueJobs) {
     try {
-      await sendPushToAllSubscribers(job.payload);
+      if (job.userIds && Array.isArray(job.userIds) && job.userIds.length > 0) {
+        await sendPushToUsers(job.userIds, job.payload);
+      } else {
+        await sendPushToAllSubscribers(job.payload);
+      }
     } catch (err) {
       console.error('Scheduled push broadcast failed', { id: job.id, scheduledFor: job.scheduledFor, err });
     }
@@ -312,6 +318,7 @@ async function handleSendAll(req: AuthedRequest, res: VercelResponse): Promise<v
       id: randomUUID(),
       payload: body.payload,
       scheduledFor: new Date(scheduledAt).toISOString(),
+      userIds: body.userIds ?? undefined,
     };
     const jobs = await readScheduledJobs();
     jobs.push(job);
@@ -319,8 +326,11 @@ async function handleSendAll(req: AuthedRequest, res: VercelResponse): Promise<v
     res.status(200).json({ ok: true, scheduled: true, id: job.id, scheduledFor: job.scheduledFor });
     return;
   }
-
-  await sendPushToAllSubscribers(body.payload);
+  if (body.userIds && Array.isArray(body.userIds) && body.userIds.length > 0) {
+    await sendPushToUsers(body.userIds, body.payload);
+  } else {
+    await sendPushToAllSubscribers(body.payload);
+  }
   res.status(200).json({ ok: true, scheduled: false });
 }
 
