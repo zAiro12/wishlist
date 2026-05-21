@@ -1,41 +1,58 @@
 <template>
   <section class="card install-guide">
-    <h2>Installa Wishlist</h2>
+    <h2>Installa Wishlist come app</h2>
+
+    <p class="hint intro">
+      Puoi installarla su Windows, macOS, Android e iPhone/iPad con i browser moderni come Chrome,
+      Edge, Brave e Safari. Quando il browser supporta l'installazione diretta, il pulsante qui sotto
+      apparirà automaticamente.
+    </p>
 
     <div v-if="isStandalone">
       <p class="status-ok">App già installata ✓</p>
       <p class="hint">Le notifiche vengono proposte automaticamente all'apertura dell'app installata.</p>
     </div>
 
-    <div v-else-if="isIOS">
-      <p class="hint">Per iPhone/iPad segui questi passaggi:</p>
-      <ol>
-        <li>Apri questa pagina in <strong>Safari</strong> (se non lo sei già)</li>
-        <li>Tocca l'icona <strong>Condividi</strong> (□↑) in basso nella barra di Safari</li>
-        <li>Scorri e tocca <strong>"Aggiungi a schermata Home"</strong></li>
-        <li>Conferma toccando <strong>"Aggiungi"</strong> in alto a destra</li>
-        <li>Apri l'app dalla schermata Home e attiva le notifiche quando richiesto</li>
-      </ol>
+    <div v-else class="install-grid">
+      <article class="install-card">
+        <h3>Windows, macOS e Linux</h3>
+        <ol>
+          <li>Apri Wishlist in <strong>Chrome</strong>, <strong>Edge</strong> o <strong>Brave</strong></li>
+          <li>Usa l'icona di installazione nella barra degli indirizzi oppure il menu del browser</li>
+          <li>Scegli <strong>Installa app</strong>, <strong>Aggiungi a schermata Home</strong> o <strong>Crea collegamento</strong></li>
+          <li>Se disponibile, abilita <strong>Apri come finestra</strong> per usarla come app dedicata</li>
+        </ol>
+      </article>
+
+      <article class="install-card">
+        <h3>Android</h3>
+        <ol>
+          <li>Apri la pagina in <strong>Chrome</strong>, <strong>Edge</strong> o <strong>Brave</strong></li>
+          <li>Tocca il menu <strong>⋮</strong> oppure l'icona di installazione</li>
+          <li>Seleziona <strong>Installa app</strong> o <strong>Aggiungi a schermata Home</strong></li>
+          <li>Conferma e poi apri Wishlist dalla schermata Home</li>
+        </ol>
+      </article>
+
+      <article class="install-card">
+        <h3>iPhone e iPad</h3>
+        <ol>
+          <li>Apri Wishlist in <strong>Safari</strong></li>
+          <li>Tocca il pulsante <strong>Condividi</strong></li>
+          <li>Scorri e scegli <strong>Aggiungi a schermata Home</strong></li>
+          <li>Conferma con <strong>Aggiungi</strong> e apri l'app dalla Home</li>
+        </ol>
+      </article>
     </div>
 
-    <div v-else-if="isAndroid">
-      <p class="hint">Per Android segui questi passaggi:</p>
-      <ol>
-        <li>Apri questa pagina in <strong>Chrome</strong></li>
-        <li>Tocca il menu <strong>⋮</strong> in alto a destra</li>
-        <li>Tocca <strong>"Aggiungi a schermata Home"</strong> (o "Installa app")</li>
-        <li>Conferma toccando <strong>"Aggiungi"</strong></li>
-        <li>Apri l'app e attiva le notifiche quando richiesto</li>
-      </ol>
-
-      <div class="actions">
-        <button v-if="deferredPrompt" class="btn-primary" @click="install">Installa</button>
-      </div>
+    <div class="actions">
+      <button v-if="deferredPrompt" class="btn-primary" @click="install">Installa ora</button>
     </div>
 
-    <div v-else>
-      <p>Apri questa pagina da smartphone per installare l'app</p>
-    </div>
+    <p class="hint browser-note">
+      Se il tuo browser non mostra il pulsante di installazione, prova il menu principale oppure usa
+      una versione aggiornata di Chrome, Edge, Brave o Safari.
+    </p>
 
     <p v-if="error" class="error-message">{{ error }}</p>
   </section>
@@ -49,13 +66,27 @@ type BeforeInstallPromptEvent = Event & {
   prompt: () => Promise<void>;
 };
 
-const ua = navigator.userAgent;
-const isIOS = ref(/iphone|ipad|ipod/i.test(ua));
-const isAndroid = ref(/android/i.test(ua));
 const standaloneMediaQuery = window.matchMedia('(display-mode: standalone)');
+const notificationPromptKey = 'wishlist-notification-prompted';
 
 function readStandaloneState(): boolean {
   return standaloneMediaQuery.matches || (navigator as Navigator & { standalone?: boolean }).standalone === true;
+}
+
+function hasPromptedNotificationsBefore(): boolean {
+  try {
+    return window.localStorage.getItem(notificationPromptKey) === '1';
+  } catch {
+    return false;
+  }
+}
+
+function markNotificationsPrompted(): void {
+  try {
+    window.localStorage.setItem(notificationPromptKey, '1');
+  } catch {
+    // Ignore storage failures and keep the install flow working.
+  }
 }
 
 const isStandalone = ref(readStandaloneState());
@@ -72,7 +103,7 @@ const onBeforeInstallPrompt = (e: Event) => {
 const onAppInstalled = () => {
   isStandalone.value = readStandaloneState();
   deferredPrompt.value = null;
-  void maybePromptNotifications();
+  void promptNotificationsImmediately();
 };
 
 const onDisplayModeChange = () => {
@@ -84,13 +115,19 @@ async function install(): Promise<void> {
   await deferredPrompt.value.prompt();
   isStandalone.value = readStandaloneState();
   deferredPrompt.value = null;
-  void maybePromptNotifications();
+  void promptNotificationsImmediately();
+}
+
+async function promptNotificationsImmediately(): Promise<void> {
+  if (!isSupported.value) return;
+  if (isSubscribed.value || permissionState.value !== 'default') return;
+  markNotificationsPrompted();
+  await subscribe();
 }
 
 async function maybePromptNotifications(): Promise<void> {
-  if (!isStandalone.value || !isSupported.value) return;
-  if (isSubscribed.value || permissionState.value !== 'default') return;
-  await subscribe();
+  if (!isStandalone.value || hasPromptedNotificationsBefore()) return;
+  await promptNotificationsImmediately();
 }
 
 onMounted(() => {
@@ -110,6 +147,10 @@ onUnmounted(() => {
 <style scoped>
 .install-guide {
   margin-top: 1.5rem;
+}
+
+.intro {
+  margin-bottom: 1rem;
 }
 
 .install-guide ol {
@@ -135,5 +176,27 @@ onUnmounted(() => {
   display: flex;
   gap: 0.5rem;
   flex-wrap: wrap;
+}
+
+.install-grid {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  margin-top: 1rem;
+}
+
+.install-card {
+  padding: 1rem;
+  border-radius: var(--radius-xl);
+  background: var(--color-surface-container-highest);
+}
+
+.install-card h3 {
+  margin: 0 0 0.5rem;
+  font-size: 1rem;
+}
+
+.browser-note {
+  margin-top: 1rem;
 }
 </style>

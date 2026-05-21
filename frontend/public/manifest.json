@@ -1,11 +1,18 @@
 {
   "name": "Wishlist",
   "short_name": "Wishlist",
+  "id": "/wishlist/",
   "description": "Crea e condividi la tua wishlist con amici e famiglia.",
+  "lang": "it-IT",
   "start_url": "./",
+  "scope": "./",
   "display": "standalone",
+  "display_override": ["window-controls-overlay", "standalone"],
+  "orientation": "any",
   "theme_color": "#003634",
   "background_color": "#fbf9f4",
+  "categories": ["lifestyle", "social"],
+  "prefer_related_applications": false,
   "icons": [
     {
       "src": "./icons/icon-192.png",
