@@ -164,22 +164,7 @@
 
       <div class="wizard-step" style="margin-top:0.75rem;">
         <strong>3. Quando inviare</strong>
-        <div style="display:flex;gap:1rem;flex-wrap:wrap;margin-top:0.5rem;">
-          <label style="display:flex;align-items:center;gap:0.4rem;">
-            <input v-model="broadcastMode" type="radio" value="now" />
-            Subito
-          </label>
-          <label style="display:flex;align-items:center;gap:0.4rem;">
-            <input v-model="broadcastMode" type="radio" value="scheduled" />
-            A una data/ora specifica
-          </label>
-        </div>
-        <input
-          v-if="broadcastMode === 'scheduled'"
-          v-model="broadcastScheduledAt"
-          type="datetime-local"
-          style="margin-top:0.5rem;max-width:260px;"
-        />
+        <p style="margin-top:0.5rem;">Invio: <strong>Subito</strong></p>
       </div>
 
       <div class="wizard-step" style="margin-top:0.75rem;">
@@ -188,7 +173,7 @@
           Titolo: <strong>{{ broadcastTitle || '—' }}</strong><br />
           Testo: {{ broadcastBody || '—' }}<br />
           Destinatari: {{ recipientsMode === 'all' ? 'Tutti' : (selectedRecipients.length ? selectedRecipients.length + ' utenti selezionati' : 'Nessuno selezionato') }}<br />
-          Invio: {{ broadcastMode === 'now' ? 'Subito' : (broadcastScheduledAt || 'Seleziona data/ora') }}
+          Invio: Subito
         </p>
         <button class="btn-primary" :disabled="sendingBroadcast" style="margin-top:0.5rem;" @click="sendBroadcast">
           {{ sendingBroadcast ? 'Invio…' : (recipientsMode === 'all' ? 'Invia notifica a tutti' : 'Invia notifica ai selezionati') }}
@@ -230,8 +215,7 @@ const sendingBroadcast = ref(false);
 const broadcastTitle = ref('');
 const broadcastBody = ref('');
 const broadcastUrl = ref('');
-const broadcastMode = ref<'now' | 'scheduled'>('now');
-const broadcastScheduledAt = ref('');
+// scheduling removed: only immediate broadcasts are supported from the frontend
 const broadcastSuccessMsg = ref<string | null>(null);
 const broadcastErrorMsg = ref<string | null>(null);
 
@@ -491,46 +475,22 @@ async function sendBroadcast() {
     return;
   }
 
-  let scheduledFor: string | undefined;
-  if (broadcastMode.value === 'scheduled') {
-    if (!broadcastScheduledAt.value) {
-      broadcastErrorMsg.value = 'Seleziona data e ora di invio.';
-      return;
-    }
-    const parsedDate = new Date(broadcastScheduledAt.value);
-    if (Number.isNaN(parsedDate.getTime())) {
-      broadcastErrorMsg.value = 'Data/ora non valida.';
-      return;
-    }
-    scheduledFor = parsedDate.toISOString();
-  }
-
   sendingBroadcast.value = true;
   try {
-    const data: { payload: Record<string, unknown>; scheduledFor?: string; userIds?: string[] } = {
+    const data: { payload: Record<string, unknown>; userIds?: string[] } = {
       payload: { title, body, ...(url ? { url } : {}) },
-      ...(scheduledFor ? { scheduledFor } : {}),
     };
     if (recipientsMode.value === 'selected' && selectedRecipients.value.length > 0) {
       data.userIds = selectedRecipients.value.map((u) => u.id);
     }
-
-    const result = await adminApi.push.sendBroadcast(data);
-    if (result.scheduled && result.scheduledFor) {
-      broadcastSuccessMsg.value = `Notifica pianificata per ${new Date(result.scheduledFor).toLocaleString()}.`;
-    } else {
-      broadcastSuccessMsg.value = 'Notifica inviata a tutti gli utenti con notifiche attive.';
-    }
+    await adminApi.push.sendBroadcast(data);
+    broadcastSuccessMsg.value = recipientsMode.value === 'all' ? 'Notifica inviata a tutti gli utenti con notifiche attive.' : 'Notifica inviata ai selezionati.';
     broadcastTitle.value = '';
     broadcastBody.value = '';
     broadcastUrl.value = '';
-    broadcastMode.value = 'now';
-    broadcastScheduledAt.value = '';
   } catch (err) {
     if (err instanceof ApiError) {
       broadcastErrorMsg.value = err.message;
-    } else if (broadcastMode.value === 'scheduled') {
-      broadcastErrorMsg.value = 'Errore durante la pianificazione della notifica';
     } else {
       broadcastErrorMsg.value = 'Errore durante l\'invio della notifica';
     }
