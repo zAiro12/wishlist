@@ -7,6 +7,56 @@ import { ZodError } from 'zod';
 import { sendPushToUsers } from '../push';
 import { getActorDisplayName } from '../../lib/push-utils';
 
+async function notifyGroupMembersAboutItemChange(params: {
+  actorUserId: string;
+  itemId: string;
+  itemTitle: string;
+  title: string;
+  body: string;
+  notificationType: 'ITEM_ADDED' | 'ITEM_UPDATED' | 'ITEM_DELETED';
+  logContext: string;
+}): Promise<void> {
+  const { actorUserId, itemId, itemTitle, title, body, notificationType, logContext } = params;
+
+  try {
+    const memberships = await prisma.groupMember.findMany({
+      where: { userId: actorUserId, removedAt: null, group: { deletedAt: null } },
+      select: {
+        group: {
+          select: {
+            members: {
+              where: { removedAt: null, userId: { not: actorUserId } },
+              select: { userId: true },
+            },
+          },
+        },
+      },
+    });
+
+    const recipients = new Set<string>();
+    for (const membership of memberships) {
+      for (const member of membership.group.members) {
+        recipients.add(member.userId);
+      }
+    }
+
+    if (recipients.size === 0) return;
+
+    await sendPushToUsers(Array.from(recipients), {
+      type: notificationType,
+      title,
+      body,
+      data: {
+        ownerId: actorUserId,
+        itemId,
+        itemTitle,
+      },
+    });
+  } catch (pushErr) {
+    console.error(`Failed to send push notifications for ${logContext}`, pushErr);
+  }
+}
+
 export default async function handler(req: VercelRequest, res: VercelResponse): Promise<void> {
   if (setCors(req, res)) return;
 
@@ -32,42 +82,16 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
           console.error('Failed to write audit for ITEM_CREATED', e);
         }
 
-        try {
-          const memberships = await prisma.groupMember.findMany({
-            where: { userId, removedAt: null, group: { deletedAt: null } },
-            select: {
-              group: {
-                select: {
-                  members: {
-                    where: { removedAt: null, userId: { not: userId } },
-                    select: { userId: true },
-                  },
-                },
-              },
-            },
-          });
-
-          const recipients = new Set<string>();
-          for (const membership of memberships) {
-            for (const member of membership.group.members) {
-              recipients.add(member.userId);
-            }
-          }
-
-          const actorName = getActorDisplayName(authedReq.user.dbUser);
-
-          await sendPushToUsers(Array.from(recipients), {
-            type: 'ITEM_ADDED',
-            title: 'Nuovo desiderio aggiunto',
-            body: `${actorName} ha aggiunto "${item.title}" alla wishlist`,
-            data: {
-              ownerId: userId,
-              itemId: item.id,
-            },
-          });
-        } catch (pushErr) {
-          console.error('Failed to send push notifications for ITEM_CREATED', pushErr);
-        }
+        const actorName = getActorDisplayName(authedReq.user.dbUser);
+        await notifyGroupMembersAboutItemChange({
+          actorUserId: userId,
+          itemId: item.id,
+          itemTitle: item.title,
+          notificationType: 'ITEM_ADDED',
+          title: 'Nuovo desiderio aggiunto',
+          body: `${actorName} ha aggiunto "${item.title}" alla wishlist`,
+          logContext: 'ITEM_CREATED',
+        });
 
         authedRes.status(201).json({ ...item, status: null });
       } catch (err) {

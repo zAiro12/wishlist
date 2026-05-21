@@ -5,6 +5,63 @@ import { prisma } from '../../lib/prisma';
 import { UpdateWishlistItemSchema } from '../../lib/validators';
 import { AppError, ForbiddenError, NotFoundError } from '../../lib/authz';
 import { ZodError } from 'zod';
+import { sendPushToUsers } from '../push';
+import { getActorDisplayName } from '../../lib/push-utils';
+
+async function notifyGroupMembersAboutItemChange(params: {
+  actorUserId: string;
+  ownerUserId: string;
+  itemId: string;
+  itemTitle: string;
+  title: string;
+  body: string;
+  notificationType: 'ITEM_UPDATED' | 'ITEM_DELETED';
+  logContext: string;
+}): Promise<void> {
+  const { actorUserId, ownerUserId, itemId, itemTitle, title, body, notificationType, logContext } = params;
+
+  try {
+    const memberships = await prisma.groupMember.findMany({
+      where: {
+        userId: ownerUserId,
+        removedAt: null,
+        group: { deletedAt: null },
+      },
+      select: {
+        group: {
+          select: {
+            members: {
+              where: { removedAt: null, userId: { not: actorUserId } },
+              select: { userId: true },
+            },
+          },
+        },
+      },
+    });
+
+    const recipients = new Set<string>();
+    for (const membership of memberships) {
+      for (const member of membership.group.members) {
+        recipients.add(member.userId);
+      }
+    }
+
+    if (recipients.size === 0) return;
+
+    await sendPushToUsers(Array.from(recipients), {
+      type: notificationType,
+      title,
+      body,
+      data: {
+        ownerId: ownerUserId,
+        itemId,
+        itemTitle,
+      },
+    });
+  } catch (pushErr) {
+    console.error(`Failed to send push notifications for ${logContext}`, pushErr);
+  }
+}
 
 export default async function handler(req: VercelRequest, res: VercelResponse): Promise<void> {
   if (setCors(req, res)) return;
@@ -47,6 +104,18 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
           console.error('Failed to write audit for ITEM_UPDATED', e);
         }
 
+        const actorName = getActorDisplayName(authedReq.user.dbUser);
+        await notifyGroupMembersAboutItemChange({
+          actorUserId: userId,
+          ownerUserId: item.ownerId,
+          itemId,
+          itemTitle: updated.title,
+          notificationType: 'ITEM_UPDATED',
+          title: 'Desiderio aggiornato',
+          body: `${actorName} ha modificato "${updated.title}"`,
+          logContext: 'ITEM_UPDATED',
+        });
+
         authedRes.status(200).json({ ...updated, status: null });
         return;
       }
@@ -59,6 +128,18 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
         } catch (e) {
           console.error('Failed to write audit for ITEM_DELETED', e);
         }
+
+        const actorName = getActorDisplayName(authedReq.user.dbUser);
+        await notifyGroupMembersAboutItemChange({
+          actorUserId: userId,
+          ownerUserId: item.ownerId,
+          itemId,
+          itemTitle: item.title,
+          notificationType: 'ITEM_DELETED',
+          title: 'Desiderio eliminato',
+          body: `${actorName} ha eliminato "${item.title}"`,
+          logContext: 'ITEM_DELETED',
+        });
 
         authedRes.status(200).json({ message: 'Item deleted' });
         return;
