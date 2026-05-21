@@ -1,0 +1,2 @@
+ALTER TABLE "PushSubscription"
+ADD COLUMN IF NOT EXISTS "failedDeliveryCount" INTEGER NOT NULL DEFAULT 0;

@@ -97,6 +97,29 @@ function isExpiredSubscriptionError(err: unknown): boolean {
   return maybeStatusCode === 404 || maybeStatusCode === 410;
 }
 
+async function markSubscriptionDeliverySuccess(subscriptionId: string): Promise<void> {
+  await prisma.pushSubscription.updateMany({
+    where: { id: subscriptionId },
+    data: { failedDeliveryCount: 0 },
+  });
+}
+
+async function markSubscriptionDeliveryFailure(subscriptionId: string): Promise<number | null> {
+  const updated = await prisma.pushSubscription.updateMany({
+    where: { id: subscriptionId },
+    data: { failedDeliveryCount: { increment: 1 } },
+  });
+
+  if (updated.count === 0) return null;
+
+  const subscription = await prisma.pushSubscription.findUnique({
+    where: { id: subscriptionId },
+    select: { failedDeliveryCount: true },
+  });
+
+  return subscription?.failedDeliveryCount ?? null;
+}
+
 export async function sendPushToUsers(userIds: string[], payload: PushPayload): Promise<void> {
   if (!process.env.VAPID_PUBLIC_KEY || !process.env.VAPID_PRIVATE_KEY || !process.env.VAPID_MAILTO) {
     if (!vapidMissingWarned) {
@@ -123,21 +146,26 @@ export async function sendPushToUsers(userIds: string[], payload: PushPayload): 
             toWebPushSubscription(subscription.endpoint, subscription.p256dh, subscription.auth),
             JSON.stringify(payload)
           );
+          await markSubscriptionDeliverySuccess(subscription.id);
           return null;
         } catch (err) {
           if (isExpiredSubscriptionError(err)) {
-            return subscription.endpoint;
+            return { id: subscription.id, endpoint: subscription.endpoint, expired: true as const };
+          }
+          const failedDeliveryCount = await markSubscriptionDeliveryFailure(subscription.id);
+          if (failedDeliveryCount !== null && failedDeliveryCount >= 10) {
+            return { id: subscription.id, endpoint: subscription.endpoint, expired: true as const };
           }
           console.error('Push send failed', err);
           return null;
         }
       })
     )
-  ).filter((endpoint): endpoint is string => endpoint !== null);
+  ).filter((entry): entry is { id: string; endpoint: string; expired: true } => entry !== null);
 
   if (expiredEndpoints.length > 0) {
     await prisma.pushSubscription.deleteMany({
-      where: { endpoint: { in: expiredEndpoints } },
+      where: { id: { in: expiredEndpoints.map((entry) => entry.id) } },
     });
   }
 }
@@ -240,8 +268,8 @@ async function handleSubscribe(req: AuthedRequest, res: VercelResponse): Promise
 
   await prisma.pushSubscription.upsert({
     where: { endpoint },
-    update: { userId, p256dh, auth },
-    create: { userId, endpoint, p256dh, auth },
+    update: { userId, p256dh, auth, failedDeliveryCount: 0 },
+    create: { userId, endpoint, p256dh, auth, failedDeliveryCount: 0 },
   });
 
   res.status(200).json({ ok: true });
