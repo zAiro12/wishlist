@@ -239,13 +239,14 @@ const recipientsMode = ref<'all' | 'selected'>('all');
 const recipientSearchQuery = ref('');
 const recipientSearchResults = ref<User[]>([]);
 const recipientSearchPerformed = ref(false);
-const recipientSearchTimer: any = null;
+let recipientSearchTimer: ReturnType<typeof setTimeout> | null = null;
 const selectedRecipients = ref<User[]>([]);
 
 onMounted(load);
 onUnmounted(() => {
   if (princessSearchTimer) clearTimeout(princessSearchTimer);
   if (testerSearchTimer) clearTimeout(testerSearchTimer);
+  if (recipientSearchTimer) clearTimeout(recipientSearchTimer);
 });
 
 function parseUserIds(value: string | undefined): string[] {
@@ -392,9 +393,8 @@ async function doTesterSearch() {
 }
 
 function onRecipientSearchInput() {
-  if ((recipientSearchTimer as any)) clearTimeout(recipientSearchTimer as any);
-  // debounce
-  setTimeout(() => doRecipientSearch(), 400);
+  if (recipientSearchTimer) clearTimeout(recipientSearchTimer);
+  recipientSearchTimer = setTimeout(() => doRecipientSearch(), 400);
 }
 
 async function doRecipientSearch() {
