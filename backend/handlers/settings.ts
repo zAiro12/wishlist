@@ -5,7 +5,7 @@ import { prisma } from '../lib/prisma';
 import { ensureAppSettingTable } from '../lib/app-setting-table';
 
 /** Public settings keys that any authenticated user may read. */
-const PUBLIC_KEYS = ['princess_user_id'];
+const PUBLIC_KEYS = ['princess_user_id', 'tester_user_ids'];
 
 export default async function handler(req: VercelRequest, res: VercelResponse): Promise<void> {
   if (setCors(req, res)) return;
