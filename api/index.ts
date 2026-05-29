@@ -1,4 +1,18 @@
-import type { VercelRequest, VercelResponse } from '@vercel/node'
+import type { IncomingMessage, ServerResponse } from 'node:http'
+
+type VercelRequest = IncomingMessage & {
+	query: Record<string, string | string[]>
+	cookies: Record<string, string>
+	body: unknown
+	params?: Record<string, string>
+}
+
+type VercelResponse = ServerResponse & {
+	status(code: number): VercelResponse
+	json(payload: unknown): VercelResponse
+	send(payload: string): VercelResponse
+	redirect(statusOrUrl: string | number, url?: string): VercelResponse
+}
 
 // Defensive check: log any missing required environment variables (names only)
 const REQUIRED_ENV = [
@@ -31,6 +45,8 @@ import groupHandler from '../backend/handlers/groups/[groupId]'
 import membersHandler from '../backend/handlers/groups/[groupId]/members'
 import joinHandler from '../backend/handlers/groups/[groupId]/join'
 import invitePreviewHandler from '../backend/handlers/groups/[groupId]/invite-preview'
+import giftsHandler from '../backend/handlers/groups/[groupId]/gifts'
+import giftSettlementHandler from '../backend/handlers/groups/[groupId]/gifts/[giftId]/settlements'
 import nextCelebratedHandler from '../backend/handlers/groups/[groupId]/next-celebrated'
 import transferHandler from '../backend/handlers/groups/[groupId]/transfer'
 import wishlistsInGroupHandler from '../backend/handlers/groups/[groupId]/wishlists'
@@ -45,7 +61,6 @@ import adminWishlistsHandler from '../backend/handlers/admin/wishlists'
 import adminSettingsHandler from '../backend/handlers/admin/settings'
 import pushHandler from '../backend/handlers/push'
 import { getOpenApiSpec, getSwaggerHtml } from '../backend/lib/swagger'
-import swaggerUi from 'swagger-ui-express'
 
 type Handler = (req: VercelRequest, res: VercelResponse) => void | Promise<void>
 
@@ -54,9 +69,86 @@ function logRequest(req: VercelRequest) {
 		const method = req.method || 'GET'
 		const rawUrl = req.url || ''
 		console.info(`[api] ${method} ${rawUrl}`)
-	} catch (e) {
+	} catch {
 		// best-effort logging, never throw
 	}
+}
+
+function parseRequestLocation(rawUrl: string): { path: string; pathname: string } {
+	const path = rawUrl.split('?')[0] || '/'
+	let parsedPathname = '/'
+	try {
+		parsedPathname = new URL(rawUrl, 'http://localhost').pathname
+	} catch {
+		// keep fallback
+	}
+
+	return {
+		path,
+		pathname: parsedPathname.startsWith('/api/') ? parsedPathname.slice(4) : parsedPathname,
+	}
+}
+
+function tryServeOpenApi(path: string, res: VercelResponse): boolean {
+	if (path !== '/api/openapi.json' && !path.startsWith('/api/openapi.json')) return false
+
+	res.setHeader('Content-Type', 'application/json')
+	res.status(200).send(JSON.stringify(getOpenApiSpec()))
+	return true
+}
+
+function tryServeDocs(path: string, res: VercelResponse): boolean {
+	if (path !== '/api-docs' && !path.startsWith('/api-docs')) return false
+
+	res.status(200).send(getSwaggerHtml('/api/openapi.json'))
+	return true
+}
+
+function tryServeApiRoot(pathname: string, req: VercelRequest, res: VercelResponse): boolean {
+	if (req.method !== 'GET') return false
+	if (pathname !== '/' && pathname !== '/api' && pathname !== '/api/') return false
+
+	const now = new Date().toISOString()
+	const html = `<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Wishlist API</title></head>
+<body style="font-family:system-ui,Segoe UI,Roboto,Helvetica,Arial,sans-serif;margin:40px;">
+	<h1>Wishlist API</h1>
+	<p><strong>Status:</strong> online</p>
+	<p><strong>Server time:</strong> ${now}</p>
+	<h2>Endpoints</h2>
+	<ul>
+		<li><a href="/api-docs">/api-docs</a></li>
+		<li><a href="/api/openapi.json">/api/openapi.json</a></li>
+	</ul>
+</body>
+</html>`
+	res.setHeader('Content-Type', 'text/html; charset=utf-8')
+	res.status(200).send(html)
+	return true
+}
+
+async function dispatchRoute(req: VercelRequest, res: VercelResponse, pathname: string): Promise<boolean> {
+	const url = pathname
+	for (const r of routes) {
+		const params = match(url, r.pattern)
+		if (!params) continue
+
+		req.params = params
+		req.query = { ...req.query, ...params }
+		try {
+			await r.handler(req, res)
+			return true
+		} catch (err) {
+			console.error('Handler error for', r.pattern, { message: (err as Error)?.message })
+			if (!res.headersSent) {
+				res.status(500).json({ error: 'Internal server error' })
+			}
+			return true
+		}
+	}
+
+	return false
 }
 
 function match(url: string, pattern: string): Record<string,string> | null {
@@ -88,6 +180,8 @@ const routes: { pattern: string; handler: Handler }[] = [
 	{ pattern: '/groups/:groupId/members',           handler: membersHandler },
 	{ pattern: '/groups/:groupId/join',              handler: joinHandler },
 	{ pattern: '/groups/:groupId/invite-preview',    handler: invitePreviewHandler },
+	{ pattern: '/groups/:groupId/gifts',             handler: giftsHandler },
+	{ pattern: '/groups/:groupId/gifts/:giftId/settlements', handler: giftSettlementHandler },
 	{ pattern: '/groups/:groupId/next-celebrated',   handler: nextCelebratedHandler },
 	{ pattern: '/groups/:groupId/transfer',          handler: transferHandler },
 	{ pattern: '/groups/:groupId/wishlists',         handler: wishlistsInGroupHandler },
@@ -154,77 +248,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 	if (setCorsHeaders(req, res)) return;
 	try {
 		console.log('api/index.ts HIT')
-				// Expose OpenAPI JSON and Swagger UI (renamed to /api-docs)
-				const rawUrl = req.url || ''
-				const path = rawUrl.split('?')[0] || '/'
-				// Parse pathname — Vercel may include the `/api` prefix
-				let parsedPathname = '/'
-				try {
-					parsedPathname = new URL(rawUrl, 'http://localhost').pathname
-				} catch (e) {
-					// keep fallback
-				}
-				// Strip leading `/api/` when present so internal route patterns don't need the prefix
-				const pathname = parsedPathname.startsWith('/api/')
-					? parsedPathname.slice(4) // "/api/auth/me" -> "/auth/me"
-					: parsedPathname
-		if (path === '/api/openapi.json' || path.startsWith('/api/openapi.json')) {
-			const spec = getOpenApiSpec()
-			res.setHeader('Content-Type', 'application/json')
-			res.status(200).send(JSON.stringify(spec))
-			return
-		}
-				if (path === '/api-docs' || path.startsWith('/api-docs')) {
-					// Serve Swagger UI HTML that loads assets from CDN (unpkg)
-					const spec = getOpenApiSpec()
-					const html = getSwaggerHtml('/api/openapi.json')
-					res.status(200).send(html)
-					return
-				}
-
-				// API root welcome page (also handle /api and /api/)
-				if ((pathname === '/' || pathname === '/api' || pathname === '/api/') && req.method === 'GET') {
-						const now = new Date().toISOString()
-					const html = `<!doctype html>
-<html lang="en">
-<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Wishlist API</title></head>
-<body style="font-family:system-ui,Segoe UI,Roboto,Helvetica,Arial,sans-serif;margin:40px;">
-	<h1>Wishlist API</h1>
-	<p><strong>Status:</strong> online</p>
-			<p><strong>Server time:</strong> ${now}</p>
-	<h2>Endpoints</h2>
-	<ul>
-		<li><a href="/api-docs">/api-docs</a></li>
-		<li><a href="/api/openapi.json">/api/openapi.json</a></li>
-	</ul>
-</body>
-</html>`
-						res.setHeader('Content-Type', 'text/html; charset=utf-8')
-						res.status(200).send(html)
-						return
-				}
-			const url = pathname
-		for (const r of routes) {
-			const params = match(url, r.pattern)
-			if (params) {
-				;(req as any).params = params
-				// Merge path params into req.query so handlers can read them normally
-				try {
-					req.query = { ...(req.query ?? {}), ...params }
-				} catch (e) {
-					// best-effort; do not block handler
-				}
-				try {
-					await r.handler(req, res)
-				} catch (err) {
-					console.error('Handler error for', r.pattern, { message: (err as Error)?.message })
-					if (!res.headersSent) {
-						res.status(500).json({ error: 'Internal server error' })
-					}
-				}
-				return
-			}
-		}
+		const { path, pathname } = parseRequestLocation(req.url || '')
+		if (tryServeOpenApi(path, res)) return
+		if (tryServeDocs(path, res)) return
+		if (tryServeApiRoot(pathname, req, res)) return
+		if (await dispatchRoute(req, res, pathname)) return
 		if (!res.headersSent) {
 			res.status(404).json({ error: 'Not found' })
 		}

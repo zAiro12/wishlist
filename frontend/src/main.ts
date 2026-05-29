@@ -9,7 +9,7 @@ import { registerSW } from 'virtual:pwa-register';
 
 function normalizeGithubPagesRedirect(rawRedirect: string): string {
   try {
-    const redirectUrl = new URL(rawRedirect, window.location.href);
+    const redirectUrl = new URL(rawRedirect, globalThis.location.href);
     const appBase = import.meta.env.BASE_URL || '/';
     const normalizedBase = appBase.endsWith('/') ? appBase.slice(0, -1) : appBase;
 
