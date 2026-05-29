@@ -4,6 +4,7 @@ import App from './App.vue';
 import { router } from './router';
 import './assets/design.css';
 import './assets/main.css';
+import { installBackendFetchTracker } from './lib/backend-activity';
 import { useAuthStore } from './stores/auth';
 import { registerSW } from 'virtual:pwa-register';
 
@@ -27,6 +28,8 @@ function normalizeGithubPagesRedirect(rawRedirect: string): string {
 const app = createApp(App);
 app.use(createPinia());
 app.use(router);
+
+installBackendFetchTracker();
 
 // Initialise auth so session is restored on page load
 const authInit = async () => {

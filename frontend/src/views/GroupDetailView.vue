@@ -18,8 +18,10 @@
             <template v-if="editingName">
               <input v-model="editNameValue" class="edit-input" maxlength="100" @keyup.enter="saveGroupName"
                 @keyup.escape="cancelEditName" />
-              <button class="icon-btn confirm-btn" @click="saveGroupName" aria-label="Salva nome">✓</button>
-              <button class="icon-btn cancel-btn" @click="cancelEditName" aria-label="Annulla">✕</button>
+              <button class="icon-btn confirm-btn" :class="{ 'is-loading': isPending('save-name') }"
+                :disabled="isAnyBackendActionPending" @click="saveGroupName" aria-label="Salva nome">✓</button>
+              <button class="icon-btn cancel-btn" :disabled="isAnyBackendActionPending" @click="cancelEditName"
+                aria-label="Annulla">✕</button>
             </template>
             <template v-else>
               <h1 style="margin:0;">{{ group.name }}</h1>
@@ -32,9 +34,11 @@
             <template v-if="editingDescription">
               <textarea v-model="editDescriptionValue" class="edit-input edit-textarea" maxlength="500" rows="2"
                 @keyup.escape="cancelEditDescription" />
-              <button class="icon-btn confirm-btn" @click="saveGroupDescription"
+              <button class="icon-btn confirm-btn" :class="{ 'is-loading': isPending('save-description') }"
+                :disabled="isAnyBackendActionPending" @click="saveGroupDescription"
                 aria-label="Salva descrizione">✓</button>
-              <button class="icon-btn cancel-btn" @click="cancelEditDescription" aria-label="Annulla">✕</button>
+              <button class="icon-btn cancel-btn" :disabled="isAnyBackendActionPending" @click="cancelEditDescription"
+                aria-label="Annulla">✕</button>
             </template>
             <template v-else>
               <p style="color:var(--color-on-surface-variant);margin:0.25rem 0 0;">{{ displayDescription }}</p>
@@ -76,7 +80,7 @@
               Registra chi ha pagato, quanto devono gli altri e quando saldano.
             </p>
           </div>
-          <button class="text-trigger-btn" type="button" @click="openGiftModal">
+          <button class="text-trigger-btn" type="button" :disabled="isAnyBackendActionPending" @click="openGiftModal">
             + Inserisci regalo/debito
           </button>
         </div>
@@ -92,11 +96,11 @@
           <div class="spinner" />
         </div>
         <p v-else-if="giftsError" class="error-message" style="margin-top:1rem;">{{ giftsError }}</p>
-        <p v-else-if="giftBatches.length === 0" class="empty-hint" style="margin-top:1rem;">
+        <p v-else-if="visibleGiftBatches.length === 0" class="empty-hint" style="margin-top:1rem;">
           Nessun regalo registrato in questo gruppo.
         </p>
         <div v-else class="gift-batches">
-          <article v-for="batch in giftBatches" :key="batch.id" class="gift-batch">
+          <article v-for="batch in visibleGiftBatches" :key="batch.id" class="gift-batch">
             <div class="gift-batch-header">
               <div>
                 <h4 style="margin:0;">{{ batch.title }}</h4>
@@ -147,7 +151,9 @@
                     <span v-else>Da saldare</span>
                   </td>
                   <td>
-                    <button class="btn-secondary" type="button" @click="toggleSettlement(batch, settlement)">
+                    <button class="btn-secondary" type="button"
+                      :class="{ 'is-loading': isPending(settlementActionKey(batch.id, settlement.id)) }"
+                      :disabled="isAnyBackendActionPending" @click="toggleSettlement(batch, settlement)">
                       {{ settlement.settledAt ? 'Riporta da saldare' : 'Segna saldato' }}
                     </button>
                   </td>
@@ -183,7 +189,8 @@
               <td v-if="authStore.isAdmin">{{ m.user?.email }}</td>
               <td v-if="isOwner">
                 <button v-if="m.userId !== authStore.user?.id" class="remove-btn"
-                  @click="handleRemove(m)">Rimuovi</button>
+                  :class="{ 'is-loading': isPending(`remove-member:${m.userId}`) }"
+                  :disabled="isAnyBackendActionPending" @click="handleRemove(m)">Rimuovi</button>
               </td>
             </tr>
           </tbody>
@@ -191,13 +198,16 @@
       </div>
 
       <div style="display:flex;gap:0.75rem;">
-        <button class="btn-secondary" @click="handleLeave">Lascia gruppo</button>
-        <button v-if="isOwner" class="btn-danger" style="padding:0.5rem 1rem;" @click="handleDeleteGroup">Elimina
+        <button class="btn-secondary" :class="{ 'is-loading': isPending('leave-group') }"
+          :disabled="isAnyBackendActionPending" @click="handleLeave">Lascia gruppo</button>
+        <button v-if="isOwner" class="btn-danger" style="padding:0.5rem 1rem;"
+          :class="{ 'is-loading': isPending('delete-group') }" :disabled="isAnyBackendActionPending"
+          @click="handleDeleteGroup">Elimina
           gruppo</button>
       </div>
 
       <div v-if="isOwner" class="bottom-owner-actions">
-        <button class="text-trigger-btn" type="button" @click="openTransferModal">
+        <button class="text-trigger-btn" type="button" :disabled="isAnyBackendActionPending" @click="openTransferModal">
           Trasferisci proprietà
         </button>
       </div>
@@ -206,7 +216,8 @@
         <div class="popup-card">
           <div class="popup-header">
             <h3 style="margin:0;">Inserisci regalo/debito</h3>
-            <button class="icon-btn cancel-btn" type="button" @click="closeGiftModal" aria-label="Chiudi">✕</button>
+            <button class="icon-btn cancel-btn" type="button" :disabled="isAnyBackendActionPending"
+              @click="closeGiftModal" aria-label="Chiudi">✕</button>
           </div>
 
           <p v-if="giftActionMsg" style="color:var(--color-primary);margin:0 0 0.75rem 0;">{{ giftActionMsg }}</p>
@@ -279,9 +290,11 @@
             <div class="gift-span-2 gift-form-footer">
               <p class="gift-summary">Totale quote: {{ formatCurrency(splitTotalCents) }}</p>
               <div style="display:flex;gap:0.5rem;align-items:center;">
-                <button class="btn-secondary" type="button" @click="fillGiftSplitsEqually">Dividi in parti
+                <button class="btn-secondary" type="button" :disabled="isAnyBackendActionPending"
+                  @click="fillGiftSplitsEqually">Dividi in parti
                   uguali</button>
-                <button class="btn-primary" type="submit" :disabled="giftDebtors.length === 0">Registra regalo</button>
+                <button class="btn-primary" type="submit" :class="{ 'is-loading': isPending('create-gift') }"
+                  :disabled="giftDebtors.length === 0 || isAnyBackendActionPending">Registra regalo</button>
               </div>
             </div>
           </form>
@@ -306,8 +319,10 @@
               </li>
             </ul>
             <div style="display:flex;justify-content:flex-end;gap:0.5rem;">
-              <button class="btn-secondary" type="button" @click="closeTransferModal">Annulla</button>
-              <button class="btn-primary" :disabled="!resolvedTransferUserId"
+              <button class="btn-secondary" type="button" :disabled="isAnyBackendActionPending"
+                @click="closeTransferModal">Annulla</button>
+              <button class="btn-primary" :class="{ 'is-loading': isPending('transfer-group') }"
+                :disabled="!resolvedTransferUserId || isAnyBackendActionPending"
                 @click="handleTransfer">Trasferisci</button>
             </div>
           </div>
@@ -381,6 +396,7 @@ const giftSplitDraft = ref<Record<string, string>>({});
 const showGiftModal = ref(false);
 const showTransferModal = ref(false);
 const hiddenGiftBatchIds = ref<string[]>(loadHiddenGiftBatchIds());
+const pendingAction = ref<string | null>(null);
 
 const editingName = ref(false);
 const editNameValue = ref('');
@@ -404,11 +420,13 @@ async function saveGroupName() {
     return;
   }
   try {
-    const updated = await groupsApi.update(groupId, { name });
-    if (group.value) group.value.name = updated.name;
-    editingName.value = false;
-    actionMsg.value = 'Nome aggiornato.';
-    actionError.value = null;
+    await withPending('save-name', async () => {
+      const updated = await groupsApi.update(groupId, { name });
+      if (group.value) group.value.name = updated.name;
+      editingName.value = false;
+      actionMsg.value = 'Nome aggiornato.';
+      actionError.value = null;
+    });
   } catch (err) {
     actionError.value = err instanceof ApiError ? err.message : 'Errore durante il salvataggio del nome';
     actionMsg.value = null;
@@ -427,11 +445,13 @@ function cancelEditDescription() {
 async function saveGroupDescription() {
   const description = editDescriptionValue.value.trim();
   try {
-    const updated = await groupsApi.update(groupId, { description });
-    if (group.value) group.value.description = updated.description;
-    editingDescription.value = false;
-    actionMsg.value = 'Descrizione aggiornata.';
-    actionError.value = null;
+    await withPending('save-description', async () => {
+      const updated = await groupsApi.update(groupId, { description });
+      if (group.value) group.value.description = updated.description;
+      editingDescription.value = false;
+      actionMsg.value = 'Descrizione aggiornata.';
+      actionError.value = null;
+    });
   } catch (err) {
     actionError.value = err instanceof ApiError ? err.message : 'Errore durante il salvataggio della descrizione';
     actionMsg.value = null;
@@ -506,6 +526,25 @@ function isGiftBatchSettled(batch: GroupGiftBatch): boolean {
   return batch.settlements.length > 0 && batch.settlements.every((settlement) => Boolean(settlement.settledAt));
 }
 
+function isPending(actionId: string): boolean {
+  return pendingAction.value === actionId;
+}
+
+function settlementActionKey(batchId: string, settlementId: string): string {
+  return `settlement:${batchId}:${settlementId}`;
+}
+
+async function withPending<T>(actionId: string, task: () => Promise<T>): Promise<T> {
+  pendingAction.value = actionId;
+  try {
+    return await task();
+  } finally {
+    if (pendingAction.value === actionId) {
+      pendingAction.value = null;
+    }
+  }
+}
+
 function canCloseGiftBatch(batch: GroupGiftBatch): boolean {
   return isGiftBatchSettled(batch) && !hiddenGiftBatchIds.value.includes(batch.id);
 }
@@ -522,6 +561,7 @@ function sortedSettlements(batch: GroupGiftBatch): GroupGiftSettlement[] {
 function closeGiftBatch(batchId: string): void {
   if (hiddenGiftBatchIds.value.includes(batchId)) return;
   hiddenGiftBatchIds.value = [...hiddenGiftBatchIds.value, batchId];
+  giftBatches.value = giftBatches.value.filter((batch) => batch.id !== batchId);
   persistHiddenGiftBatchIds();
 }
 
@@ -557,6 +597,8 @@ const allBirthdays = computed<Array<{ userId: string; givenName: string | null; 
     })
     .sort((a, b) => a.daysUntil - b.daysUntil)
 );
+const visibleGiftBatches = computed(() => giftBatches.value.filter((batch) => !hiddenGiftBatchIds.value.includes(batch.id)));
+const isAnyBackendActionPending = computed(() => pendingAction.value !== null);
 const transferCandidates = computed(() =>
   activeMembers.value.filter((member: GroupMember) => member.userId !== authStore.user?.id)
 );
@@ -719,8 +761,7 @@ async function loadGiftBatches(): Promise<void> {
   giftsLoading.value = true;
   giftsError.value = null;
   try {
-    const loaded = await groupsApi.gifts.list(groupId);
-    giftBatches.value = loaded.filter((batch) => !hiddenGiftBatchIds.value.includes(batch.id));
+    giftBatches.value = await groupsApi.gifts.list(groupId);
   } catch (err) {
     giftsError.value = err instanceof ApiError ? err.message : 'Errore caricamento regali';
   } finally {
@@ -781,27 +822,29 @@ async function createGiftBatch(): Promise<void> {
   }
 
   try {
-    await groupsApi.gifts.create(groupId, {
-      title,
-      giftNames,
-      note: giftNote.value.trim() || undefined,
-      totalAmountCents,
-      paidByUserId,
-      paidAt: giftPaidAt.value,
-      beneficiaryUserIds,
-      settlements,
-    });
+    await withPending('create-gift', async () => {
+      await groupsApi.gifts.create(groupId, {
+        title,
+        giftNames,
+        note: giftNote.value.trim() || undefined,
+        totalAmountCents,
+        paidByUserId,
+        paidAt: giftPaidAt.value,
+        beneficiaryUserIds,
+        settlements,
+      });
 
-    giftTitle.value = '';
-    giftNamesText.value = '';
-    giftNote.value = '';
-    giftTotalAmount.value = '';
-    giftBeneficiaryUserIds.value = [];
-    giftSplitDraft.value = {};
-    giftPaidByUserId.value = authStore.user?.id ?? giftPaidByUserId.value;
-    giftActionMsg.value = 'Regalo registrato.';
-    closeGiftModal();
-    await loadGiftBatches();
+      giftTitle.value = '';
+      giftNamesText.value = '';
+      giftNote.value = '';
+      giftTotalAmount.value = '';
+      giftBeneficiaryUserIds.value = [];
+      giftSplitDraft.value = {};
+      giftPaidByUserId.value = authStore.user?.id ?? giftPaidByUserId.value;
+      giftActionMsg.value = 'Regalo registrato.';
+      closeGiftModal();
+      await loadGiftBatches();
+    });
   } catch (err) {
     giftActionError.value = err instanceof ApiError ? err.message : 'Errore durante il salvataggio del regalo';
   }
@@ -809,13 +852,15 @@ async function createGiftBatch(): Promise<void> {
 
 async function toggleSettlement(batch: GroupGiftBatch, settlement: GroupGiftSettlement): Promise<void> {
   try {
-    await groupsApi.gifts.updateSettlement(groupId, batch.id, {
-      settlementId: settlement.id,
-      settled: !settlement.settledAt,
+    await withPending(settlementActionKey(batch.id, settlement.id), async () => {
+      await groupsApi.gifts.updateSettlement(groupId, batch.id, {
+        settlementId: settlement.id,
+        settled: !settlement.settledAt,
+      });
+      await loadGiftBatches();
+      giftActionMsg.value = settlement.settledAt ? 'Quota riportata da saldare.' : 'Quota segnata come saldata.';
+      giftActionError.value = null;
     });
-    await loadGiftBatches();
-    giftActionMsg.value = settlement.settledAt ? 'Quota riportata da saldare.' : 'Quota segnata come saldata.';
-    giftActionError.value = null;
   } catch (err) {
     giftActionError.value = err instanceof ApiError ? err.message : 'Errore durante l\'aggiornamento del saldo';
   }
@@ -905,8 +950,10 @@ async function handleLeave() {
       cancelLabel: 'Annulla',
     });
     if (!ok) return;
-    await groupsApi.members.leave(groupId);
-    await router.replace('/groups');
+    await withPending('leave-group', async () => {
+      await groupsApi.members.leave(groupId);
+      await router.replace('/groups');
+    });
   } catch (err) {
     actionError.value = err instanceof ApiError ? err.message : "Errore durante l'abbandono del gruppo";
   }
@@ -920,8 +967,10 @@ async function handleRemove(member: GroupMember) {
       cancelLabel: 'Annulla',
     });
     if (!ok) return;
-    await groupsApi.members.remove(groupId, member.userId);
-    group.value!.members = group.value!.members?.filter((m) => m.userId !== member.userId) ?? [];
+    await withPending(`remove-member:${member.userId}`, async () => {
+      await groupsApi.members.remove(groupId, member.userId);
+      group.value!.members = group.value!.members?.filter((m) => m.userId !== member.userId) ?? [];
+    });
   } catch (err) {
     actionError.value = err instanceof ApiError ? err.message : 'Errore durante la rimozione del membro';
   }
@@ -937,13 +986,15 @@ async function handleTransfer() {
   }
 
   try {
-    const updated = await groupsApi.transfer(groupId, selected.userId);
-    if (group.value) group.value.ownerId = updated.ownerId;
-    transferUserId.value = '';
-    transferQuery.value = '';
-    actionMsg.value = 'Proprietà trasferita con successo.';
-    actionError.value = null;
-    closeTransferModal();
+    await withPending('transfer-group', async () => {
+      const updated = await groupsApi.transfer(groupId, selected.userId);
+      if (group.value) group.value.ownerId = updated.ownerId;
+      transferUserId.value = '';
+      transferQuery.value = '';
+      actionMsg.value = 'Proprietà trasferita con successo.';
+      actionError.value = null;
+      closeTransferModal();
+    });
   } catch (err) {
     actionError.value = err instanceof ApiError ? err.message : 'Errore durante il trasferimento della proprietà';
     actionMsg.value = null;
@@ -958,8 +1009,10 @@ async function handleDeleteGroup() {
       cancelLabel: 'Annulla',
     });
     if (!ok) return;
-    await groupsApi.delete(groupId);
-    await router.replace('/groups');
+    await withPending('delete-group', async () => {
+      await groupsApi.delete(groupId);
+      await router.replace('/groups');
+    });
   } catch (err) {
     actionError.value = err instanceof ApiError ? err.message : "Errore durante l'eliminazione del gruppo";
   }
@@ -997,6 +1050,24 @@ async function handleDeleteGroup() {
 
 .text-trigger-btn:hover {
   opacity: 0.85;
+}
+
+.is-loading {
+  pointer-events: none;
+  opacity: 0.8;
+}
+
+.is-loading::after {
+  content: '';
+  display: inline-block;
+  width: 0.9rem;
+  height: 0.9rem;
+  margin-left: 0.5rem;
+  border: 2px solid currentColor;
+  border-right-color: transparent;
+  border-radius: 999px;
+  vertical-align: -0.15em;
+  animation: button-spin 0.75s linear infinite;
 }
 
 .bottom-owner-actions {
@@ -1221,6 +1292,12 @@ async function handleDeleteGroup() {
   border: none;
   cursor: pointer;
   font-family: var(--font-body);
+}
+
+@keyframes button-spin {
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 @media (max-width: 767px) {
