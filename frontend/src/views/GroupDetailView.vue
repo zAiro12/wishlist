@@ -579,6 +579,24 @@ function fillGiftSplitsEqually(): void {
   giftActionMsg.value = 'Quote distribuite in parti uguali.';
 }
 
+watch(
+  [giftTotalAmount, giftBeneficiaryUserIds],
+  () => {
+    if (giftDebtors.value.length === 0) {
+      giftSplitDraft.value = {};
+      return;
+    }
+
+    if (parseEuroValue(giftTotalAmount.value) <= 0) {
+      giftSplitDraft.value = {};
+      return;
+    }
+
+    fillGiftSplitsEqually();
+  },
+  { immediate: true }
+);
+
 function buildGiftNames(): string[] {
   return giftNamesText.value
     .split(/[\n,]/)
