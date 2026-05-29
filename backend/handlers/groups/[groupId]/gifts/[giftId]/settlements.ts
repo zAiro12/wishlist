@@ -5,6 +5,8 @@ import { prisma } from '../../../../../lib/prisma';
 import { UpdateGroupGiftSettlementSchema } from '../../../../../lib/validators';
 import { assertGroupMember, AppError, ForbiddenError } from '../../../../../lib/authz';
 import { ZodError } from 'zod';
+import { sendPushToUser } from '../../../../push';
+import { getActorDisplayName } from '../../../../../lib/push-utils';
 
 type TransactionClient = typeof prisma extends {
   $transaction(fn: (client: infer T) => Promise<unknown>, ...args: unknown[]): unknown;
@@ -36,7 +38,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
 
       const settlement = await prisma.groupGiftSettlement.findUnique({
         where: { id: parsed.settlementId },
-        include: { batch: { select: { id: true, groupId: true } } },
+        include: {
+          batch: { select: { id: true, groupId: true, title: true, paidByUserId: true } },
+          debtor: { select: { id: true, givenName: true, familyName: true, email: true } },
+        },
       });
 
       if (!settlement?.batch || settlement.batchId !== giftId || settlement.batch.groupId !== groupId) {
@@ -56,6 +61,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
       if (!isOwner && !isDebtor && !isAdmin) {
         throw new ForbiddenError('Only the debtor, group owner or an admin can update this settlement');
       }
+
+      const wasSettled = settlement.settledAt !== null;
 
       const updated = await prisma.$transaction(async (tx: TransactionClient) => {
         const nextSettledAt = parsed.settled ? settlement.settledAt ?? new Date() : null;
@@ -84,6 +91,28 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
 
         return result;
       });
+
+      if (parsed.settled && !wasSettled) {
+        try {
+          const actorName = getActorDisplayName(authedReq.user.dbUser);
+          const debtorName = settlement.debtor?.givenName?.trim() || settlement.debtor?.familyName?.trim() || settlement.debtor?.email?.trim() || 'un utente';
+          await sendPushToUser(settlement.batch.paidByUserId, {
+            type: 'GIFT_SETTLEMENT_PAID',
+            title: 'Un saldo è stato chiuso',
+            body: `${actorName} ha saldato la quota di "${settlement.batch.title}" per ${debtorName}`,
+            data: {
+              groupId,
+              giftId,
+              settlementId: parsed.settlementId,
+              batchId: settlement.batch.id,
+              debtorUserId: settlement.debtorUserId,
+              paidByUserId: settlement.batch.paidByUserId,
+            },
+          });
+        } catch (pushErr) {
+          console.error('Failed to send push notifications for GIFT_SETTLEMENT_PAID', pushErr);
+        }
+      }
 
       authedRes.status(200).json(updated);
     } catch (err) {
