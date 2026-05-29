@@ -14,6 +14,169 @@ type TransactionClient = typeof prisma extends {
   ? T
   : never;
 
+async function notifySettlementPaid(params: {
+  authedReq: AuthedRequest;
+  settlement: {
+    batch: { id: string; title: string; paidByUserId: string };
+    debtor: { givenName: string | null; familyName: string | null; email: string | null } | null;
+    debtorUserId: string;
+  };
+  groupId: string;
+  giftId: string;
+  settlementId: string;
+}): Promise<void> {
+  const { authedReq, settlement, groupId, giftId, settlementId } = params;
+  const actorName = getActorDisplayName(authedReq.user.dbUser);
+  const debtorName = settlement.debtor?.givenName?.trim() || settlement.debtor?.familyName?.trim() || settlement.debtor?.email?.trim() || 'un utente';
+
+  await sendPushToUser(settlement.batch.paidByUserId, {
+    type: 'GIFT_SETTLEMENT_PAID',
+    title: 'Un saldo è stato chiuso',
+    body: `${actorName} ha saldato la quota di "${settlement.batch.title}" per ${debtorName}`,
+    data: {
+      groupId,
+      giftId,
+      settlementId,
+      batchId: settlement.batch.id,
+      debtorUserId: settlement.debtorUserId,
+      paidByUserId: settlement.batch.paidByUserId,
+    },
+  });
+}
+
+async function notifySettlementReopened(params: {
+  authedReq: AuthedRequest;
+  settlement: {
+    batch: { id: string; title: string; paidByUserId: string };
+    debtor: { givenName: string | null; familyName: string | null; email: string | null } | null;
+    debtorUserId: string;
+  };
+  groupId: string;
+  giftId: string;
+  settlementId: string;
+}): Promise<void> {
+  const { authedReq, settlement, groupId, giftId, settlementId } = params;
+  const actorName = getActorDisplayName(authedReq.user.dbUser);
+  const debtorName = settlement.debtor?.givenName?.trim() || settlement.debtor?.familyName?.trim() || settlement.debtor?.email?.trim() || 'un utente';
+
+  await sendPushToUser(settlement.batch.paidByUserId, {
+    type: 'GIFT_SETTLEMENT_REOPENED',
+    title: 'Un saldo è stato riaperto',
+    body: `${actorName} ha riaperto la quota di "${settlement.batch.title}" per ${debtorName}`,
+    data: {
+      groupId,
+      giftId,
+      settlementId,
+      batchId: settlement.batch.id,
+      debtorUserId: settlement.debtorUserId,
+      paidByUserId: settlement.batch.paidByUserId,
+    },
+  });
+}
+
+async function updateSettlement(params: {
+  authedReq: AuthedRequest;
+  authedRes: VercelResponse;
+  userId: string;
+  groupId: string;
+  giftId: string;
+  parsed: { settlementId: string; settled: boolean };
+}): Promise<void> {
+  const { authedReq, authedRes, userId, groupId, giftId, parsed } = params;
+
+  const settlement = await prisma.groupGiftSettlement.findUnique({
+    where: { id: parsed.settlementId },
+    include: {
+      batch: { select: { id: true, groupId: true, title: true, paidByUserId: true } },
+      debtor: { select: { id: true, givenName: true, familyName: true, email: true } },
+    },
+  });
+
+  if (!settlement?.batch || settlement.batchId !== giftId || settlement.batch.groupId !== groupId) {
+    authedRes.status(404).json({ error: 'Settlement not found' });
+    return;
+  }
+
+  const group = await prisma.group.findUnique({ where: { id: groupId } });
+  if (!group?.id || group.deletedAt !== null) {
+    authedRes.status(404).json({ error: 'Group not found' });
+    return;
+  }
+
+  const isOwner = group.ownerId === userId;
+  const isDebtor = settlement.debtorUserId === userId;
+  const isAdmin = authedReq.user.dbUser.role === 'ADMIN';
+  if (!isOwner && !isDebtor && !isAdmin) {
+    throw new ForbiddenError('Only the debtor, group owner or an admin can update this settlement');
+  }
+
+  const wasSettled = settlement.settledAt !== null;
+
+  const updated = await prisma.$transaction(async (tx: TransactionClient) => {
+    const nextSettledAt = parsed.settled ? settlement.settledAt ?? new Date() : null;
+    const nextSettledByUserId = parsed.settled ? userId : null;
+
+    const result = await tx.groupGiftSettlement.update({
+      where: { id: parsed.settlementId },
+      data: {
+        settledAt: nextSettledAt,
+        settledByUserId: nextSettledByUserId,
+      },
+    });
+
+    await tx.adminAction.create({
+      data: {
+        actorId: userId,
+        action: parsed.settled ? 'GIFT_SETTLEMENT_MARKED' : 'GIFT_SETTLEMENT_REOPENED',
+        details: {
+          groupId,
+          giftId,
+          settlementId: parsed.settlementId,
+          debtorUserId: settlement.debtorUserId,
+        },
+      },
+    });
+
+    return result;
+  });
+
+  if (parsed.settled && !wasSettled) {
+    try {
+      await notifySettlementPaid({
+        authedReq,
+        settlement: {
+          batch: settlement.batch,
+          debtor: settlement.debtor,
+          debtorUserId: settlement.debtorUserId,
+        },
+        groupId,
+        giftId,
+        settlementId: parsed.settlementId,
+      });
+    } catch (pushErr) {
+      console.error('Failed to send push notifications for GIFT_SETTLEMENT_PAID', pushErr);
+    }
+  } else if (!parsed.settled && wasSettled) {
+    try {
+      await notifySettlementReopened({
+        authedReq,
+        settlement: {
+          batch: settlement.batch,
+          debtor: settlement.debtor,
+          debtorUserId: settlement.debtorUserId,
+        },
+        groupId,
+        giftId,
+        settlementId: parsed.settlementId,
+      });
+    } catch (pushErr) {
+      console.error('Failed to send push notifications for GIFT_SETTLEMENT_REOPENED', pushErr);
+    }
+  }
+
+  authedRes.status(200).json(updated);
+}
+
 export default async function handler(req: VercelRequest, res: VercelResponse): Promise<void> {
   if (setCors(req, res)) return;
 
@@ -35,86 +198,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
     try {
       await assertGroupMember(userId, groupId);
       const parsed = UpdateGroupGiftSettlementSchema.parse(authedReq.body);
-
-      const settlement = await prisma.groupGiftSettlement.findUnique({
-        where: { id: parsed.settlementId },
-        include: {
-          batch: { select: { id: true, groupId: true, title: true, paidByUserId: true } },
-          debtor: { select: { id: true, givenName: true, familyName: true, email: true } },
-        },
-      });
-
-      if (!settlement?.batch || settlement.batchId !== giftId || settlement.batch.groupId !== groupId) {
-        authedRes.status(404).json({ error: 'Settlement not found' });
-        return;
-      }
-
-      const group = await prisma.group.findUnique({ where: { id: groupId } });
-      if (!group?.id || group.deletedAt !== null) {
-        authedRes.status(404).json({ error: 'Group not found' });
-        return;
-      }
-
-      const isOwner = group.ownerId === userId;
-      const isDebtor = settlement.debtorUserId === userId;
-      const isAdmin = authedReq.user.dbUser.role === 'ADMIN';
-      if (!isOwner && !isDebtor && !isAdmin) {
-        throw new ForbiddenError('Only the debtor, group owner or an admin can update this settlement');
-      }
-
-      const wasSettled = settlement.settledAt !== null;
-
-      const updated = await prisma.$transaction(async (tx: TransactionClient) => {
-        const nextSettledAt = parsed.settled ? settlement.settledAt ?? new Date() : null;
-        const nextSettledByUserId = parsed.settled ? userId : null;
-
-        const result = await tx.groupGiftSettlement.update({
-          where: { id: parsed.settlementId },
-          data: {
-            settledAt: nextSettledAt,
-            settledByUserId: nextSettledByUserId,
-          },
-        });
-
-        await tx.adminAction.create({
-          data: {
-            actorId: userId,
-            action: parsed.settled ? 'GIFT_SETTLEMENT_MARKED' : 'GIFT_SETTLEMENT_REOPENED',
-            details: {
-              groupId,
-              giftId,
-              settlementId: parsed.settlementId,
-              debtorUserId: settlement.debtorUserId,
-            },
-          },
-        });
-
-        return result;
-      });
-
-      if (parsed.settled && !wasSettled) {
-        try {
-          const actorName = getActorDisplayName(authedReq.user.dbUser);
-          const debtorName = settlement.debtor?.givenName?.trim() || settlement.debtor?.familyName?.trim() || settlement.debtor?.email?.trim() || 'un utente';
-          await sendPushToUser(settlement.batch.paidByUserId, {
-            type: 'GIFT_SETTLEMENT_PAID',
-            title: 'Un saldo è stato chiuso',
-            body: `${actorName} ha saldato la quota di "${settlement.batch.title}" per ${debtorName}`,
-            data: {
-              groupId,
-              giftId,
-              settlementId: parsed.settlementId,
-              batchId: settlement.batch.id,
-              debtorUserId: settlement.debtorUserId,
-              paidByUserId: settlement.batch.paidByUserId,
-            },
-          });
-        } catch (pushErr) {
-          console.error('Failed to send push notifications for GIFT_SETTLEMENT_PAID', pushErr);
-        }
-      }
-
-      authedRes.status(200).json(updated);
+      await updateSettlement({ authedReq, authedRes, userId, groupId, giftId, parsed });
     } catch (err) {
       if (err instanceof ZodError) {
         authedRes.status(400).json({ error: 'Validation failed', issues: err.errors });
