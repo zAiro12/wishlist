@@ -123,12 +123,8 @@
           <div class="gift-span-2 gift-section">
             <p class="gift-section-title">Beneficiari riservati</p>
             <div class="member-pills">
-              <label
-                v-for="m in activeMembers"
-                :key="m.userId"
-                class="member-pill"
-                :class="{ 'member-pill-selected': giftBeneficiaryUserIds.includes(m.userId) }"
-              >
+              <label v-for="m in activeMembers" :key="m.userId" class="member-pill"
+                :class="{ 'member-pill-selected': giftBeneficiaryUserIds.includes(m.userId) }">
                 <input v-model="giftBeneficiaryUserIds" type="checkbox" :value="m.userId" />
                 <span>{{ memberName(m) }}</span>
               </label>
