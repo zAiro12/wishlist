@@ -123,7 +123,12 @@
           <div class="gift-span-2 gift-section">
             <p class="gift-section-title">Beneficiari riservati</p>
             <div class="member-pills">
-              <label v-for="m in activeMembers" :key="m.userId" class="member-pill">
+              <label
+                v-for="m in activeMembers"
+                :key="m.userId"
+                class="member-pill"
+                :class="{ 'member-pill-selected': giftBeneficiaryUserIds.includes(m.userId) }"
+              >
                 <input v-model="giftBeneficiaryUserIds" type="checkbox" :value="m.userId" />
                 <span>{{ memberName(m) }}</span>
               </label>
@@ -938,13 +943,39 @@ async function handleDeleteGroup() {
 }
 
 .member-pill {
+  position: relative;
   display: inline-flex;
   align-items: center;
-  gap: 0.35rem;
+  justify-content: center;
+  min-height: 44px;
   padding: 0.35rem 0.6rem;
   border-radius: 999px;
   border: 1px solid var(--color-outline-variant, rgba(0, 0, 0, 0.08));
   background: var(--color-surface-container, rgba(255, 255, 255, 0.7));
+  transition: background-color 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease;
+  cursor: pointer;
+}
+
+.member-pill input[type='checkbox'] {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.member-pill-selected {
+  border-color: color-mix(in srgb, var(--color-primary) 60%, var(--color-outline-variant));
+  background: color-mix(in srgb, var(--color-primary) 14%, var(--color-surface-container));
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--color-primary) 35%, transparent) inset;
+}
+
+.member-pill:focus-within {
+  outline: 2px solid color-mix(in srgb, var(--color-primary) 55%, transparent);
+  outline-offset: 2px;
 }
 
 .gift-debt-grid {
