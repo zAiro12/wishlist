@@ -3,7 +3,7 @@ import { requireAuth, type AuthedRequest } from '../../lib/auth-middleware';
 import { setCors } from '../../lib/cors';
 import { prisma } from '../../lib/prisma';
 import { buildGroupUserSelect } from '../../lib/groups-dto';
-import { CreateGroupSchema, UpdateGroupSchema } from '../../lib/validators';
+import { CreateGroupSchema } from '../../lib/validators';
 import { assertHasConfirmedBirthdate } from '../../lib/authz';
 import { ZodError } from 'zod';
 

@@ -26,7 +26,7 @@ export const UpdateProfileSchema = z.object({
     .regex(/^\d{4}-\d{2}-\d{2}$/, 'Birthdate must be in YYYY-MM-DD format')
     .refine((val) => {
       const date = new Date(val);
-      return !isNaN(date.getTime()) && val === date.toISOString().slice(0, 10);
+      return !Number.isNaN(date.getTime()) && val === date.toISOString().slice(0, 10);
     }, 'Invalid date')
     .refine((val) => {
       const date = new Date(val);
@@ -50,6 +50,59 @@ export const UpdateGroupSchema = z.object({
 
 export const TransferOwnershipSchema = z.object({
   newOwnerId: z.string().min(1),
+});
+
+// ─── Group gifts ──────────────────────────────────────────────────────────────
+
+export const GroupGiftSettlementSchema = z.object({
+  userId: z.string().min(1),
+  amountCents: z.number().int().positive(),
+});
+
+export const CreateGroupGiftBatchSchema = z
+  .object({
+    title: z.string().min(2).max(120),
+    giftNames: z.array(z.string().min(1).max(120)).min(1).max(10),
+    note: z.string().max(500).optional(),
+    totalAmountCents: z.number().int().positive(),
+    paidByUserId: z.string().min(1),
+    paidAt: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+    beneficiaryUserIds: z.array(z.string().min(1)).min(1),
+    settlements: z.array(GroupGiftSettlementSchema).min(1),
+  })
+  .superRefine((value, ctx) => {
+    const seenBeneficiaries = new Set<string>();
+    for (const userId of value.beneficiaryUserIds) {
+      if (seenBeneficiaries.has(userId)) {
+        ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['beneficiaryUserIds'], message: 'Beneficiaries must be unique' });
+        break;
+      }
+      seenBeneficiaries.add(userId);
+    }
+
+    const seenSettlements = new Set<string>();
+    let total = 0;
+    for (const settlement of value.settlements) {
+      total += settlement.amountCents;
+      if (seenSettlements.has(settlement.userId)) {
+        ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['settlements'], message: 'Each debtor can appear only once' });
+        break;
+      }
+      seenSettlements.add(settlement.userId);
+      if (seenBeneficiaries.has(settlement.userId)) {
+        ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['settlements'], message: 'Beneficiaries cannot also be debtors' });
+        break;
+      }
+    }
+
+    if (total !== value.totalAmountCents) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['totalAmountCents'], message: 'Total amount must match the sum of settlements' });
+    }
+  });
+
+export const UpdateGroupGiftSettlementSchema = z.object({
+  settlementId: z.string().min(1),
+  settled: z.boolean(),
 });
 
 // ─── Wishlist ──────────────────────────────────────────────────────────────────
@@ -100,7 +153,7 @@ export const AdminUpdateUserSchema = z.object({
     .regex(/^\d{4}-\d{2}-\d{2}$/, 'Birthdate must be in YYYY-MM-DD format')
     .refine((val) => {
       const date = new Date(val);
-      return !isNaN(date.getTime()) && val === date.toISOString().slice(0, 10);
+      return !Number.isNaN(date.getTime()) && val === date.toISOString().slice(0, 10);
     }, 'Invalid date')
     .refine((val) => {
       const date = new Date(val);

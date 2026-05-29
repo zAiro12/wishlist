@@ -48,6 +48,10 @@ model User {
   statusesSet      WishlistItemStatus[]
   auditActorOf     AdminAction[]       @relation("AdminActor")
   auditTargetOf    AdminAction[]       @relation("AdminTarget")
+  giftBatchesPaid  GroupGiftBatch[]    @relation("GroupGiftBatchPaidBy")
+  giftBatchesCreated GroupGiftBatch[]   @relation("GroupGiftBatchCreatedBy")
+  giftSettlementsDebtor GroupGiftSettlement[] @relation("GroupGiftSettlementDebtor")
+  giftSettlementsSettled GroupGiftSettlement[] @relation("GroupGiftSettlementSettledBy")
 
   @@index([email])
   @@index([status])
@@ -77,6 +81,7 @@ model Group {
 
   owner   User          @relation("GroupOwner", fields: [ownerId], references: [id])
   members GroupMember[]
+  giftBatches GroupGiftBatch[]
 
   @@index([ownerId])
   @@index([deletedAt])
@@ -165,4 +170,48 @@ model AdminAction {
   @@index([actorId])
   @@index([targetUserId])
   @@index([createdAt])
+}
+
+model GroupGiftBatch {
+  id               String   @id @default(cuid())
+  groupId          String
+  title            String
+  giftNames        String[]
+  note             String?
+  totalAmountCents Int
+  paidByUserId     String
+  paidAt           DateTime
+  beneficiaryIds   String[]
+  createdByUserId  String
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  group       Group                @relation(fields: [groupId], references: [id])
+  paidBy      User                 @relation("GroupGiftBatchPaidBy", fields: [paidByUserId], references: [id])
+  createdBy   User                 @relation("GroupGiftBatchCreatedBy", fields: [createdByUserId], references: [id])
+  settlements GroupGiftSettlement[]
+
+  @@index([groupId])
+  @@index([paidByUserId])
+  @@index([createdByUserId])
+  @@index([paidAt])
+}
+
+model GroupGiftSettlement {
+  id              String   @id @default(cuid())
+  batchId         String
+  debtorUserId    String
+  amountCents     Int
+  settledAt       DateTime?
+  settledByUserId String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  batch     GroupGiftBatch @relation(fields: [batchId], references: [id], onDelete: Cascade)
+  debtor    User           @relation("GroupGiftSettlementDebtor", fields: [debtorUserId], references: [id])
+  settledBy User?          @relation("GroupGiftSettlementSettledBy", fields: [settledByUserId], references: [id])
+
+  @@index([batchId])
+  @@index([debtorUserId])
+  @@index([settledAt])
 }

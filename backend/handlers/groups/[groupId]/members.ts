@@ -47,15 +47,20 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
         const targetUserId = (authedReq.query['userId'] as string) ?? userId;
         const isSelf = targetUserId === userId;
 
-        if (!isSelf) {
-          await assertGroupOwner(userId, groupId);
-        } else {
+        if (isSelf) {
           await assertGroupMember(userId, groupId);
+        } else {
+          await assertGroupOwner(userId, groupId);
         }
 
         const targetMembership = await prisma.groupMember.findUnique({ where: { groupId_userId: { groupId, userId: targetUserId } } });
 
-        if (!targetMembership || targetMembership.removedAt !== null) {
+        if (targetMembership?.removedAt) {
+          authedRes.status(404).json({ error: 'Member not found' });
+          return;
+        }
+
+        if (targetMembership == null) {
           authedRes.status(404).json({ error: 'Member not found' });
           return;
         }
@@ -69,7 +74,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
             await tx.group.update({ where: { id: groupId }, data: { deletedAt: new Date() } });
           } else {
             const group = await tx.group.findUnique({ where: { id: groupId } });
-            if (group && group.ownerId === targetUserId) {
+            if (group?.ownerId === targetUserId) {
               await tx.group.update({ where: { id: groupId }, data: { ownerId: remaining[0].userId } });
             }
           }

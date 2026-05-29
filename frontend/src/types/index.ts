@@ -55,6 +55,38 @@ export interface GroupMember {
   user?: GroupUserBirthdaySummary;
 }
 
+export interface GroupGiftSettlement {
+  id: string;
+  batchId: string;
+  debtorUserId: string;
+  amountCents: number;
+  settledAt: string | null;
+  settledByUserId: string | null;
+  createdAt: string;
+  updatedAt: string;
+  debtor?: GroupUserSummary;
+  settledBy?: GroupUserSummary | null;
+}
+
+export interface GroupGiftBatch {
+  id: string;
+  groupId: string;
+  title: string;
+  giftNames: string[];
+  note: string | null;
+  totalAmountCents: number;
+  paidByUserId: string;
+  paidAt: string;
+  beneficiaryIds: string[];
+  createdByUserId: string;
+  createdAt: string;
+  updatedAt: string;
+  paidBy?: GroupUserSummary;
+  createdBy?: GroupUserSummary;
+  beneficiaries?: GroupUserSummary[];
+  settlements: GroupGiftSettlement[];
+}
+
 export interface WishlistItem {
   id: string;
   ownerId: string;

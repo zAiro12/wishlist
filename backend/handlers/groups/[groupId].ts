@@ -38,7 +38,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
           },
         });
 
-        if (!group || group.deletedAt !== null) {
+        if (group?.deletedAt) {
           authedRes.status(404).json({ error: 'Group not found' });
           return;
         }

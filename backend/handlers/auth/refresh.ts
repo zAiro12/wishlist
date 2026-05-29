@@ -1,8 +1,8 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import jwt from 'jsonwebtoken';
-import { prisma } from '../../../lib/prisma';
-import { setCors } from '../../../lib/cors';
-import { signToken } from '../../../lib/jwt';
+import { prisma } from '../../lib/prisma';
+import { setCors } from '../../lib/cors';
+import { signToken } from '../../lib/jwt';
 
 function parseCookies(header = ''): Record<string, string> {
   const cookies: Record<string, string> = {};
@@ -50,7 +50,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
   let payload: any;
   try {
     payload = jwt.verify(raw, process.env.JWT_SECRET as string, { ignoreExpiration: true }) as any;
-  } catch (err) {
+  } catch {
     res.status(401).json({ error: 'Invalid token' });
     return;
   }

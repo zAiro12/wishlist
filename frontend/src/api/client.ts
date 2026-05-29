@@ -1,5 +1,88 @@
 const API_BASE = import.meta.env.VITE_API_URL ?? 'http://localhost:3000';
 
+function readToken(): string | null {
+  try {
+    const storageToken = localStorage.getItem('token');
+    if (storageToken) return storageToken;
+
+    const sessionToken = sessionStorage.getItem('token');
+    if (sessionToken) return sessionToken;
+
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+function normalizeHeaders(headers?: HeadersInit): Record<string, string> {
+  if (!headers) return {};
+  if (headers instanceof Headers) return Object.fromEntries(headers.entries());
+  if (Array.isArray(headers)) return Object.fromEntries(headers);
+  return { ...headers };
+}
+
+function buildRequestHeaders(options: RequestInit, hasBody: boolean): Record<string, string> {
+  const headers = normalizeHeaders(options.headers);
+
+  if (hasBody) {
+    headers['Content-Type'] = 'application/json';
+  }
+
+  const token = readToken();
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
+
+  return headers;
+}
+
+function buildRefreshHeaders(): Record<string, string> {
+  const token = readToken();
+  return token ? { Authorization: `Bearer ${token}` } : {};
+}
+
+async function readJsonResponse<T>(response: Response): Promise<T | undefined> {
+  if (response.status === 204) return undefined;
+
+  const text = await response.text();
+  if (!text) return undefined;
+
+  return JSON.parse(text) as T;
+}
+
+async function readErrorResponse(response: Response): Promise<{ error: string; issues?: unknown[] }> {
+  try {
+    return (await response.json()) as { error: string; issues?: unknown[] };
+  } catch {
+    return { error: response.statusText };
+  }
+}
+
+async function retryRequest<T>(
+  path: string,
+  options: RequestInit,
+  hasBody: boolean,
+  token: string
+): Promise<T | null> {
+  const retryHeaders = normalizeHeaders(options.headers);
+  if (hasBody) {
+    retryHeaders['Content-Type'] = 'application/json';
+  }
+  retryHeaders['Authorization'] = `Bearer ${token}`;
+
+  const retryRes = await fetch(`${API_BASE}${path}`, {
+    ...options,
+    headers: retryHeaders,
+    credentials: 'include',
+  });
+
+  if (retryRes.ok) {
+    return (await readJsonResponse<T>(retryRes)) ?? null;
+  }
+
+  throw new ApiError(retryRes.status, await readErrorResponse(retryRes));
+}
+
 export class ApiError extends Error {
   constructor(
     public readonly status: number,
@@ -15,51 +98,7 @@ async function request<T>(
   options: RequestInit = {}
 ): Promise<T> {
   const hasBody = options.body !== undefined && options.body !== null;
-
-  const headers: Record<string, string> = {
-    ...(options.headers as Record<string, string> ?? {}),
-  };
-
-  // Only set Content-Type when actually sending a JSON body
-  if (hasBody) {
-    headers['Content-Type'] = 'application/json';
-  }
-
-  function readToken(): string | null {
-    try { 
-      const storageToken = localStorage.getItem('token');
-      if (storageToken) {
-        console.debug('✅ readToken() found in localStorage:', storageToken.slice(0, 50) + '...');
-        return storageToken;
-      }
-      const sessionToken = sessionStorage.getItem('token');
-      if (sessionToken) {
-        console.debug('✅ readToken() found in sessionStorage:', sessionToken.slice(0, 50) + '...');
-        return sessionToken;
-      }
-      console.debug('❌ readToken() found NO token in either storage');
-      return null;
-    }
-    catch (e) { 
-      console.error('❌ readToken() storage access error:', e);
-      return null; 
-    }
-  }
-  const token = readToken();
-  if (token) {
-    try {
-      const safe = String(token).slice(0, 8) + '...';
-      console.info('✅ API request %s using token prefix %s', path, safe);
-    } catch (e) { void e; }
-  } else {
-    console.warn('⚠️ API request %s NO token in storage - request will be sent without Authorization header', path);
-  }
-  if (token) {
-    headers['Authorization'] = `Bearer ${token}`;
-    console.debug('✅ Added Authorization header for %s', path);
-  } else {
-    console.warn('⚠️ Skipping Authorization header for %s (no token available)', path);
-  }
+  const headers = buildRequestHeaders(options, hasBody);
 
   const fetchOptions: RequestInit = {
     ...options,
@@ -71,78 +110,20 @@ async function request<T>(
   const res = await fetch(`${API_BASE}${path}`, fetchOptions);
 
   if (!res.ok) {
-    // --- INIZIO blocco refresh ---
     if (res.status === 401) {
       const newToken = await tryRefresh()
       if (newToken) {
-        // Riprova la richiesta originale con il nuovo token
-        const retryHeaders: Record<string, string> = {
-          ...(options.headers as Record<string, string> ?? {}),
-        }
-        if (hasBody) retryHeaders['Content-Type'] = 'application/json'
-        retryHeaders['Authorization'] = `Bearer ${newToken}`
-
-        const retryRes = await fetch(`${API_BASE}${path}`, {
-          ...options,
-          headers: retryHeaders,
-          credentials: 'include',
-        })
-
-        if (retryRes.ok) {
-          if (retryRes.status === 204) return undefined as T
-          try {
-            const text = await retryRes.text()
-            if (!text) return undefined as T
-            return JSON.parse(text) as T
-          } catch {
-            return undefined as T
-          }
-        }
-
-        // Il retry ha fallito — se ancora 401, forza logout
-        if (retryRes.status === 401) {
-          let retryData: { error: string; issues?: unknown[] }
-          try { retryData = await retryRes.json() }
-          catch { retryData = { error: retryRes.statusText } }
-          throw new ApiError(retryRes.status, retryData)
-        }
-
-        // Altro errore nel retry
-        let retryData: { error: string; issues?: unknown[] }
-        try { retryData = await retryRes.json() }
-        catch { retryData = { error: retryRes.statusText } }
-        throw new ApiError(retryRes.status, retryData)
+        const retryResult = await retryRequest<T>(path, options, hasBody, newToken)
+        if (retryResult !== null) return retryResult
       }
 
-      // Refresh fallito — forza logout
-      let data: { error: string; issues?: unknown[] }
-      try { data = await res.json() }
-      catch { data = { error: res.statusText } }
-      throw new ApiError(res.status, data)
+      throw new ApiError(res.status, await readErrorResponse(res))
     }
-    // --- FINE blocco refresh ---
 
-    let data: { error: string; issues?: unknown[] };
-    try { data = await res.json() }
-    catch { data = { error: res.statusText } }
-    throw new ApiError(res.status, data);
+    throw new ApiError(res.status, await readErrorResponse(res));
   }
 
-  if (res.status === 204) return undefined as T;
-
-  // Some endpoints may return 200 with an empty body. Handle empty responses
-  // gracefully instead of throwing on JSON parse errors so callers can treat
-  // HTTP 200 as success even when no JSON is present.
-  try {
-    const text = await res.text();
-    if (!text) return undefined as T;
-    return JSON.parse(text) as T;
-  } catch (e) {
-    // Parsing failed — log for debugging and return undefined to treat as success
-    // in callers that only care about the HTTP status.
-    console.error('Errore nel parsing della risposta JSON per', path, e);
-    return undefined as T;
-  }
+  return (await readJsonResponse<T>(res)) as T;
 }
 
 let isRefreshing = false
@@ -157,12 +138,7 @@ async function tryRefresh(): Promise<string | null> {
       const res = await fetch(`${API_BASE}/api/auth/refresh`, {
         method: 'GET',
         credentials: 'include',
-        headers: (() => {
-          try {
-            const t = localStorage.getItem('token') ?? sessionStorage.getItem('token')
-            return (t ? { Authorization: `Bearer ${t}` } : {}) as Record<string, string>
-          } catch { return {} as Record<string, string> }
-        })(),
+        headers: buildRefreshHeaders(),
       })
       if (!res.ok) return null
       const data = await res.json() as { token: string }
@@ -246,6 +222,36 @@ export const groups = {
       method: 'POST',
       body: JSON.stringify({ newOwnerId }),
     }),
+
+  gifts: {
+    list: (groupId: string) => request<import('../types').GroupGiftBatch[]>(`/api/groups/${groupId}/gifts`),
+    create: (
+      groupId: string,
+      data: {
+        title: string;
+        giftNames: string[];
+        note?: string;
+        totalAmountCents: number;
+        paidByUserId: string;
+        paidAt: string;
+        beneficiaryUserIds: string[];
+        settlements: Array<{ userId: string; amountCents: number }>;
+      }
+    ) =>
+      request<{ message: string }>(`/api/groups/${groupId}/gifts`, {
+        method: 'POST',
+        body: JSON.stringify(data),
+      }),
+    updateSettlement: (
+      groupId: string,
+      giftId: string,
+      data: { settlementId: string; settled: boolean }
+    ) =>
+      request<import('../types').GroupGiftSettlement>(`/api/groups/${groupId}/gifts/${giftId}/settlements`, {
+        method: 'PATCH',
+        body: JSON.stringify(data),
+      }),
+  },
 
   wishlists: (groupId: string) =>
     request<import('../types').WishlistItem[]>(`/api/groups/${groupId}/wishlists`),
