@@ -406,8 +406,9 @@ function todayIso(): string {
   return new Date().toISOString().slice(0, 10);
 }
 
-function parseEuroValue(value: string): number {
-  const normalized = value.trim().replace(',', '.');
+function parseEuroValue(value: unknown): number {
+  const rawValue = typeof value === 'string' || typeof value === 'number' ? String(value) : '';
+  const normalized = rawValue.trim().replace(',', '.');
   if (!normalized) return 0;
   const parsed = Number.parseFloat(normalized);
   if (Number.isNaN(parsed)) return 0;

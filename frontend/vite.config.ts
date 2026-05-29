@@ -1,6 +1,6 @@
 import { defineConfig, loadEnv } from 'vite';
 import vue from '@vitejs/plugin-vue';
-import { resolve } from 'path';
+import { resolve } from 'node:path';
 import { VitePWA } from 'vite-plugin-pwa';
 
 function normalizeBaseUrl(baseUrl: string | undefined): string {
@@ -29,10 +29,15 @@ export default defineConfig(({ mode }) => {
           importScripts: [`${normalizedBaseUrl}sw-push.js`],
           runtimeCaching: [
             {
-              urlPattern: ({ url, request }: { url: URL; request: Request }) =>
-                request.method === 'GET' &&
-                (url.pathname.startsWith(`${normalizedBaseUrl}backend/`) ||
-                  url.pathname === `${normalizedBaseUrl}api/push/vapid-public-key`),
+              urlPattern: ({ url, request }: { url: URL; request: Request }) => {
+                const scopeScope = (globalThis as { registration?: { scope?: string } }).registration?.scope ?? '/';
+                const scopePath = new URL(scopeScope, 'https://example.com').pathname;
+                return (
+                  request.method === 'GET' &&
+                  (url.pathname.startsWith(`${scopePath}backend/`) ||
+                    url.pathname === `${scopePath}api/push/vapid-public-key`)
+                );
+              },
               handler: 'NetworkFirst',
               options: {
                 cacheName: 'runtime-api-cache',
