@@ -117,10 +117,6 @@
               </div>
             </div>
 
-            <div class="gift-tags">
-              <span v-for="gift in batch.giftNames" :key="gift" class="gift-tag">{{ gift }}</span>
-            </div>
-
             <p v-if="batch.note" style="margin:0.75rem 0 0;">{{ batch.note }}</p>
 
             <p class="gift-meta">
@@ -743,11 +739,6 @@ watch(
   { immediate: true }
 );
 
-function buildGiftNames(): string[] {
-  const title = giftTitle.value.trim();
-  return title ? [title] : [];
-}
-
 async function loadGiftBatches(): Promise<void> {
   giftsLoading.value = true;
   giftsError.value = null;
@@ -765,16 +756,11 @@ async function createGiftBatch(): Promise<void> {
   giftActionError.value = null;
 
   const title = giftTitle.value.trim();
-  const giftNames = buildGiftNames();
   const totalAmountCents = parseEuroValue(giftTotalAmount.value);
   const paidByUserId = giftPaidByUserId.value.trim();
   const beneficiaryUserIds = giftBeneficiaryUserIds.value.filter(Boolean);
 
   if (title.length < 2) {
-    giftActionError.value = 'Inserisci un titolo valido.';
-    return;
-  }
-  if (giftNames.length === 0) {
     giftActionError.value = 'Inserisci un titolo valido.';
     return;
   }
@@ -816,7 +802,6 @@ async function createGiftBatch(): Promise<void> {
     await withPending('create-gift', async () => {
       await groupsApi.gifts.create(groupId, {
         title,
-        giftNames,
         note: giftNote.value.trim() || undefined,
         totalAmountCents,
         paidByUserId,

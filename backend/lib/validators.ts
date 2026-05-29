@@ -62,7 +62,6 @@ export const GroupGiftSettlementSchema = z.object({
 export const CreateGroupGiftBatchSchema = z
   .object({
     title: z.string().min(2).max(120),
-    giftNames: z.array(z.string().min(1).max(120)).min(1).max(10),
     note: z.string().max(500).optional(),
     totalAmountCents: z.number().int().positive(),
     paidByUserId: z.string().min(1),

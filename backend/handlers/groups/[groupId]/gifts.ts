@@ -40,7 +40,6 @@ type GiftBatchRow = {
   id: string;
   groupId: string;
   title: string;
-  giftNames: string[];
   note: string | null;
   totalAmountCents: number;
   paidByUserId: string;
@@ -159,7 +158,6 @@ async function createGiftBatch(params: {
   memberMap: Map<string, GiftUser | null>;
   parsed: {
     title: string;
-    giftNames: string[];
     note?: string;
     totalAmountCents: number;
     paidByUserId: string;
@@ -177,7 +175,6 @@ async function createGiftBatch(params: {
       data: {
         groupId,
         title: parsed.title.trim(),
-        giftNames: parsed.giftNames.map((giftName: string) => giftName.trim()),
         note: parsed.note?.trim() || null,
         totalAmountCents: parsed.totalAmountCents,
         paidByUserId: parsed.paidByUserId,

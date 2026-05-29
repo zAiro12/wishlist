@@ -229,7 +229,6 @@ export const groups = {
       groupId: string,
       data: {
         title: string;
-        giftNames: string[];
         note?: string;
         totalAmountCents: number;
         paidByUserId: string;

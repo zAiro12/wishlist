@@ -176,7 +176,6 @@ model GroupGiftBatch {
   id               String   @id @default(cuid())
   groupId          String
   title            String
-  giftNames        String[]
   note             String?
   totalAmountCents Int
   paidByUserId     String

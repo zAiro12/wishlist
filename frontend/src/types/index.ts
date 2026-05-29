@@ -72,7 +72,6 @@ export interface GroupGiftBatch {
   id: string;
   groupId: string;
   title: string;
-  giftNames: string[];
   note: string | null;
   totalAmountCents: number;
   paidByUserId: string;
