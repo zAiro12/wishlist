@@ -85,7 +85,7 @@
           giftActionMsg }}
         </p>
         <p v-if="giftActionError && !showGiftModal" class="error-message" style="margin:0.75rem 0 0;">{{ giftActionError
-          }}
+        }}
         </p>
 
         <div v-if="giftsLoading" style="text-align:center;padding:1.5rem 0;">
@@ -104,7 +104,13 @@
                   Pagato da {{ memberLabel(batch.paidBy) }} il {{ formatDate(batch.paidAt) }}
                 </p>
               </div>
-              <strong>{{ formatCurrency(batch.totalAmountCents) }}</strong>
+              <div style="display:flex;align-items:center;gap:0.75rem;flex-wrap:wrap;justify-content:flex-end;">
+                <strong>{{ formatCurrency(batch.totalAmountCents) }}</strong>
+                <button v-if="canCloseGiftBatch(batch)" class="text-trigger-btn" type="button"
+                  @click="closeGiftBatch(batch.id)">
+                  Chiudi regalo
+                </button>
+              </div>
             </div>
 
             <div class="gift-tags">
@@ -130,7 +136,7 @@
                 </tr>
               </thead>
               <tbody>
-                <tr v-for="settlement in batch.settlements" :key="settlement.id">
+                <tr v-for="settlement in sortedSettlements(batch)" :key="settlement.id">
                   <td>{{ memberLabel(settlement.debtor) }}</td>
                   <td>{{ formatCurrency(settlement.amountCents) }}</td>
                   <td>
@@ -374,6 +380,7 @@ const giftBeneficiaryUserIds = ref<string[]>([]);
 const giftSplitDraft = ref<Record<string, string>>({});
 const showGiftModal = ref(false);
 const showTransferModal = ref(false);
+const hiddenGiftBatchIds = ref<string[]>(loadHiddenGiftBatchIds());
 
 const editingName = ref(false);
 const editNameValue = ref('');
@@ -462,6 +469,30 @@ function formatDate(dateStr: string): string {
   return new Intl.DateTimeFormat('it-IT', { dateStyle: 'medium' }).format(new Date(dateStr));
 }
 
+function giftBatchStorageKey(): string {
+  return `wishlist:hidden-gift-batches:${groupId}`;
+}
+
+function loadHiddenGiftBatchIds(): string[] {
+  try {
+    const raw = localStorage.getItem(giftBatchStorageKey());
+    if (!raw) return [];
+    const parsed = JSON.parse(raw) as unknown;
+    if (!Array.isArray(parsed)) return [];
+    return parsed.filter((id): id is string => typeof id === 'string' && id.trim().length > 0);
+  } catch {
+    return [];
+  }
+}
+
+function persistHiddenGiftBatchIds(): void {
+  try {
+    localStorage.setItem(giftBatchStorageKey(), JSON.stringify(hiddenGiftBatchIds.value));
+  } catch {
+    // ignore localStorage failures
+  }
+}
+
 function memberName(member: GroupMember): string {
   return `${member.user?.givenName ?? ''} ${member.user?.familyName ?? ''}`.trim() || 'Utente senza nome';
 }
@@ -469,6 +500,29 @@ function memberName(member: GroupMember): string {
 function memberLabel(user?: { givenName: string | null; familyName: string | null } | null): string {
   if (!user) return 'Sconosciuto';
   return `${user.givenName ?? ''} ${user.familyName ?? ''}`.trim() || 'Utente senza nome';
+}
+
+function isGiftBatchSettled(batch: GroupGiftBatch): boolean {
+  return batch.settlements.length > 0 && batch.settlements.every((settlement) => Boolean(settlement.settledAt));
+}
+
+function canCloseGiftBatch(batch: GroupGiftBatch): boolean {
+  return isGiftBatchSettled(batch) && !hiddenGiftBatchIds.value.includes(batch.id);
+}
+
+function sortedSettlements(batch: GroupGiftBatch): GroupGiftSettlement[] {
+  return [...batch.settlements].sort((left, right) => {
+    const leftSettled = left.settledAt ? 1 : 0;
+    const rightSettled = right.settledAt ? 1 : 0;
+    if (leftSettled !== rightSettled) return leftSettled - rightSettled;
+    return new Date(left.createdAt).getTime() - new Date(right.createdAt).getTime();
+  });
+}
+
+function closeGiftBatch(batchId: string): void {
+  if (hiddenGiftBatchIds.value.includes(batchId)) return;
+  hiddenGiftBatchIds.value = [...hiddenGiftBatchIds.value, batchId];
+  persistHiddenGiftBatchIds();
 }
 
 function daysUntilBirthday(dateStr: string): number {
@@ -665,7 +719,8 @@ async function loadGiftBatches(): Promise<void> {
   giftsLoading.value = true;
   giftsError.value = null;
   try {
-    giftBatches.value = await groupsApi.gifts.list(groupId);
+    const loaded = await groupsApi.gifts.list(groupId);
+    giftBatches.value = loaded.filter((batch) => !hiddenGiftBatchIds.value.includes(batch.id));
   } catch (err) {
     giftsError.value = err instanceof ApiError ? err.message : 'Errore caricamento regali';
   } finally {
@@ -832,7 +887,7 @@ onMounted(async () => {
       settingsStore.fetchSettings(),
     ]);
     group.value = loadedGroup;
-    giftBatches.value = loadedGiftBatches;
+    giftBatches.value = loadedGiftBatches.filter((batch) => !hiddenGiftBatchIds.value.includes(batch.id));
     giftPaidByUserId.value = authStore.user?.id ?? loadedGroup.ownerId;
   } catch (err) {
     error.value = err instanceof ApiError ? err.message : 'Errore caricamento gruppo';
