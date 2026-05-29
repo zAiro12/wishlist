@@ -76,85 +76,17 @@
               Registra chi ha pagato, quanto devono gli altri e quando saldano.
             </p>
           </div>
-          <button class="btn-secondary" type="button" @click="fillGiftSplitsEqually">
-            Dividi in parti uguali
+          <button class="text-trigger-btn" type="button" @click="openGiftModal">
+            + Inserisci regalo/debito
           </button>
         </div>
 
-        <p v-if="giftActionMsg" style="color:var(--color-primary);margin:0.75rem 0 0;">{{ giftActionMsg }}</p>
-        <p v-if="giftActionError" class="error-message" style="margin:0.75rem 0 0;">{{ giftActionError }}</p>
-
-        <form class="gift-form" @submit.prevent="createGiftBatch">
-          <label class="gift-field">
-            <span>Titolo riepilogo</span>
-            <input v-model="giftTitle" type="text" maxlength="120" placeholder="Compleanno Anna e Marco" />
-          </label>
-
-          <label class="gift-field gift-span-2">
-            <span>Regali inclusi</span>
-            <textarea v-model="giftNamesText" rows="2" maxlength="600"
-              placeholder="Libro, bottiglia di vino, biglietto… separati da virgole o nuove righe" />
-          </label>
-
-          <label class="gift-field">
-            <span>Pagato da</span>
-            <select v-model="giftPaidByUserId">
-              <option v-for="m in activeMembers" :key="m.userId" :value="m.userId">
-                {{ memberName(m) }}
-              </option>
-            </select>
-          </label>
-
-          <label class="gift-field">
-            <span>Data pagamento</span>
-            <input v-model="giftPaidAt" type="date" />
-          </label>
-
-          <label class="gift-field">
-            <span>Importo totale (€)</span>
-            <input v-model="giftTotalAmount" type="number" min="0" step="0.01" inputmode="decimal" />
-          </label>
-
-          <label class="gift-field gift-span-2">
-            <span>Note</span>
-            <textarea v-model="giftNote" rows="2" maxlength="500" placeholder="Dettagli opzionali" />
-          </label>
-
-          <div class="gift-span-2 gift-section">
-            <p class="gift-section-title">Beneficiari riservati</p>
-            <div class="member-pills">
-              <label v-for="m in activeMembers" :key="m.userId" class="member-pill"
-                :class="{ 'member-pill-selected': giftBeneficiaryUserIds.includes(m.userId) }">
-                <input v-model="giftBeneficiaryUserIds" type="checkbox" :value="m.userId" />
-                <span>{{ memberName(m) }}</span>
-              </label>
-            </div>
-          </div>
-
-          <div class="gift-span-2 gift-section">
-            <div class="gift-section-head">
-              <p class="gift-section-title">Quote da saldare</p>
-              <p class="gift-section-hint">Le persone selezionate come beneficiarie non compaiono qui.</p>
-            </div>
-            <div v-if="giftDebtors.length === 0" class="empty-hint">
-              Seleziona almeno un beneficiario per mostrare chi deve contribuire.
-            </div>
-            <div v-else class="gift-debt-grid">
-              <label v-for="member in giftDebtors" :key="member.userId" class="gift-debt-row">
-                <span>{{ memberName(member) }}</span>
-                <input v-model="giftSplitDraft[member.userId]" type="number" min="0" step="0.01" inputmode="decimal"
-                  placeholder="0,00" />
-              </label>
-            </div>
-          </div>
-
-          <div class="gift-span-2 gift-form-footer">
-            <p class="gift-summary">Totale quote: {{ formatCurrency(splitTotalCents) }}</p>
-            <button class="btn-primary" type="submit" :disabled="giftDebtors.length === 0">
-              Registra regalo
-            </button>
-          </div>
-        </form>
+        <p v-if="giftActionMsg && !showGiftModal" style="color:var(--color-primary);margin:0.75rem 0 0;">{{
+          giftActionMsg }}
+        </p>
+        <p v-if="giftActionError && !showGiftModal" class="error-message" style="margin:0.75rem 0 0;">{{ giftActionError
+          }}
+        </p>
 
         <div v-if="giftsLoading" style="text-align:center;padding:1.5rem 0;">
           <div class="spinner" />
@@ -252,27 +184,128 @@
         </table>
       </div>
 
-      <div v-if="isOwner" class="card" style="margin-bottom:1.5rem;">
-        <h3>Trasferisci proprietà</h3>
-        <div class="transfer-container">
-          <label for="transfer-owner-search">Cerca nuovo proprietario</label>
-          <input id="transfer-owner-search" v-model="transferQuery" class="transfer-search" type="text"
-            :placeholder="authStore.isAdmin ? 'Cerca per nome, cognome o email…' : 'Cerca per nome o cognome…'" />
-          <ul class="transfer-suggestions">
-            <li v-for="m in filteredTransferCandidates" :key="m.userId">
-              <button type="button" class="transfer-suggestion-btn" @click="selectTransferCandidate(m)">
-                {{ transferCandidateLabel(m) }}
-              </button>
-            </li>
-          </ul>
-          <button class="btn-primary" :disabled="!resolvedTransferUserId" @click="handleTransfer">Trasferisci</button>
-        </div>
-      </div>
-
       <div style="display:flex;gap:0.75rem;">
         <button class="btn-secondary" @click="handleLeave">Lascia gruppo</button>
         <button v-if="isOwner" class="btn-danger" style="padding:0.5rem 1rem;" @click="handleDeleteGroup">Elimina
           gruppo</button>
+      </div>
+
+      <div v-if="isOwner" class="bottom-owner-actions">
+        <button class="text-trigger-btn" type="button" @click="openTransferModal">
+          Trasferisci proprietà
+        </button>
+      </div>
+
+      <div v-if="showGiftModal" class="popup-overlay" @click.self="closeGiftModal">
+        <div class="popup-card">
+          <div class="popup-header">
+            <h3 style="margin:0;">Inserisci regalo/debito</h3>
+            <button class="icon-btn cancel-btn" type="button" @click="closeGiftModal" aria-label="Chiudi">✕</button>
+          </div>
+
+          <p v-if="giftActionMsg" style="color:var(--color-primary);margin:0 0 0.75rem 0;">{{ giftActionMsg }}</p>
+          <p v-if="giftActionError" class="error-message" style="margin:0 0 0.75rem 0;">{{ giftActionError }}</p>
+
+          <form class="gift-form" @submit.prevent="createGiftBatch">
+            <label class="gift-field">
+              <span>Titolo riepilogo</span>
+              <input v-model="giftTitle" type="text" maxlength="120" placeholder="Compleanno Anna e Marco" />
+            </label>
+
+            <label class="gift-field gift-span-2">
+              <span>Regali inclusi</span>
+              <textarea v-model="giftNamesText" rows="2" maxlength="600"
+                placeholder="Libro, bottiglia di vino, biglietto… separati da virgole o nuove righe" />
+            </label>
+
+            <label class="gift-field">
+              <span>Pagato da</span>
+              <select v-model="giftPaidByUserId">
+                <option v-for="m in activeMembers" :key="m.userId" :value="m.userId">
+                  {{ memberName(m) }}
+                </option>
+              </select>
+            </label>
+
+            <label class="gift-field">
+              <span>Data pagamento</span>
+              <input v-model="giftPaidAt" type="date" />
+            </label>
+
+            <label class="gift-field">
+              <span>Importo totale (€)</span>
+              <input v-model="giftTotalAmount" type="number" min="0" step="0.01" inputmode="decimal" />
+            </label>
+
+            <label class="gift-field gift-span-2">
+              <span>Note</span>
+              <textarea v-model="giftNote" rows="2" maxlength="500" placeholder="Dettagli opzionali" />
+            </label>
+
+            <div class="gift-span-2 gift-section">
+              <p class="gift-section-title">Beneficiari riservati</p>
+              <div class="member-pills">
+                <label v-for="m in activeMembers" :key="m.userId" class="member-pill"
+                  :class="{ 'member-pill-selected': giftBeneficiaryUserIds.includes(m.userId) }">
+                  <input v-model="giftBeneficiaryUserIds" type="checkbox" :value="m.userId" />
+                  <span>{{ memberName(m) }}</span>
+                </label>
+              </div>
+            </div>
+
+            <div class="gift-span-2 gift-section">
+              <div class="gift-section-head">
+                <p class="gift-section-title">Quote da saldare</p>
+                <p class="gift-section-hint">Le persone selezionate come beneficiarie non compaiono qui.</p>
+              </div>
+              <div v-if="giftDebtors.length === 0" class="empty-hint">
+                Seleziona almeno un beneficiario per mostrare chi deve contribuire.
+              </div>
+              <div v-else class="gift-debt-grid">
+                <label v-for="member in giftDebtors" :key="member.userId" class="gift-debt-row">
+                  <span>{{ memberName(member) }}</span>
+                  <input v-model="giftSplitDraft[member.userId]" type="number" min="0" step="0.01" inputmode="decimal"
+                    placeholder="0,00" />
+                </label>
+              </div>
+            </div>
+
+            <div class="gift-span-2 gift-form-footer">
+              <p class="gift-summary">Totale quote: {{ formatCurrency(splitTotalCents) }}</p>
+              <div style="display:flex;gap:0.5rem;align-items:center;">
+                <button class="btn-secondary" type="button" @click="fillGiftSplitsEqually">Dividi in parti
+                  uguali</button>
+                <button class="btn-primary" type="submit" :disabled="giftDebtors.length === 0">Registra regalo</button>
+              </div>
+            </div>
+          </form>
+        </div>
+      </div>
+
+      <div v-if="showTransferModal" class="popup-overlay" @click.self="closeTransferModal">
+        <div class="popup-card popup-card-sm">
+          <div class="popup-header">
+            <h3 style="margin:0;">Trasferisci proprietà</h3>
+            <button class="icon-btn cancel-btn" type="button" @click="closeTransferModal" aria-label="Chiudi">✕</button>
+          </div>
+          <div class="transfer-container">
+            <label for="transfer-owner-search">Cerca nuovo proprietario</label>
+            <input id="transfer-owner-search" v-model="transferQuery" class="transfer-search" type="text"
+              :placeholder="authStore.isAdmin ? 'Cerca per nome, cognome o email…' : 'Cerca per nome o cognome…'" />
+            <ul class="transfer-suggestions">
+              <li v-for="m in filteredTransferCandidates" :key="m.userId">
+                <button type="button" class="transfer-suggestion-btn" @click="selectTransferCandidate(m)">
+                  {{ transferCandidateLabel(m) }}
+                </button>
+              </li>
+            </ul>
+            <div style="display:flex;justify-content:flex-end;gap:0.5rem;">
+              <button class="btn-secondary" type="button" @click="closeTransferModal">Annulla</button>
+              <button class="btn-primary" :disabled="!resolvedTransferUserId"
+                @click="handleTransfer">Trasferisci</button>
+            </div>
+          </div>
+        </div>
       </div>
     </template>
   </div>
@@ -339,6 +372,8 @@ const giftPaidAt = ref(todayIso());
 const giftTotalAmount = ref('');
 const giftBeneficiaryUserIds = ref<string[]>([]);
 const giftSplitDraft = ref<Record<string, string>>({});
+const showGiftModal = ref(false);
+const showTransferModal = ref(false);
 
 const editingName = ref(false);
 const editNameValue = ref('');
@@ -550,6 +585,26 @@ function syncGiftDraft(): void {
   }
 }
 
+function openGiftModal(): void {
+  giftActionError.value = null;
+  giftActionMsg.value = null;
+  showGiftModal.value = true;
+}
+
+function closeGiftModal(): void {
+  showGiftModal.value = false;
+}
+
+function openTransferModal(): void {
+  actionError.value = null;
+  actionMsg.value = null;
+  showTransferModal.value = true;
+}
+
+function closeTransferModal(): void {
+  showTransferModal.value = false;
+}
+
 function fillGiftSplitsEqually(): void {
   const total = parseEuroValue(giftTotalAmount.value);
   if (total <= 0) {
@@ -690,6 +745,7 @@ async function createGiftBatch(): Promise<void> {
     giftSplitDraft.value = {};
     giftPaidByUserId.value = authStore.user?.id ?? giftPaidByUserId.value;
     giftActionMsg.value = 'Regalo registrato.';
+    closeGiftModal();
     await loadGiftBatches();
   } catch (err) {
     giftActionError.value = err instanceof ApiError ? err.message : 'Errore durante il salvataggio del regalo';
@@ -832,6 +888,7 @@ async function handleTransfer() {
     transferQuery.value = '';
     actionMsg.value = 'Proprietà trasferita con successo.';
     actionError.value = null;
+    closeTransferModal();
   } catch (err) {
     actionError.value = err instanceof ApiError ? err.message : 'Errore durante il trasferimento della proprietà';
     actionMsg.value = null;
@@ -871,6 +928,60 @@ async function handleDeleteGroup() {
   margin-bottom: 1.5rem;
 }
 
+.text-trigger-btn {
+  border: none;
+  background: none;
+  color: var(--color-primary);
+  font-weight: 600;
+  cursor: pointer;
+  padding: 0;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  font-family: var(--font-body);
+}
+
+.text-trigger-btn:hover {
+  opacity: 0.85;
+}
+
+.bottom-owner-actions {
+  margin-top: 1rem;
+}
+
+.popup-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  z-index: 1200;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+}
+
+.popup-card {
+  width: min(920px, 100%);
+  max-height: calc(100vh - 2rem);
+  overflow: auto;
+  background: var(--color-surface);
+  border-radius: var(--radius-xl, 16px);
+  border: 1px solid var(--color-outline-variant, rgba(0, 0, 0, 0.08));
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+  padding: 1rem;
+}
+
+.popup-card-sm {
+  width: min(560px, 100%);
+}
+
+.popup-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 0.75rem;
+}
+
 .gift-ledger-header {
   display: flex;
   justify-content: space-between;
@@ -883,7 +994,7 @@ async function handleDeleteGroup() {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 0.9rem;
-  margin-top: 1rem;
+  margin-top: 0.5rem;
   padding: 1rem;
   border: 1px solid var(--color-outline-variant, rgba(0, 0, 0, 0.08));
   border-radius: var(--radius-lg, 12px);
@@ -1067,7 +1178,8 @@ async function handleDeleteGroup() {
   .gift-ledger-header,
   .gift-batch-header,
   .gift-section-head,
-  .gift-form-footer {
+  .gift-form-footer,
+  .popup-header {
     flex-direction: column;
     align-items: flex-start;
   }
