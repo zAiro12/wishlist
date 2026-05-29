@@ -7,6 +7,23 @@ import './assets/main.css';
 import { useAuthStore } from './stores/auth';
 import { registerSW } from 'virtual:pwa-register';
 
+function normalizeGithubPagesRedirect(rawRedirect: string): string {
+  try {
+    const redirectUrl = new URL(rawRedirect, window.location.href);
+    const appBase = import.meta.env.BASE_URL || '/';
+    const normalizedBase = appBase.endsWith('/') ? appBase.slice(0, -1) : appBase;
+
+    let pathname = redirectUrl.pathname;
+    if (normalizedBase && normalizedBase !== '/' && pathname.startsWith(`${normalizedBase}/`)) {
+      pathname = pathname.slice(normalizedBase.length);
+    }
+
+    return `${pathname}${redirectUrl.search}${redirectUrl.hash}` || '/';
+  } catch {
+    return '/';
+  }
+}
+
 const app = createApp(App);
 app.use(createPinia());
 app.use(router);
@@ -30,7 +47,7 @@ const authInit = async () => {
 const saved = sessionStorage.getItem('redirect');
 if (saved) {
 	sessionStorage.removeItem('redirect');
-	router.isReady().then(() => router.replace(saved).catch(() => {}));
+  router.isReady().then(() => router.replace(normalizeGithubPagesRedirect(saved)).catch(() => {}));
 }
 
 authInit().then(() => app.mount('#root'));
