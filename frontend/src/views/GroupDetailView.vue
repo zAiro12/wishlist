@@ -229,12 +229,6 @@
               <input v-model="giftTitle" type="text" maxlength="120" placeholder="Compleanno Anna e Marco" />
             </label>
 
-            <label class="gift-field gift-span-2">
-              <span>Regali inclusi</span>
-              <textarea v-model="giftNamesText" rows="2" maxlength="600"
-                placeholder="Libro, bottiglia di vino, biglietto… separati da virgole o nuove righe" />
-            </label>
-
             <label class="gift-field">
               <span>Pagato da</span>
               <select v-model="giftPaidByUserId">
@@ -386,7 +380,6 @@ const transferUserId = ref('');
 const transferQuery = ref('');
 const copied = ref(false);
 const giftTitle = ref('');
-const giftNamesText = ref('');
 const giftNote = ref('');
 const giftPaidByUserId = ref('');
 const giftPaidAt = ref(todayIso());
@@ -751,10 +744,8 @@ watch(
 );
 
 function buildGiftNames(): string[] {
-  return giftNamesText.value
-    .split(/[\n,]/)
-    .map((giftName: string) => giftName.trim())
-    .filter(Boolean);
+  const title = giftTitle.value.trim();
+  return title ? [title] : [];
 }
 
 async function loadGiftBatches(): Promise<void> {
@@ -784,7 +775,7 @@ async function createGiftBatch(): Promise<void> {
     return;
   }
   if (giftNames.length === 0) {
-    giftActionError.value = 'Inserisci almeno un regalo.';
+    giftActionError.value = 'Inserisci un titolo valido.';
     return;
   }
   if (beneficiaryUserIds.length === 0) {
@@ -835,7 +826,6 @@ async function createGiftBatch(): Promise<void> {
       });
 
       giftTitle.value = '';
-      giftNamesText.value = '';
       giftNote.value = '';
       giftTotalAmount.value = '';
       giftBeneficiaryUserIds.value = [];
