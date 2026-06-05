@@ -16,7 +16,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
       return;
     }
 
-    console.info('[settings] GET start', { userId: _authedReq.user.userId });
+    console.debug('[settings] GET start', { userId: _authedReq.user.userId });
     try {
       await ensureAppSettingTable();
       const settings = await prisma.appSetting.findMany({
@@ -25,7 +25,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
 
       const result: Record<string, string> = {};
       for (const s of settings) result[s.key] = s.value;
-      console.info('[settings] GET success', { count: settings.length, userId: _authedReq.user.userId });
+      console.debug('[settings] GET success', { count: settings.length, userId: _authedReq.user.userId });
       authedRes.status(200).json(result);
     } catch (err) {
       console.error('[settings] GET failed', { userId: _authedReq.user.userId, message: err instanceof Error ? err.message : String(err), code: (err as { code?: string })?.code });

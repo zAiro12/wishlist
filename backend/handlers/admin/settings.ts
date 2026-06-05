@@ -16,13 +16,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
 
   await requireAdmin(req, res, async (authedReq: AuthedRequest, authedRes: VercelResponse) => {
     if (authedReq.method === 'GET') {
-      console.info('[admin/settings] GET start', { userId: authedReq.user.userId });
+      console.debug('[admin/settings] GET start', { userId: authedReq.user.userId });
       try {
         await ensureAppSettingTable();
         const settings = await prisma.appSetting.findMany();
         const result: Record<string, string> = {};
         for (const s of settings) result[s.key] = s.value;
-        console.info('[admin/settings] GET success', { count: settings.length, userId: authedReq.user.userId });
+        console.debug('[admin/settings] GET success', { count: settings.length, userId: authedReq.user.userId });
         authedRes.status(200).json(result);
       } catch (err) {
         console.error('[admin/settings] GET failed', { userId: authedReq.user.userId, message: err instanceof Error ? err.message : String(err), code: (err as { code?: string })?.code });
@@ -68,7 +68,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
         normalizedValue = testerIds.join(',');
       }
 
-      console.info('[admin/settings] PUT start', { userId: authedReq.user.userId, key });
+      console.debug('[admin/settings] PUT start', { userId: authedReq.user.userId, key });
       try {
         await ensureAppSettingTable();
         const setting = await prisma.appSetting.upsert({
@@ -85,7 +85,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
           },
         });
 
-        console.info('[admin/settings] PUT success', { userId: authedReq.user.userId, key });
+        console.debug('[admin/settings] PUT success', { userId: authedReq.user.userId, key });
         authedRes.status(200).json({ key: setting.key, value: setting.value });
       } catch (err) {
         console.error('[admin/settings] PUT failed', { userId: authedReq.user.userId, key, message: err instanceof Error ? err.message : String(err), code: (err as { code?: string })?.code });

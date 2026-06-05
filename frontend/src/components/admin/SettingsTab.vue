@@ -257,15 +257,15 @@ async function getUsersByIds(userIds: string[]): Promise<User[]> {
 
 async function load() {
   try {
-    console.info('🎯 SettingsTab.load(): starting - checking token availability');
+    console.debug('🎯 SettingsTab.load(): starting - checking token availability');
     try {
       const token = localStorage.getItem('token');
-      console.info('🔍 SettingsTab: token in localStorage:', token ? token.slice(0, 30) + '...' : 'NULL');
+      console.debug('🔍 SettingsTab: token in localStorage:', token ? token.slice(0, 30) + '...' : 'NULL');
     } catch (e) {
       console.error('❌ SettingsTab: error accessing localStorage:', e);
     }
 
-    console.info('📡 SettingsTab: calling adminApi.settings.get()');
+    console.debug('📡 SettingsTab: calling adminApi.settings.get()');
     const s = await adminApi.settings.get();
     const princessId = s?.['princess_user_id'] ?? '';
     const testerIds = parseUserIds(s?.['tester_user_ids']);
@@ -276,7 +276,7 @@ async function load() {
       currentPrincess.value = null;
     }
     currentTesters.value = await getUsersByIds(testerIds);
-    console.info('✅ SettingsTab: settings loaded successfully');
+    console.debug('✅ SettingsTab: settings loaded successfully');
   } catch (e) {
     console.error('❌ SettingsTab.load() error:', e);
     // non-critical
