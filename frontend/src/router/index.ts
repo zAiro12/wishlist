@@ -43,20 +43,20 @@ router.beforeEach(async (to) => {
   const auth = useAuthStore();
   const invite = useInviteStore();
 
-  console.info(`🛣️ Router guard: navigating to ${String(to.name)} (${to.path}), initialized=${auth.initialized}`);
+  console.debug(`🛣️ Router guard: navigating to ${String(to.name)} (${to.path}), initialized=${auth.initialized}`);
 
   // Ensure we attempt to fetch the session exactly once.
   if (!auth.initialized) {
-    console.info('🔄 Router guard: calling auth.fetchUser() because not initialized');
+    console.debug('🔄 Router guard: calling auth.fetchUser() because not initialized');
     try {
       const token = localStorage.getItem('token') ?? sessionStorage.getItem('token');
-      console.info('🔑 Router guard: token in storage before fetchUser():', token ? token.slice(0, 30) + '...' : 'NULL');
+      console.debug('🔑 Router guard: token in storage before fetchUser():', token ? token.slice(0, 30) + '...' : 'NULL');
     } catch (e) {
       console.error('❌ Router guard: error checking token:', e);
     }
     await auth.fetchUser().catch(() => {});
   } else {
-    console.info('⏭️ Router guard: skipping fetchUser() (already initialized)');
+    console.debug('⏭️ Router guard: skipping fetchUser() (already initialized)');
   }
 
   // If there's a join query param on the incoming route, handle invite flow.

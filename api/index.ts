@@ -68,7 +68,7 @@ function logRequest(req: VercelRequest) {
 	try {
 		const method = req.method || 'GET'
 		const rawUrl = req.url || ''
-		console.info(`[api] ${method} ${rawUrl}`)
+		console.debug(`[api] ${method} ${rawUrl}`)
 	} catch {
 		// best-effort logging, never throw
 	}

@@ -54,12 +54,12 @@ onMounted(async () => {
     const persistToken = (t: string) => {
       try {
         localStorage.setItem('token', t);
-        console.info('✅ persistToken() saved to localStorage:', t.slice(0, 50) + '...');
+        console.debug('✅ persistToken() saved to localStorage:', t.slice(0, 50) + '...');
       } catch (e) {
         console.warn('⚠️ localStorage.setItem failed, trying sessionStorage:', e);
         try {
           sessionStorage.setItem('token', t);
-          console.info('✅ persistToken() saved to sessionStorage:', t.slice(0, 50) + '...');
+          console.debug('✅ persistToken() saved to sessionStorage:', t.slice(0, 50) + '...');
         } catch (e2) {
           console.error('❌ persistToken() failed in both storages:', e2);
         }
@@ -67,7 +67,7 @@ onMounted(async () => {
     };
 
     if (tokenFromQuery) {
-      console.info('📝 AuthCallbackView: token from query:', tokenFromQuery.slice(0, 50) + '...');
+      console.debug('📝 AuthCallbackView: token from query:', tokenFromQuery.slice(0, 50) + '...');
       try {
         persistToken(tokenFromQuery);
         // update store token synchronously if available

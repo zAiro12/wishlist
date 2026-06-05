@@ -27,13 +27,13 @@ export const useAuthStore = defineStore('auth', () => {
     try {
       const apiBase = import.meta.env.VITE_API_URL ?? 'http://localhost:3000';
       const tokenLocal = readToken();
-      console.info('🔐 fetchUser: tokenLocal from readToken():', tokenLocal ? tokenLocal.slice(0, 50) + '...' : 'NULL');
+      console.debug('🔐 fetchUser: tokenLocal from readToken():', tokenLocal ? tokenLocal.slice(0, 50) + '...' : 'NULL');
       
       const headers: Record<string, string> = {
         'Content-Type': 'application/json',
         ...(tokenLocal ? { Authorization: `Bearer ${tokenLocal}` } : {}),
       };
-      console.info('📤 fetchUser: request headers:', { 'Content-Type': 'application/json', Authorization: tokenLocal ? 'Bearer ' + tokenLocal.slice(0, 20) + '...' : '(none)' });
+      console.debug('📤 fetchUser: request headers:', { 'Content-Type': 'application/json', Authorization: tokenLocal ? 'Bearer ' + tokenLocal.slice(0, 20) + '...' : '(none)' });
       
       const res = await fetch(`${apiBase}/api/users/me`, {
         method: 'GET',
@@ -41,7 +41,7 @@ export const useAuthStore = defineStore('auth', () => {
         headers,
       });
       
-      console.info('📥 fetchUser: response status:', res.status);
+      console.debug('📥 fetchUser: response status:', res.status);
 
       if (!res.ok) {
         if (res.status === 401 || res.status === 403) {
@@ -65,7 +65,7 @@ export const useAuthStore = defineStore('auth', () => {
       }
 
       user.value = await res.json();
-      console.info('✅ fetchUser: user loaded:', user.value);
+      console.debug('✅ fetchUser: user loaded:', user.value);
       initialized.value = true;
     } catch (err) {
       console.error('❌ fetchUser: caught error:', err);
@@ -116,10 +116,10 @@ export const useAuthStore = defineStore('auth', () => {
   }
 
   async function initFromStorage(): Promise<void> {
-    console.info('🚀 auth.initFromStorage(): checking for persisted token');
+    console.debug('🚀 auth.initFromStorage(): checking for persisted token');
     const stored = readToken();
     if (stored) {
-      console.info('✅ auth.initFromStorage(): token found:', stored.slice(0, 30) + '...');
+      console.debug('✅ auth.initFromStorage(): token found:', stored.slice(0, 30) + '...');
       token.value = stored;
     } else {
       console.warn('⚠️ auth.initFromStorage(): no token in storage');
