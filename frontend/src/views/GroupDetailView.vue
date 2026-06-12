@@ -79,11 +79,11 @@
             <p style="margin:0.25rem 0 0;color:var(--color-on-surface-variant);">
               Registra chi ha pagato, quanto devono gli altri e quando saldano.
             </p>
-            <label
-              style="display:inline-flex;align-items:center;gap:0.45rem;margin-top:0.6rem;color:var(--color-on-surface-variant);font-size:0.9rem;">
-              <input v-model="showClosedGiftBatches" type="checkbox" />
-              Mostra chiusi
-            </label>
+            <button class="btn-secondary show-closed-toggle" :class="{ 'show-closed-toggle-active': showClosedGiftBatches }"
+              type="button" :aria-pressed="showClosedGiftBatches"
+              @click="showClosedGiftBatches = !showClosedGiftBatches">
+              {{ showClosedGiftBatches ? 'Nascondi chiusi' : 'Mostra chiusi' }}
+            </button>
           </div>
           <button class="text-trigger-btn" type="button" :disabled="isAnyBackendActionPending" @click="openGiftModal">
             + Inserisci regalo/debito
@@ -1052,6 +1052,16 @@ async function handleDeleteGroup() {
 
 .gift-ledger-card {
   margin-bottom: 1.5rem;
+}
+
+.show-closed-toggle {
+  margin-top: 0.65rem;
+  padding: 0.45rem 0.9rem;
+}
+
+.show-closed-toggle-active {
+  background-color: color-mix(in srgb, var(--color-primary) 18%, var(--color-surface-container-high));
+  color: var(--color-primary);
 }
 
 .text-trigger-btn {
