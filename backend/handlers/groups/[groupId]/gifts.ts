@@ -46,10 +46,13 @@ type GiftBatchRow = {
   paidAt: Date;
   beneficiaryIds: string[];
   createdByUserId: string;
+  closedAt: Date | null;
+  closedByUserId: string | null;
   createdAt: Date;
   updatedAt: Date;
   paidBy: GroupMemberUser;
   createdBy: GroupMemberUser;
+  closedBy: GroupMemberUser;
   settlements: GiftBatchSettlement[];
 };
 
@@ -111,17 +114,22 @@ async function listGiftBatches(params: {
   groupId: string;
   userId: string;
   canViewEmail: boolean;
+  includeClosed: boolean;
   userSelect: ReturnType<typeof buildGroupUserSelect>;
   memberMap: Map<string, GiftUser | null>;
   authedRes: VercelResponse;
 }): Promise<void> {
-  const { groupId, userId, canViewEmail, userSelect, memberMap, authedRes } = params;
+  const { groupId, userId, canViewEmail, includeClosed, userSelect, memberMap, authedRes } = params;
 
   const batches = await prisma.groupGiftBatch.findMany({
-    where: { groupId },
+    where: {
+      groupId,
+      ...(includeClosed ? {} : { closedAt: null }),
+    },
     include: {
       paidBy: { select: userSelect },
       createdBy: { select: userSelect },
+      closedBy: { select: userSelect },
       settlements: {
         include: {
           debtor: { select: userSelect },
@@ -139,6 +147,7 @@ async function listGiftBatches(params: {
       ...batch,
       paidBy: mapUser(batch.paidBy),
       createdBy: mapUser(batch.createdBy),
+      closedBy: mapUser(batch.closedBy),
       beneficiaries: batch.beneficiaryIds
         .map((beneficiaryId) => memberMap.get(beneficiaryId) ?? null)
         .filter(isGiftUser),
@@ -237,6 +246,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
   await requireAuth(req, res, async (authedReq: AuthedRequest, authedRes: VercelResponse) => {
     const userId = authedReq.user.userId;
     const groupId = authedReq.query['groupId'] as string;
+    const includeClosedRaw = authedReq.query['includeClosed'];
+    const includeClosedValue = Array.isArray(includeClosedRaw) ? includeClosedRaw[0] : includeClosedRaw;
+    const includeClosed = includeClosedValue === 'true';
 
     if (!groupId) {
       authedRes.status(400).json({ error: 'Group ID required' });
@@ -258,7 +270,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
       const activeMemberIds = new Set<string>(members.map((member) => member.userId));
 
       if (authedReq.method === 'GET') {
-        await listGiftBatches({ groupId, userId, canViewEmail, userSelect, memberMap, authedRes });
+        await listGiftBatches({ groupId, userId, canViewEmail, includeClosed, userSelect, memberMap, authedRes });
         return;
       }
 

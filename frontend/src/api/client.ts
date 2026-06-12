@@ -224,7 +224,8 @@ export const groups = {
     }),
 
   gifts: {
-    list: (groupId: string) => request<import('../types').GroupGiftBatch[]>(`/api/groups/${groupId}/gifts`),
+    list: (groupId: string, includeClosed = false) =>
+      request<import('../types').GroupGiftBatch[]>(`/api/groups/${groupId}/gifts?includeClosed=${includeClosed ? 'true' : 'false'}`),
     create: (
       groupId: string,
       data: {
@@ -247,6 +248,15 @@ export const groups = {
       data: { settlementId: string; settled: boolean }
     ) =>
       request<import('../types').GroupGiftSettlement>(`/api/groups/${groupId}/gifts/${giftId}/settlements`, {
+        method: 'PATCH',
+        body: JSON.stringify(data),
+      }),
+    updateClosure: (
+      groupId: string,
+      giftId: string,
+      data: { closed: boolean }
+    ) =>
+      request<import('../types').GroupGiftBatch>(`/api/groups/${groupId}/gifts/${giftId}/close`, {
         method: 'PATCH',
         body: JSON.stringify(data),
       }),

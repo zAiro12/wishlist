@@ -79,6 +79,11 @@
             <p style="margin:0.25rem 0 0;color:var(--color-on-surface-variant);">
               Registra chi ha pagato, quanto devono gli altri e quando saldano.
             </p>
+            <label
+              style="display:inline-flex;align-items:center;gap:0.45rem;margin-top:0.6rem;color:var(--color-on-surface-variant);font-size:0.9rem;">
+              <input v-model="showClosedGiftBatches" type="checkbox" />
+              Mostra chiusi
+            </label>
           </div>
           <button class="text-trigger-btn" type="button" :disabled="isAnyBackendActionPending" @click="openGiftModal">
             + Inserisci regalo/debito
@@ -89,7 +94,7 @@
           giftActionMsg }}
         </p>
         <p v-if="giftActionError && !showGiftModal" class="error-message" style="margin:0.75rem 0 0;">{{ giftActionError
-        }}
+          }}
         </p>
 
         <div v-if="giftsLoading" style="text-align:center;padding:1.5rem 0;">
@@ -107,12 +112,21 @@
                 <p style="margin:0.25rem 0 0;color:var(--color-on-surface-variant);">
                   Pagato da {{ memberLabel(batch.paidBy) }} il {{ formatDate(batch.paidAt) }}
                 </p>
+                <p v-if="batch.closedAt"
+                  style="margin:0.2rem 0 0;color:var(--color-on-surface-variant);font-size:0.88rem;">
+                  Chiuso il {{ formatDate(batch.closedAt) }}
+                  <template v-if="batch.closedBy">da {{ memberLabel(batch.closedBy) }}</template>
+                </p>
               </div>
               <div style="display:flex;align-items:center;gap:0.75rem;flex-wrap:wrap;justify-content:flex-end;">
                 <strong>{{ formatCurrency(batch.totalAmountCents) }}</strong>
                 <button v-if="canCloseGiftBatch(batch)" class="text-trigger-btn" type="button"
                   @click="closeGiftBatch(batch.id)">
                   Chiudi regalo
+                </button>
+                <button v-else-if="canReopenGiftBatch(batch)" class="text-trigger-btn" type="button"
+                  @click="reopenGiftBatch(batch.id)">
+                  Riapri regalo
                 </button>
               </div>
             </div>
@@ -384,7 +398,7 @@ const giftBeneficiaryUserIds = ref<string[]>([]);
 const giftSplitDraft = ref<Record<string, string>>({});
 const showGiftModal = ref(false);
 const showTransferModal = ref(false);
-const hiddenGiftBatchIds = ref<string[]>(loadHiddenGiftBatchIds());
+const showClosedGiftBatches = ref(false);
 const pendingAction = ref<string | null>(null);
 
 const editingName = ref(false);
@@ -478,25 +492,21 @@ function formatDate(dateStr: string): string {
   return new Intl.DateTimeFormat('it-IT', { dateStyle: 'medium' }).format(new Date(dateStr));
 }
 
-function giftBatchStorageKey(): string {
-  return `wishlist:hidden-gift-batches:${groupId}`;
+function showClosedGiftBatchesStorageKey(): string {
+  return `wishlist:show-closed-gifts:${groupId}:${authStore.user?.id ?? 'anonymous'}`;
 }
 
-function loadHiddenGiftBatchIds(): string[] {
+function loadShowClosedGiftBatchesPreference(): boolean {
   try {
-    const raw = localStorage.getItem(giftBatchStorageKey());
-    if (!raw) return [];
-    const parsed = JSON.parse(raw) as unknown;
-    if (!Array.isArray(parsed)) return [];
-    return parsed.filter((id): id is string => typeof id === 'string' && id.trim().length > 0);
+    return localStorage.getItem(showClosedGiftBatchesStorageKey()) === '1';
   } catch {
-    return [];
+    return false;
   }
 }
 
-function persistHiddenGiftBatchIds(): void {
+function persistShowClosedGiftBatchesPreference(enabled: boolean): void {
   try {
-    localStorage.setItem(giftBatchStorageKey(), JSON.stringify(hiddenGiftBatchIds.value));
+    localStorage.setItem(showClosedGiftBatchesStorageKey(), enabled ? '1' : '0');
   } catch {
     // ignore localStorage failures
   }
@@ -535,7 +545,11 @@ async function withPending<T>(actionId: string, task: () => Promise<T>): Promise
 }
 
 function canCloseGiftBatch(batch: GroupGiftBatch): boolean {
-  return isGiftBatchSettled(batch) && !hiddenGiftBatchIds.value.includes(batch.id);
+  return isGiftBatchSettled(batch) && !batch.closedAt;
+}
+
+function canReopenGiftBatch(batch: GroupGiftBatch): boolean {
+  return Boolean(batch.closedAt) && (isOwner.value || authStore.isAdmin);
 }
 
 function sortedSettlements(batch: GroupGiftBatch): GroupGiftSettlement[] {
@@ -547,11 +561,30 @@ function sortedSettlements(batch: GroupGiftBatch): GroupGiftSettlement[] {
   });
 }
 
-function closeGiftBatch(batchId: string): void {
-  if (hiddenGiftBatchIds.value.includes(batchId)) return;
-  hiddenGiftBatchIds.value = [...hiddenGiftBatchIds.value, batchId];
-  giftBatches.value = giftBatches.value.filter((batch) => batch.id !== batchId);
-  persistHiddenGiftBatchIds();
+async function closeGiftBatch(batchId: string): Promise<void> {
+  try {
+    await withPending(`close-gift:${batchId}`, async () => {
+      await groupsApi.gifts.updateClosure(groupId, batchId, { closed: true });
+      await loadGiftBatches();
+      giftActionMsg.value = 'Regalo chiuso online.';
+      giftActionError.value = null;
+    });
+  } catch (err) {
+    giftActionError.value = err instanceof ApiError ? err.message : 'Errore durante la chiusura del regalo';
+  }
+}
+
+async function reopenGiftBatch(batchId: string): Promise<void> {
+  try {
+    await withPending(`reopen-gift:${batchId}`, async () => {
+      await groupsApi.gifts.updateClosure(groupId, batchId, { closed: false });
+      await loadGiftBatches();
+      giftActionMsg.value = 'Regalo riaperto.';
+      giftActionError.value = null;
+    });
+  } catch (err) {
+    giftActionError.value = err instanceof ApiError ? err.message : 'Errore durante la riapertura del regalo';
+  }
 }
 
 function daysUntilBirthday(dateStr: string): number {
@@ -586,7 +619,7 @@ const allBirthdays = computed<Array<{ userId: string; givenName: string | null; 
     })
     .sort((a, b) => a.daysUntil - b.daysUntil)
 );
-const visibleGiftBatches = computed(() => giftBatches.value.filter((batch) => !hiddenGiftBatchIds.value.includes(batch.id)));
+const visibleGiftBatches = computed(() => giftBatches.value);
 const isAnyBackendActionPending = computed(() => pendingAction.value !== null);
 const transferCandidates = computed(() =>
   activeMembers.value.filter((member: GroupMember) => member.userId !== authStore.user?.id)
@@ -743,7 +776,7 @@ async function loadGiftBatches(): Promise<void> {
   giftsLoading.value = true;
   giftsError.value = null;
   try {
-    giftBatches.value = await groupsApi.gifts.list(groupId);
+    giftBatches.value = await groupsApi.gifts.list(groupId, showClosedGiftBatches.value);
   } catch (err) {
     giftsError.value = err instanceof ApiError ? err.message : 'Errore caricamento regali';
   } finally {
@@ -842,6 +875,14 @@ async function toggleSettlement(batch: GroupGiftBatch, settlement: GroupGiftSett
 }
 
 watch(
+  () => showClosedGiftBatches.value,
+  (enabled) => {
+    persistShowClosedGiftBatchesPreference(enabled);
+    void loadGiftBatches();
+  }
+);
+
+watch(
   () => giftDebtors.value.map((member: GroupMember) => member.userId).join(','),
   () => {
     syncGiftDraft();
@@ -900,14 +941,16 @@ async function shareInviteLink(): Promise<void> {
 onMounted(async () => {
   loading.value = true;
   giftsLoading.value = true;
+  const initialShowClosed = loadShowClosedGiftBatchesPreference();
+  showClosedGiftBatches.value = initialShowClosed;
   try {
     const [loadedGroup, loadedGiftBatches] = await Promise.all([
       groupsApi.get(groupId),
-      groupsApi.gifts.list(groupId),
+      groupsApi.gifts.list(groupId, initialShowClosed),
       settingsStore.fetchSettings(),
     ]);
     group.value = loadedGroup;
-    giftBatches.value = loadedGiftBatches.filter((batch) => !hiddenGiftBatchIds.value.includes(batch.id));
+    giftBatches.value = loadedGiftBatches;
     giftPaidByUserId.value = authStore.user?.id ?? loadedGroup.ownerId;
   } catch (err) {
     error.value = err instanceof ApiError ? err.message : 'Errore caricamento gruppo';

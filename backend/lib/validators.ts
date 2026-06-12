@@ -104,6 +104,10 @@ export const UpdateGroupGiftSettlementSchema = z.object({
   settled: z.boolean(),
 });
 
+export const UpdateGroupGiftBatchClosureSchema = z.object({
+  closed: z.boolean(),
+});
+
 // ─── Wishlist ──────────────────────────────────────────────────────────────────
 
 export const CreateWishlistItemSchema = z.object({

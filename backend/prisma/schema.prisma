@@ -50,6 +50,7 @@ model User {
   auditTargetOf    AdminAction[]       @relation("AdminTarget")
   giftBatchesPaid  GroupGiftBatch[]    @relation("GroupGiftBatchPaidBy")
   giftBatchesCreated GroupGiftBatch[]   @relation("GroupGiftBatchCreatedBy")
+  giftBatchesClosed GroupGiftBatch[]    @relation("GroupGiftBatchClosedBy")
   giftSettlementsDebtor GroupGiftSettlement[] @relation("GroupGiftSettlementDebtor")
   giftSettlementsSettled GroupGiftSettlement[] @relation("GroupGiftSettlementSettledBy")
 
@@ -182,17 +183,21 @@ model GroupGiftBatch {
   paidAt           DateTime
   beneficiaryIds   String[]
   createdByUserId  String
+  closedAt         DateTime?
+  closedByUserId   String?
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
 
   group       Group                @relation(fields: [groupId], references: [id])
   paidBy      User                 @relation("GroupGiftBatchPaidBy", fields: [paidByUserId], references: [id])
   createdBy   User                 @relation("GroupGiftBatchCreatedBy", fields: [createdByUserId], references: [id])
+  closedBy    User?                @relation("GroupGiftBatchClosedBy", fields: [closedByUserId], references: [id])
   settlements GroupGiftSettlement[]
 
   @@index([groupId])
   @@index([paidByUserId])
   @@index([createdByUserId])
+  @@index([closedAt])
   @@index([paidAt])
 }
 

@@ -78,10 +78,13 @@ export interface GroupGiftBatch {
   paidAt: string;
   beneficiaryIds: string[];
   createdByUserId: string;
+  closedAt: string | null;
+  closedByUserId: string | null;
   createdAt: string;
   updatedAt: string;
   paidBy?: GroupUserSummary;
   createdBy?: GroupUserSummary;
+  closedBy?: GroupUserSummary | null;
   beneficiaries?: GroupUserSummary[];
   settlements: GroupGiftSettlement[];
 }

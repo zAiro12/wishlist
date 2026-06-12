@@ -46,6 +46,7 @@ import membersHandler from '../backend/handlers/groups/[groupId]/members'
 import joinHandler from '../backend/handlers/groups/[groupId]/join'
 import invitePreviewHandler from '../backend/handlers/groups/[groupId]/invite-preview'
 import giftsHandler from '../backend/handlers/groups/[groupId]/gifts'
+import giftCloseHandler from '../backend/handlers/groups/[groupId]/gifts/[giftId]/close'
 import giftSettlementHandler from '../backend/handlers/groups/[groupId]/gifts/[giftId]/settlements'
 import nextCelebratedHandler from '../backend/handlers/groups/[groupId]/next-celebrated'
 import transferHandler from '../backend/handlers/groups/[groupId]/transfer'
@@ -181,6 +182,7 @@ const routes: { pattern: string; handler: Handler }[] = [
 	{ pattern: '/groups/:groupId/join',              handler: joinHandler },
 	{ pattern: '/groups/:groupId/invite-preview',    handler: invitePreviewHandler },
 	{ pattern: '/groups/:groupId/gifts',             handler: giftsHandler },
+	{ pattern: '/groups/:groupId/gifts/:giftId/close', handler: giftCloseHandler },
 	{ pattern: '/groups/:groupId/gifts/:giftId/settlements', handler: giftSettlementHandler },
 	{ pattern: '/groups/:groupId/next-celebrated',   handler: nextCelebratedHandler },
 	{ pattern: '/groups/:groupId/transfer',          handler: transferHandler },
